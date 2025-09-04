@@ -1,0 +1,6 @@
+[workspace]
+members = [
+    "xtask",
+    "quickgpu",
+]
+resolver = "2"

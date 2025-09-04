@@ -1,0 +1,4 @@
+[submodule "quickgpu/wgpu"]
+	path = quickgpu/wgpu
+	url = https://github.com/gfx-rs/wgpu.git
+	branch = v26
