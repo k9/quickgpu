@@ -1,5 +1,13 @@
-pub struct A {
-    pub b: f64,
+pub mod builders;
+
+pub mod aa {
+    pub struct A {
+        pub b: f64,
+    }
+}
+
+pub mod bb {
+    pub use crate::aa::*;
 }
 
 pub fn add(left: u64, right: u64) -> u64 {
