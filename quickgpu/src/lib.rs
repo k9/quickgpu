@@ -1,26 +1,50 @@
+use wgpu::{CommandEncoder, Device, RenderPassDepthStencilAttachment};
+
+use crate::builders::{
+    RenderPassDepthStencilAttachmentBuilder, render_pass_depth_stencil_attachment_builder,
+    render_pass_descriptor_builder, render_pipeline_descriptor_builder,
+};
+
 pub mod builders;
 
-pub mod aa {
-    pub struct A {
-        pub b: f64,
+impl<'a, S> builders::RenderPipelineDescriptorBuilder<'a, S>
+where
+    S: render_pipeline_descriptor_builder::IsComplete,
+{
+    pub fn create_with(self, device: &Device) -> wgpu::RenderPipeline {
+        device.create_render_pipeline(&self.call())
     }
 }
 
-pub mod bb {
-    pub use crate::aa::*;
+impl<'a, 'encoder, S> builders::RenderPassDescriptorBuilder<'a, S>
+where
+    S: render_pass_descriptor_builder::IsComplete,
+{
+    pub fn begin_with(self, encoder: &'encoder mut CommandEncoder) -> wgpu::RenderPass<'encoder> {
+        encoder.begin_render_pass(&self.call())
+    }
 }
 
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
+pub trait NestedBuilder {
+    type Output;
+    fn nested_build(self) -> Self::Output;
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+impl<'a, S> NestedBuilder for RenderPassDepthStencilAttachmentBuilder<'a, S>
+where
+    S: render_pass_depth_stencil_attachment_builder::IsComplete,
+{
+    type Output = RenderPassDepthStencilAttachment<'a>;
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
+    fn nested_build(self) -> Self::Output {
+        self.call()
+    }
+}
+
+impl<'a> NestedBuilder for RenderPassDepthStencilAttachment<'a> {
+    type Output = RenderPassDepthStencilAttachment<'a>;
+
+    fn nested_build(self) -> Self::Output {
+        self
     }
 }

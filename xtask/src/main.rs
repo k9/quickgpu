@@ -1,8 +1,10 @@
 mod utils;
 
 use std::{
+    collections::HashSet,
     fs,
     path::{Path, PathBuf},
+    sync::{LazyLock, RwLock},
 };
 
 use anyhow::Context;
@@ -15,9 +17,50 @@ use syn::Item;
 
 use crate::utils::id;
 
-const MIN_FIELDS: usize = 2;
+const MIN_FIELDS: usize = 1;
 
-const SKIP: [&str; 2] = ["AllocatorReport", "HalCounters"];
+const SKIP: &[&str] = &["AllocatorReport", "HalCounters"];
+const SKIP_DEFAULT: &[&str] = &[
+    "DeviceType",
+    "Backend",
+    "& 'a BindGroupLayout",
+    "ShaderStages",
+    "BindingType",
+    "& 'a BlasTriangleGeometrySizeDescriptor",
+    "& 'a Buffer",
+    "BlendFactor",
+    "TextureFormat",
+    "CompilationMessageType",
+    "& 'a QuerySet",
+    "& 'a ShaderModule",
+    "T",
+    "B",
+    "VertexState < 'a >",
+    "PredefinedColorSpace",
+    "CompareFunction",
+    "ShaderModel",
+    "DownlevelFlags",
+    "& 'tex TextureView",
+    "TextureUses",
+    "TextureUsages",
+    "VertexFormat",
+    "ShaderSource < 'a >",
+    "TextureFormatFeatureFlags",
+    "BufferUses",
+    "BindingResource < 'a >",
+    "& 'a Blas",
+    "BlasGeometries < 'a >",
+    "LoadOp < V >",
+    // @todo provide a default
+    /*
+    "u32",
+    "u64",
+    "f32",
+    "f64",
+    "i32",
+    "i64",
+    */
+];
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -52,6 +95,9 @@ fn path(file: &str) -> anyhow::Result<PathBuf> {
         .canonicalize()?)
 }
 
+pub static FIELD_TYPE_SET: LazyLock<RwLock<HashSet<String>>> =
+    LazyLock::new(|| RwLock::new(HashSet::new()));
+
 pub struct Generator {
     html: Html,
 }
@@ -65,6 +111,7 @@ impl Generator {
     pub fn generate(&mut self) -> anyhow::Result<()> {
         let mut code: Vec<TokenStream> = vec![q!(
             use std::num::{NonZero, NonZeroU32};
+            use std::ops::Range;
             use wgpu::{wgt::TextureSelector, *};
         )];
         let root = self.html.root_element();
@@ -79,6 +126,11 @@ impl Generator {
         }
 
         utils::output(code, true);
+
+        let fts = FIELD_TYPE_SET.read().unwrap();
+        for field in fts.iter() {
+            println!("{field}");
+        }
 
         Ok(())
     }
@@ -114,17 +166,35 @@ impl Generator {
                     let field_ident = &f.ident;
                     let field_type = &f.ty;
 
-                    q!(#field_ident: #field_type)
+                    let ty = q!(#field_type).to_string();
+
+                    {
+                        FIELD_TYPE_SET.write().unwrap().insert(ty.clone());
+                    }
+
+                    if ty.starts_with("Option <") || SKIP_DEFAULT.contains(&ty.as_str()) {
+                        q!(
+                            #field_ident: #field_type
+                        )
+                    } else {
+                        q!(
+                            #[builder(default)]
+                            #field_ident: #field_type
+                        )
+                    }
                 });
 
                 let value_ident = &item.ident;
+
                 let value_fields = item.fields.iter().map(|f| {
-                    let value_ident = &f.ident;
-                    q!(#value_ident)
+                    let field_ident = f.ident.as_ref().unwrap();
+
+                    println!("{value_ident}::{field_ident}");
+                    q!(#field_ident)
                 });
 
                 let builder = q!(
-                    #[bon::builder]
+                    #[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
                     pub fn #fn_ident #generics(
                         #(#fn_params),*
                     ) -> #value_ident #generics {
