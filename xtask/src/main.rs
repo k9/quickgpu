@@ -1,10 +1,8 @@
 mod utils;
 
 use std::{
-    collections::HashSet,
     fs,
     path::{Path, PathBuf},
-    sync::{LazyLock, RwLock},
 };
 
 use anyhow::Context;
@@ -19,48 +17,56 @@ use crate::utils::id;
 
 const MIN_FIELDS: usize = 1;
 
+#[derive(Clone, Copy, Debug)]
+struct FieldConfig<'a> {
+    pub default: bool,
+    pub default_value: Option<&'a str>,
+    pub into: bool,
+}
+
+impl<'a> Default for FieldConfig<'a> {
+    fn default() -> Self {
+        Self {
+            default: true,
+            default_value: None,
+            into: true,
+        }
+    }
+}
+
+fn get_field_config<'a>((item, field): (impl Into<String>, impl Into<String>)) -> FieldConfig<'a> {
+    #[allow(clippy::match_single_binding)]
+    match (item.into().as_str(), field.into().as_str()) {
+        ("ComputePassTimestampWrites", "beginning_of_pass_write_index")
+        | ("ComputePassTimestampWrites", "end_of_pass_write_index")
+        | ("ComputePassDescriptor", "timestamp_writes")
+        | ("ComputePipelineDescriptor", "entry_point")
+        | ("ComputePipelineDescriptor", "cache")
+        | ("ComputePipelineDescriptor", "layout")
+        | ("CompilationMessage", "location")
+        | ("ColorTargetState", "blend")
+        | ("BufferBinding", "size")
+        | ("BlasTriangleGeometry", "index_buffer")
+        | ("BlasTriangleGeometry", "first_index")
+        | ("BlasTriangleGeometry", "transform_buffer")
+        | ("BlasTriangleGeometry", "transform_buffer_offset")
+        | ("BindGroupLayoutEntry", "count")
+        | ("FragmentState", "entry_point")
+        | ("ImageSubresourceRange", "mip_level_count")
+        | ("ImageSubresourceRange", "array_layer_count")
+        | ("MemoryBudgetThresholds", "for_resource_creation")
+        | ("MemoryBudgetThresholds", "for_device_loss")
+        | ("PipelineCacheDescriptor", "data")
+        | ("PrimitiveState", "strip_index_format")
+        | ("PrimitiveState", "cull_mode") => FieldConfig {
+            default: false,
+            ..Default::default()
+        },
+        _ => FieldConfig::default(),
+    }
+}
+
 const SKIP: &[&str] = &["AllocatorReport", "HalCounters"];
-const SKIP_DEFAULT: &[&str] = &[
-    "DeviceType",
-    "Backend",
-    "& 'a BindGroupLayout",
-    "ShaderStages",
-    "BindingType",
-    "& 'a BlasTriangleGeometrySizeDescriptor",
-    "& 'a Buffer",
-    "BlendFactor",
-    "TextureFormat",
-    "CompilationMessageType",
-    "& 'a QuerySet",
-    "& 'a ShaderModule",
-    "T",
-    "B",
-    "VertexState < 'a >",
-    "PredefinedColorSpace",
-    "CompareFunction",
-    "ShaderModel",
-    "DownlevelFlags",
-    "& 'tex TextureView",
-    "TextureUses",
-    "TextureUsages",
-    "VertexFormat",
-    "ShaderSource < 'a >",
-    "TextureFormatFeatureFlags",
-    "BufferUses",
-    "BindingResource < 'a >",
-    "& 'a Blas",
-    "BlasGeometries < 'a >",
-    "LoadOp < V >",
-    // @todo provide a default
-    /*
-    "u32",
-    "u64",
-    "f32",
-    "f64",
-    "i32",
-    "i64",
-    */
-];
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -95,9 +101,6 @@ fn path(file: &str) -> anyhow::Result<PathBuf> {
         .canonicalize()?)
 }
 
-pub static FIELD_TYPE_SET: LazyLock<RwLock<HashSet<String>>> =
-    LazyLock::new(|| RwLock::new(HashSet::new()));
-
 pub struct Generator {
     html: Html,
 }
@@ -126,11 +129,6 @@ impl Generator {
         }
 
         utils::output(code, true);
-
-        let fts = FIELD_TYPE_SET.read().unwrap();
-        for field in fts.iter() {
-            println!("{field}");
-        }
 
         Ok(())
     }
@@ -162,34 +160,37 @@ impl Generator {
                 let fn_ident = id(&fn_ident);
                 let generics = item.generics;
 
+                let value_ident = &item.ident;
+
                 let fn_params = item.fields.iter().map(|f| {
-                    let field_ident = &f.ident;
+                    let field_ident = f.ident.as_ref().unwrap();
                     let field_type = &f.ty;
 
-                    let ty = q!(#field_type).to_string();
+                    let config =
+                        get_field_config((value_ident.to_string(), field_ident.to_string()));
 
-                    {
-                        FIELD_TYPE_SET.write().unwrap().insert(ty.clone());
-                    }
+                    let mut derives = vec![];
 
-                    if ty.starts_with("Option <") || SKIP_DEFAULT.contains(&ty.as_str()) {
-                        q!(
-                            #field_ident: #field_type
-                        )
+                    if config.default {
+                        derives.push(q!(default));
+                    };
+
+                    let derives = if derives.is_empty() {
+                        q!()
                     } else {
-                        q!(
-                            #[builder(default)]
-                            #field_ident: #field_type
-                        )
-                    }
-                });
+                        q!(#[builder(#(#derives),*)])
+                    };
 
-                let value_ident = &item.ident;
+                    q!(
+                        #derives
+                        #field_ident: #field_type
+                    )
+                });
 
                 let value_fields = item.fields.iter().map(|f| {
                     let field_ident = f.ident.as_ref().unwrap();
 
-                    println!("{value_ident}::{field_ident}");
+                    println!("(\"{value_ident}\", \"{field_ident}\")");
                     q!(#field_ident)
                 });
 
