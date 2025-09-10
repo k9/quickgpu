@@ -9,64 +9,54 @@ use anyhow::Context;
 use clap::{Parser, Subcommand};
 use convert_case::{Case, Casing};
 use proc_macro2::TokenStream;
-use quote::quote as q;
+use quote::{ToTokens, quote as q};
 use scraper::{Element, ElementRef, Html};
-use syn::Item;
+use syn::{Ident, Item};
 
-use crate::utils::id;
+use crate::utils::{id, output};
 
 const MIN_FIELDS: usize = 1;
 
-#[derive(Clone, Copy, Debug)]
-struct FieldConfig<'a> {
-    pub default: bool,
-    pub default_value: Option<&'a str>,
+#[derive(Clone, Debug)]
+pub enum DefaultValue {
+    None,
+    Default,
+    Value(TokenStream),
+}
+
+#[derive(Clone, Debug)]
+struct FieldConfig {
+    pub default_value: DefaultValue,
     pub into: bool,
+    pub name: Ident,
+    pub ty: TokenStream,
 }
 
-impl<'a> Default for FieldConfig<'a> {
-    fn default() -> Self {
-        Self {
-            default: true,
-            default_value: None,
-            into: true,
-        }
-    }
+#[derive(Clone, Debug)]
+struct StructConfig {
+    pub fields: Vec<FieldConfig>,
+    pub name: Ident,
+    pub fn_name: Ident,
+    pub generics: TokenStream,
 }
 
-fn get_field_config<'a>((item, field): (impl Into<String>, impl Into<String>)) -> FieldConfig<'a> {
-    #[allow(clippy::match_single_binding)]
-    match (item.into().as_str(), field.into().as_str()) {
-        ("ComputePassTimestampWrites", "beginning_of_pass_write_index")
-        | ("ComputePassTimestampWrites", "end_of_pass_write_index")
-        | ("ComputePassDescriptor", "timestamp_writes")
-        | ("ComputePipelineDescriptor", "entry_point")
-        | ("ComputePipelineDescriptor", "cache")
-        | ("ComputePipelineDescriptor", "layout")
-        | ("CompilationMessage", "location")
-        | ("ColorTargetState", "blend")
-        | ("BufferBinding", "size")
-        | ("BlasTriangleGeometry", "index_buffer")
-        | ("BlasTriangleGeometry", "first_index")
-        | ("BlasTriangleGeometry", "transform_buffer")
-        | ("BlasTriangleGeometry", "transform_buffer_offset")
-        | ("BindGroupLayoutEntry", "count")
-        | ("FragmentState", "entry_point")
-        | ("ImageSubresourceRange", "mip_level_count")
-        | ("ImageSubresourceRange", "array_layer_count")
-        | ("MemoryBudgetThresholds", "for_resource_creation")
-        | ("MemoryBudgetThresholds", "for_device_loss")
-        | ("PipelineCacheDescriptor", "data")
-        | ("PrimitiveState", "strip_index_format")
-        | ("PrimitiveState", "cull_mode") => FieldConfig {
-            default: false,
-            ..Default::default()
-        },
-        _ => FieldConfig::default(),
-    }
-}
-
-const SKIP: &[&str] = &["AllocatorReport", "HalCounters"];
+const SKIP: &[&str] = &[
+    "AdapterInfo",
+    "AllocatorReport",
+    "BackendOptions",
+    "BufferTextureCopyInfo",
+    "BufferTransition",
+    "CompilationMessage",
+    "DownlevelCapabilities",
+    "Features",
+    "GLBackendOptions",
+    "HalCounters",
+    "InternalCounters",
+    "Limits",
+    "SourceLocation",
+    "SurfaceCapabilities",
+    "TextureFormatFeatures",
+];
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -112,11 +102,6 @@ impl Generator {
     }
 
     pub fn generate(&mut self) -> anyhow::Result<()> {
-        let mut code: Vec<TokenStream> = vec![q!(
-            use std::num::{NonZero, NonZeroU32};
-            use std::ops::Range;
-            use wgpu::{wgt::TextureSelector, *};
-        )];
         let root = self.html.root_element();
 
         let structs = self.select(&root, "#structs")?;
@@ -124,20 +109,32 @@ impl Generator {
         let structs = structs.next_sibling_element().unwrap();
         let structs = self.select(&structs, "a.struct")?;
 
+        let mut struct_configs = vec![];
         for struct_info in structs {
-            self.process_struct(&mut code, struct_info)?;
+            if let Some(config) = self.process_struct(struct_info)? {
+                let config = self.customize_config(config);
+                struct_configs.push(config);
+            };
         }
 
-        utils::output(code, true);
+        let mut builders = vec![q!(
+            use std::num::{NonZero, NonZeroU32};
+            use std::ops::Range;
+            use wgpu::{wgt::TextureSelector, *};
+        )];
+
+        for config in struct_configs.iter() {
+            builders.push(self.emit_builder(config.clone()));
+        }
+
+        output(&builders, true);
+
+        println!("{struct_configs:#?}");
 
         Ok(())
     }
 
-    fn process_struct(
-        &self,
-        code: &mut Vec<TokenStream>,
-        struct_info: ElementRef<'_>,
-    ) -> anyhow::Result<()> {
+    fn process_struct(&self, struct_info: ElementRef<'_>) -> anyhow::Result<Option<StructConfig>> {
         let name = utils::text_content(struct_info);
         let struct_path = path(&format!("struct.{name}.html"))?;
         let struct_html = utils::prepare(Html::parse_document(&fs::read_to_string(struct_path)?));
@@ -146,70 +143,159 @@ impl Generator {
         let struct_decl = self.select(root, ".item-decl")?;
         let struct_decl = utils::text_content(struct_decl[0]);
         if struct_decl.contains("private fields") {
-            return Ok(());
+            return Ok(None);
         }
 
-        for item in syn::parse_file(&struct_decl)?.items {
-            if let Item::Struct(item) = item
-                && item.fields.len() > MIN_FIELDS
-                && !SKIP.contains(&item.ident.to_string().as_str())
-            {
-                let fn_ident = &item.ident.to_string().to_case(Case::Snake);
-                let fn_ident = fn_ident.replace("_2_d", "_2d");
-                let fn_ident = fn_ident.replace("_3_d", "_3d");
-                let fn_ident = id(&fn_ident);
-                let generics = item.generics;
+        let file = syn::parse_file(&struct_decl)?;
+        let item = file.items.first().context("Couldn't parse struct")?;
 
-                let value_ident = &item.ident;
+        if let Item::Struct(item) = item
+            && item.fields.len() > MIN_FIELDS
+            && !SKIP.contains(&item.ident.to_string().as_str())
+        {
+            let fn_ident = &item.ident.to_string().to_case(Case::Snake);
+            let fn_ident = fn_ident.replace("_2_d", "_2d");
+            let fn_ident = fn_ident.replace("_3_d", "_3d");
+            let fn_ident = id(&fn_ident);
+            let generics = item.generics.clone();
 
-                let fn_params = item.fields.iter().map(|f| {
-                    let field_ident = f.ident.as_ref().unwrap();
-                    let field_type = &f.ty;
+            let value_ident = &item.ident;
 
-                    let config =
-                        get_field_config((value_ident.to_string(), field_ident.to_string()));
+            let mut config = StructConfig {
+                name: value_ident.clone(),
+                fn_name: fn_ident,
+                fields: vec![],
+                generics: generics.to_token_stream(),
+            };
 
-                    let mut derives = vec![];
+            for f in item.fields.iter() {
+                let field_ident = f.ident.clone().unwrap();
+                let field_type = f.ty.clone();
 
-                    if config.default {
-                        derives.push(q!(default));
-                    };
-
-                    let derives = if derives.is_empty() {
-                        q!()
-                    } else {
-                        q!(#[builder(#(#derives),*)])
-                    };
-
-                    q!(
-                        #derives
-                        #field_ident: #field_type
-                    )
+                config.fields.push(FieldConfig {
+                    name: field_ident,
+                    ty: field_type.to_token_stream(),
+                    default_value: DefaultValue::Default,
+                    into: true,
                 });
+            }
 
-                let value_fields = item.fields.iter().map(|f| {
-                    let field_ident = f.ident.as_ref().unwrap();
+            Ok(Some(config))
+        } else {
+            Ok(None)
+        }
+    }
 
-                    println!("(\"{value_ident}\", \"{field_ident}\")");
-                    q!(#field_ident)
-                });
+    fn customize_config(&self, struct_config: StructConfig) -> StructConfig {
+        let mut struct_config = struct_config.clone();
+        for field in struct_config.fields.iter_mut() {
+            let ty = field.ty.to_string();
+            if ty.starts_with("Option <") || ty.starts_with("& ") {
+                field.default_value = DefaultValue::None;
+            }
 
-                let builder = q!(
-                    #[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
-                    pub fn #fn_ident #generics(
-                        #(#fn_params),*
-                    ) -> #value_ident #generics {
-                        #value_ident {
-                            #(#value_fields),*
-                        }
-                    }
-                );
+            if ty.starts_with("Label <") {
+                field.default_value = DefaultValue::Value(q!(None));
+            }
 
-                code.push(builder);
+            // Shut off defaults for primitives including bools, unless in IDL
+
+            match (
+                struct_config.name.to_string().as_str(),
+                field.name.to_string().as_str(),
+            ) {
+                ("AdapterInfo", "backend")
+                | ("AdapterInfo", "device_type")
+                | ("BindGroupEntry", "resource")
+                | ("BindGroupLayoutEntry", "visibility")
+                | ("BindGroupLayoutEntry", "ty")
+                | ("BlasBuildEntry", "geometry")
+                | ("BlendComponent", "src_factor")
+                | ("BlendComponent", "dst_factor")
+                | ("BufferTransition", "buffer")
+                | ("BufferTransition", "state")
+                | ("ColorTargetState", "format")
+                | ("CompilationMessage", "message_type")
+                | ("CopyExternalImageDestInfo", "texture")
+                | ("CopyExternalImageDestInfo", "color_space")
+                | ("DepthStencilState", "format")
+                | ("DepthStencilState", "depth_compare")
+                | ("DownlevelCapabilities", "flags")
+                | ("DownlevelCapabilities", "shader_model")
+                | ("PushConstantRange", "stages")
+                | ("RenderBundleDepthStencil", "format")
+                | ("RenderPipelineDescriptor", "vertex")
+                | ("ShaderModeulDescriptor", "source")
+                | ("StencilFaceState", "compare")
+                | ("ShaderModuleDescriptor", "source")
+                | ("SurfaceCapabilities", "usages")
+                | ("TexelCopyBufferInfoBase", "buffer")
+                | ("TexelCopyTextureInfoBase", "texture")
+                | ("TextureFormatFeatures", "allowed_usages")
+                | ("TextureFormatFeatures", "flags")
+                | ("TextureTransition", "texture")
+                | ("TextureTransition", "state")
+                | ("VertexAttribute", "format")
+                // comment
+                 => field.default_value = DefaultValue::None,
+                _ => (),
+            };
+
+            if (struct_config.name == "Operations" && field.name == "load") {
+                field.default_value = DefaultValue::Value(q!(LoadOp::Load))
             }
         }
 
-        Ok(())
+        struct_config
+    }
+
+    fn emit_builder(&self, struct_config: StructConfig) -> TokenStream {
+        let StructConfig {
+            fields,
+            name,
+            fn_name,
+            generics,
+        } = struct_config;
+
+        let fn_params = fields.iter().map(|f| {
+            let name = f.name.clone();
+            let ty = f.ty.clone();
+
+            let mut derives = vec![];
+
+            match f.default_value {
+                DefaultValue::None => (),
+                DefaultValue::Default => derives.push(q!(default)),
+                DefaultValue::Value(ref s) => derives.push(q!(default=#s)),
+            };
+
+            let attrs = if derives.is_empty() {
+                q!()
+            } else {
+                q!(#[builder(#(#derives),*)])
+            };
+
+            q!(
+                #attrs
+                #name: #ty
+            )
+        });
+
+        let return_fields = fields.iter().map(|f| {
+            let name = f.name.clone();
+            q!(#name)
+        });
+
+        q!(
+            #[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
+            pub fn #fn_name #generics(
+                #(#fn_params),*
+            ) -> #name #generics {
+                #name {
+                    #(#return_fields),*
+                }
+            }
+        )
     }
 
     pub fn select<'a>(

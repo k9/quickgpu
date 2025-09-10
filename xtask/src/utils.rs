@@ -5,7 +5,7 @@ use std::fs;
 use std::path::Path;
 use syn::Ident;
 
-pub(crate) fn output(code: Vec<TokenStream>, format: bool) {
+pub(crate) fn output(code: &[TokenStream], format: bool) {
     let code = code
         .into_iter()
         .map(|c| {
