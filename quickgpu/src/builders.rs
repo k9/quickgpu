@@ -1,11 +1,12 @@
+use std::borrow::Cow;
 use std::num::{NonZero, NonZeroU32};
 use std::ops::Range;
 use wgpu::{wgt::TextureSelector, *};
 
 #[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn bind_group_descriptor<'a>(
-    #[builder(default = None)] label: Label<'a>,
-    layout: &'a BindGroupLayout,
+    #[builder(default = None, into)] label: Label<'a>,
+    #[builder(into)] layout: &'a BindGroupLayout,
     entries: &'a [BindGroupEntry<'a>],
 ) -> BindGroupDescriptor<'a> {
     BindGroupDescriptor {
@@ -17,15 +18,15 @@ pub fn bind_group_descriptor<'a>(
 
 #[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn bind_group_entry<'a>(
-    #[builder(default)] binding: u32,
-    resource: BindingResource<'a>,
+    #[builder(into)] binding: u32,
+    #[builder(into)] resource: BindingResource<'a>,
 ) -> BindGroupEntry<'a> {
     BindGroupEntry { binding, resource }
 }
 
 #[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn bind_group_layout_descriptor<'a>(
-    #[builder(default = None)] label: Label<'a>,
+    #[builder(default = None, into)] label: Label<'a>,
     entries: &'a [BindGroupLayoutEntry],
 ) -> BindGroupLayoutDescriptor<'a> {
     BindGroupLayoutDescriptor { label, entries }
@@ -33,10 +34,10 @@ pub fn bind_group_layout_descriptor<'a>(
 
 #[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn bind_group_layout_entry(
-    #[builder(default)] binding: u32,
-    visibility: ShaderStages,
-    ty: BindingType,
-    count: Option<NonZero<u32>>,
+    #[builder(into)] binding: u32,
+    #[builder(into)] visibility: ShaderStages,
+    #[builder(into)] ty: BindingType,
+    #[builder(into)] count: Option<NonZero<u32>>,
 ) -> BindGroupLayoutEntry {
     BindGroupLayoutEntry {
         binding,
@@ -47,20 +48,23 @@ pub fn bind_group_layout_entry(
 }
 
 #[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
-pub fn blas_build_entry<'a>(blas: &'a Blas, geometry: BlasGeometries<'a>) -> BlasBuildEntry<'a> {
+pub fn blas_build_entry<'a>(
+    #[builder(into)] blas: &'a Blas,
+    #[builder(into)] geometry: BlasGeometries<'a>,
+) -> BlasBuildEntry<'a> {
     BlasBuildEntry { blas, geometry }
 }
 
 #[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn blas_triangle_geometry<'a>(
-    size: &'a BlasTriangleGeometrySizeDescriptor,
-    vertex_buffer: &'a Buffer,
-    #[builder(default)] first_vertex: u32,
-    #[builder(default)] vertex_stride: BufferAddress,
-    index_buffer: Option<&'a Buffer>,
-    first_index: Option<u32>,
-    transform_buffer: Option<&'a Buffer>,
-    transform_buffer_offset: Option<BufferAddress>,
+    #[builder(into)] size: &'a BlasTriangleGeometrySizeDescriptor,
+    #[builder(into)] vertex_buffer: &'a Buffer,
+    #[builder(into)] first_vertex: u32,
+    #[builder(into)] vertex_stride: BufferAddress,
+    #[builder(into)] index_buffer: Option<&'a Buffer>,
+    #[builder(into)] first_index: Option<u32>,
+    #[builder(into)] transform_buffer: Option<&'a Buffer>,
+    #[builder(into)] transform_buffer_offset: Option<BufferAddress>,
 ) -> BlasTriangleGeometry<'a> {
     BlasTriangleGeometry {
         size,
@@ -76,9 +80,9 @@ pub fn blas_triangle_geometry<'a>(
 
 #[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn blend_component(
-    src_factor: BlendFactor,
-    dst_factor: BlendFactor,
-    #[builder(default)] operation: BlendOperation,
+    #[builder(into)] src_factor: BlendFactor,
+    #[builder(into)] dst_factor: BlendFactor,
+    #[builder(into)] operation: BlendOperation,
 ) -> BlendComponent {
     BlendComponent {
         src_factor,
@@ -89,17 +93,17 @@ pub fn blend_component(
 
 #[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn blend_state(
-    #[builder(default)] color: BlendComponent,
-    #[builder(default)] alpha: BlendComponent,
+    #[builder(into)] color: BlendComponent,
+    #[builder(into)] alpha: BlendComponent,
 ) -> BlendState {
     BlendState { color, alpha }
 }
 
 #[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn buffer_binding<'a>(
-    buffer: &'a Buffer,
-    #[builder(default)] offset: BufferAddress,
-    size: Option<BufferSize>,
+    #[builder(into)] buffer: &'a Buffer,
+    #[builder(into)] offset: BufferAddress,
+    #[builder(into)] size: Option<BufferSize>,
 ) -> BufferBinding<'a> {
     BufferBinding {
         buffer,
@@ -110,19 +114,19 @@ pub fn buffer_binding<'a>(
 
 #[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn color(
-    #[builder(default)] r: f64,
-    #[builder(default)] g: f64,
-    #[builder(default)] b: f64,
-    #[builder(default)] a: f64,
+    #[builder(into)] r: f64,
+    #[builder(into)] g: f64,
+    #[builder(into)] b: f64,
+    #[builder(into)] a: f64,
 ) -> Color {
     Color { r, g, b, a }
 }
 
 #[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn color_target_state(
-    format: TextureFormat,
-    blend: Option<BlendState>,
-    #[builder(default)] write_mask: ColorWrites,
+    #[builder(into)] format: TextureFormat,
+    #[builder(into)] blend: Option<BlendState>,
+    #[builder(into)] write_mask: ColorWrites,
 ) -> ColorTargetState {
     ColorTargetState {
         format,
@@ -133,8 +137,8 @@ pub fn color_target_state(
 
 #[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn compute_pass_descriptor<'a>(
-    #[builder(default = None)] label: Label<'a>,
-    timestamp_writes: Option<ComputePassTimestampWrites<'a>>,
+    #[builder(default = None, into)] label: Label<'a>,
+    #[builder(into)] timestamp_writes: Option<ComputePassTimestampWrites<'a>>,
 ) -> ComputePassDescriptor<'a> {
     ComputePassDescriptor {
         label,
@@ -144,9 +148,9 @@ pub fn compute_pass_descriptor<'a>(
 
 #[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn compute_pass_timestamp_writes<'a>(
-    query_set: &'a QuerySet,
-    beginning_of_pass_write_index: Option<u32>,
-    end_of_pass_write_index: Option<u32>,
+    #[builder(into)] query_set: &'a QuerySet,
+    #[builder(into)] beginning_of_pass_write_index: Option<u32>,
+    #[builder(into)] end_of_pass_write_index: Option<u32>,
 ) -> ComputePassTimestampWrites<'a> {
     ComputePassTimestampWrites {
         query_set,
@@ -157,12 +161,12 @@ pub fn compute_pass_timestamp_writes<'a>(
 
 #[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn compute_pipeline_descriptor<'a>(
-    #[builder(default = None)] label: Label<'a>,
-    layout: Option<&'a PipelineLayout>,
-    module: &'a ShaderModule,
-    entry_point: Option<&'a str>,
-    #[builder(default)] compilation_options: PipelineCompilationOptions<'a>,
-    cache: Option<&'a PipelineCache>,
+    #[builder(default = None, into)] label: Label<'a>,
+    #[builder(into)] layout: Option<&'a PipelineLayout>,
+    #[builder(into)] module: &'a ShaderModule,
+    #[builder(into)] entry_point: Option<&'a str>,
+    #[builder(into)] compilation_options: PipelineCompilationOptions<'a>,
+    #[builder(into)] cache: Option<&'a PipelineCache>,
 ) -> ComputePipelineDescriptor<'a> {
     ComputePipelineDescriptor {
         label,
@@ -176,12 +180,12 @@ pub fn compute_pipeline_descriptor<'a>(
 
 #[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn copy_external_image_dest_info<T>(
-    texture: T,
-    #[builder(default)] mip_level: u32,
-    #[builder(default)] origin: Origin3d,
-    #[builder(default)] aspect: TextureAspect,
-    color_space: PredefinedColorSpace,
-    #[builder(default)] premultiplied_alpha: bool,
+    #[builder(into)] texture: T,
+    #[builder(into)] mip_level: u32,
+    #[builder(into)] origin: Origin3d,
+    #[builder(into)] aspect: TextureAspect,
+    #[builder(into)] color_space: PredefinedColorSpace,
+    #[builder(into)] premultiplied_alpha: bool,
 ) -> CopyExternalImageDestInfo<T> {
     CopyExternalImageDestInfo {
         texture,
@@ -195,9 +199,9 @@ pub fn copy_external_image_dest_info<T>(
 
 #[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn depth_bias_state(
-    #[builder(default)] constant: i32,
-    #[builder(default)] slope_scale: f32,
-    #[builder(default)] clamp: f32,
+    #[builder(into)] constant: i32,
+    #[builder(into)] slope_scale: f32,
+    #[builder(into)] clamp: f32,
 ) -> DepthBiasState {
     DepthBiasState {
         constant,
@@ -208,11 +212,11 @@ pub fn depth_bias_state(
 
 #[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn depth_stencil_state(
-    format: TextureFormat,
-    #[builder(default)] depth_write_enabled: bool,
-    depth_compare: CompareFunction,
-    #[builder(default)] stencil: StencilState,
-    #[builder(default)] bias: DepthBiasState,
+    #[builder(into)] format: TextureFormat,
+    #[builder(into)] depth_write_enabled: bool,
+    #[builder(into)] depth_compare: CompareFunction,
+    #[builder(into)] stencil: StencilState,
+    #[builder(into)] bias: DepthBiasState,
 ) -> DepthStencilState {
     DepthStencilState {
         format,
@@ -225,9 +229,9 @@ pub fn depth_stencil_state(
 
 #[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn extent_3d(
-    #[builder(default)] width: u32,
-    #[builder(default)] height: u32,
-    #[builder(default)] depth_or_array_layers: u32,
+    #[builder(into)] width: u32,
+    #[builder(into)] height: u32,
+    #[builder(into)] depth_or_array_layers: u32,
 ) -> Extent3d {
     Extent3d {
         width,
@@ -238,9 +242,9 @@ pub fn extent_3d(
 
 #[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn fragment_state<'a>(
-    module: &'a ShaderModule,
-    entry_point: Option<&'a str>,
-    #[builder(default)] compilation_options: PipelineCompilationOptions<'a>,
+    #[builder(into)] module: &'a ShaderModule,
+    #[builder(into)] entry_point: Option<&'a str>,
+    #[builder(into)] compilation_options: PipelineCompilationOptions<'a>,
     targets: &'a [Option<ColorTargetState>],
 ) -> FragmentState<'a> {
     FragmentState {
@@ -253,8 +257,8 @@ pub fn fragment_state<'a>(
 
 #[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn gl_backend_options(
-    #[builder(default)] gles_minor_version: Gles3MinorVersion,
-    #[builder(default)] fence_behavior: GlFenceBehavior,
+    #[builder(into)] gles_minor_version: Gles3MinorVersion,
+    #[builder(into)] fence_behavior: GlFenceBehavior,
 ) -> GlBackendOptions {
     GlBackendOptions {
         gles_minor_version,
@@ -264,11 +268,11 @@ pub fn gl_backend_options(
 
 #[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn image_subresource_range(
-    #[builder(default)] aspect: TextureAspect,
-    #[builder(default)] base_mip_level: u32,
-    mip_level_count: Option<u32>,
-    #[builder(default)] base_array_layer: u32,
-    array_layer_count: Option<u32>,
+    #[builder(into)] aspect: TextureAspect,
+    #[builder(into)] base_mip_level: u32,
+    #[builder(into)] mip_level_count: Option<u32>,
+    #[builder(into)] base_array_layer: u32,
+    #[builder(into)] array_layer_count: Option<u32>,
 ) -> ImageSubresourceRange {
     ImageSubresourceRange {
         aspect,
@@ -281,10 +285,10 @@ pub fn image_subresource_range(
 
 #[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn instance_descriptor(
-    #[builder(default)] backends: Backends,
-    #[builder(default)] flags: InstanceFlags,
-    #[builder(default)] memory_budget_thresholds: MemoryBudgetThresholds,
-    #[builder(default)] backend_options: BackendOptions,
+    #[builder(into)] backends: Backends,
+    #[builder(into)] flags: InstanceFlags,
+    #[builder(into)] memory_budget_thresholds: MemoryBudgetThresholds,
+    #[builder(into)] backend_options: BackendOptions,
 ) -> InstanceDescriptor {
     InstanceDescriptor {
         backends,
@@ -296,8 +300,8 @@ pub fn instance_descriptor(
 
 #[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn memory_budget_thresholds(
-    for_resource_creation: Option<u8>,
-    for_device_loss: Option<u8>,
+    #[builder(into)] for_resource_creation: Option<u8>,
+    #[builder(into)] for_device_loss: Option<u8>,
 ) -> MemoryBudgetThresholds {
     MemoryBudgetThresholds {
         for_resource_creation,
@@ -307,9 +311,9 @@ pub fn memory_budget_thresholds(
 
 #[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn multisample_state(
-    #[builder(default)] count: u32,
-    #[builder(default)] mask: u64,
-    #[builder(default)] alpha_to_coverage_enabled: bool,
+    #[builder(into)] count: u32,
+    #[builder(into)] mask: u64,
+    #[builder(into)] alpha_to_coverage_enabled: bool,
 ) -> MultisampleState {
     MultisampleState {
         count,
@@ -320,31 +324,31 @@ pub fn multisample_state(
 
 #[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn operations<V>(
-    #[builder(default = LoadOp::Load)] load: LoadOp<V>,
-    #[builder(default)] store: StoreOp,
+    #[builder(default = LoadOp::Load, into)] load: LoadOp<V>,
+    #[builder(into)] store: StoreOp,
 ) -> Operations<V> {
     Operations { load, store }
 }
 
 #[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
-pub fn origin_2d(#[builder(default)] x: u32, #[builder(default)] y: u32) -> Origin2d {
+pub fn origin_2d(#[builder(into)] x: u32, #[builder(into)] y: u32) -> Origin2d {
     Origin2d { x, y }
 }
 
 #[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn origin_3d(
-    #[builder(default)] x: u32,
-    #[builder(default)] y: u32,
-    #[builder(default)] z: u32,
+    #[builder(into)] x: u32,
+    #[builder(into)] y: u32,
+    #[builder(into)] z: u32,
 ) -> Origin3d {
     Origin3d { x, y, z }
 }
 
 #[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn pipeline_cache_descriptor<'a>(
-    #[builder(default = None)] label: Label<'a>,
-    data: Option<&'a [u8]>,
-    #[builder(default)] fallback: bool,
+    #[builder(default = None, into)] label: Label<'a>,
+    #[builder(into)] data: Option<&'a [u8]>,
+    #[builder(into)] fallback: bool,
 ) -> PipelineCacheDescriptor<'a> {
     PipelineCacheDescriptor {
         label,
@@ -356,7 +360,7 @@ pub fn pipeline_cache_descriptor<'a>(
 #[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn pipeline_compilation_options<'a>(
     constants: &'a [(&'a str, f64)],
-    #[builder(default)] zero_initialize_workgroup_memory: bool,
+    #[builder(into)] zero_initialize_workgroup_memory: bool,
 ) -> PipelineCompilationOptions<'a> {
     PipelineCompilationOptions {
         constants,
@@ -366,7 +370,7 @@ pub fn pipeline_compilation_options<'a>(
 
 #[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn pipeline_layout_descriptor<'a>(
-    #[builder(default = None)] label: Label<'a>,
+    #[builder(default = None, into)] label: Label<'a>,
     bind_group_layouts: &'a [&'a BindGroupLayout],
     push_constant_ranges: &'a [PushConstantRange],
 ) -> PipelineLayoutDescriptor<'a> {
@@ -379,13 +383,13 @@ pub fn pipeline_layout_descriptor<'a>(
 
 #[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn primitive_state(
-    #[builder(default)] topology: PrimitiveTopology,
-    strip_index_format: Option<IndexFormat>,
-    #[builder(default)] front_face: FrontFace,
-    cull_mode: Option<Face>,
-    #[builder(default)] unclipped_depth: bool,
-    #[builder(default)] polygon_mode: PolygonMode,
-    #[builder(default)] conservative: bool,
+    #[builder(into)] topology: PrimitiveTopology,
+    #[builder(into)] strip_index_format: Option<IndexFormat>,
+    #[builder(into)] front_face: FrontFace,
+    #[builder(into)] cull_mode: Option<Face>,
+    #[builder(into)] unclipped_depth: bool,
+    #[builder(into)] polygon_mode: PolygonMode,
+    #[builder(into)] conservative: bool,
 ) -> PrimitiveState {
     PrimitiveState {
         topology,
@@ -400,17 +404,17 @@ pub fn primitive_state(
 
 #[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn push_constant_range(
-    stages: ShaderStages,
-    #[builder(default)] range: Range<u32>,
+    #[builder(into)] stages: ShaderStages,
+    #[builder(into)] range: Range<u32>,
 ) -> PushConstantRange {
     PushConstantRange { stages, range }
 }
 
 #[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn render_bundle_depth_stencil(
-    format: TextureFormat,
-    #[builder(default)] depth_read_only: bool,
-    #[builder(default)] stencil_read_only: bool,
+    #[builder(into)] format: TextureFormat,
+    #[builder(into)] depth_read_only: bool,
+    #[builder(into)] stencil_read_only: bool,
 ) -> RenderBundleDepthStencil {
     RenderBundleDepthStencil {
         format,
@@ -421,11 +425,11 @@ pub fn render_bundle_depth_stencil(
 
 #[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn render_bundle_encoder_descriptor<'a>(
-    #[builder(default = None)] label: Label<'a>,
+    #[builder(default = None, into)] label: Label<'a>,
     color_formats: &'a [Option<TextureFormat>],
-    depth_stencil: Option<RenderBundleDepthStencil>,
-    #[builder(default)] sample_count: u32,
-    multiview: Option<NonZeroU32>,
+    #[builder(into)] depth_stencil: Option<RenderBundleDepthStencil>,
+    #[builder(into)] sample_count: u32,
+    #[builder(into)] multiview: Option<NonZeroU32>,
 ) -> RenderBundleEncoderDescriptor<'a> {
     RenderBundleEncoderDescriptor {
         label,
@@ -438,10 +442,10 @@ pub fn render_bundle_encoder_descriptor<'a>(
 
 #[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn render_pass_color_attachment<'tex>(
-    view: &'tex TextureView,
-    depth_slice: Option<u32>,
-    resolve_target: Option<&'tex TextureView>,
-    #[builder(default)] ops: Operations<Color>,
+    #[builder(into)] view: &'tex TextureView,
+    #[builder(into)] depth_slice: Option<u32>,
+    #[builder(into)] resolve_target: Option<&'tex TextureView>,
+    #[builder(into)] ops: Operations<Color>,
 ) -> RenderPassColorAttachment<'tex> {
     RenderPassColorAttachment {
         view,
@@ -453,9 +457,9 @@ pub fn render_pass_color_attachment<'tex>(
 
 #[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn render_pass_depth_stencil_attachment<'tex>(
-    view: &'tex TextureView,
-    depth_ops: Option<Operations<f32>>,
-    stencil_ops: Option<Operations<u32>>,
+    #[builder(into)] view: &'tex TextureView,
+    #[builder(into)] depth_ops: Option<Operations<f32>>,
+    #[builder(into)] stencil_ops: Option<Operations<u32>>,
 ) -> RenderPassDepthStencilAttachment<'tex> {
     RenderPassDepthStencilAttachment {
         view,
@@ -466,11 +470,11 @@ pub fn render_pass_depth_stencil_attachment<'tex>(
 
 #[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn render_pass_descriptor<'a>(
-    #[builder(default = None)] label: Label<'a>,
+    #[builder(default = None, into)] label: Label<'a>,
     color_attachments: &'a [Option<RenderPassColorAttachment<'a>>],
-    depth_stencil_attachment: Option<RenderPassDepthStencilAttachment<'a>>,
-    timestamp_writes: Option<RenderPassTimestampWrites<'a>>,
-    occlusion_query_set: Option<&'a QuerySet>,
+    #[builder(into)] depth_stencil_attachment: Option<RenderPassDepthStencilAttachment<'a>>,
+    #[builder(into)] timestamp_writes: Option<RenderPassTimestampWrites<'a>>,
+    #[builder(into)] occlusion_query_set: Option<&'a QuerySet>,
 ) -> RenderPassDescriptor<'a> {
     RenderPassDescriptor {
         label,
@@ -483,9 +487,9 @@ pub fn render_pass_descriptor<'a>(
 
 #[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn render_pass_timestamp_writes<'a>(
-    query_set: &'a QuerySet,
-    beginning_of_pass_write_index: Option<u32>,
-    end_of_pass_write_index: Option<u32>,
+    #[builder(into)] query_set: &'a QuerySet,
+    #[builder(into)] beginning_of_pass_write_index: Option<u32>,
+    #[builder(into)] end_of_pass_write_index: Option<u32>,
 ) -> RenderPassTimestampWrites<'a> {
     RenderPassTimestampWrites {
         query_set,
@@ -496,15 +500,15 @@ pub fn render_pass_timestamp_writes<'a>(
 
 #[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn render_pipeline_descriptor<'a>(
-    #[builder(default = None)] label: Label<'a>,
-    layout: Option<&'a PipelineLayout>,
-    vertex: VertexState<'a>,
-    #[builder(default)] primitive: PrimitiveState,
-    depth_stencil: Option<DepthStencilState>,
-    #[builder(default)] multisample: MultisampleState,
-    fragment: Option<FragmentState<'a>>,
-    multiview: Option<NonZeroU32>,
-    cache: Option<&'a PipelineCache>,
+    #[builder(default = None, into)] label: Label<'a>,
+    #[builder(into)] layout: Option<&'a PipelineLayout>,
+    #[builder(into)] vertex: VertexState<'a>,
+    #[builder(into)] primitive: PrimitiveState,
+    #[builder(into)] depth_stencil: Option<DepthStencilState>,
+    #[builder(into)] multisample: MultisampleState,
+    #[builder(into)] fragment: Option<FragmentState<'a>>,
+    #[builder(into)] multiview: Option<NonZeroU32>,
+    #[builder(into)] cache: Option<&'a PipelineCache>,
 ) -> RenderPipelineDescriptor<'a> {
     RenderPipelineDescriptor {
         label,
@@ -521,9 +525,9 @@ pub fn render_pipeline_descriptor<'a>(
 
 #[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn request_adapter_options_base<S>(
-    #[builder(default)] power_preference: PowerPreference,
-    #[builder(default)] force_fallback_adapter: bool,
-    compatible_surface: Option<S>,
+    #[builder(default, into)] power_preference: PowerPreference,
+    #[builder(default = false, into)] force_fallback_adapter: bool,
+    #[builder(into)] compatible_surface: Option<S>,
 ) -> RequestAdapterOptionsBase<S> {
     RequestAdapterOptionsBase {
         power_preference,
@@ -534,16 +538,16 @@ pub fn request_adapter_options_base<S>(
 
 #[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn shader_module_descriptor<'a>(
-    #[builder(default = None)] label: Label<'a>,
-    source: ShaderSource<'a>,
+    #[builder(default = None, into)] label: Label<'a>,
+    #[builder(into)] source: ShaderSource<'a>,
 ) -> ShaderModuleDescriptor<'a> {
     ShaderModuleDescriptor { label, source }
 }
 
 #[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn shader_runtime_checks(
-    #[builder(default)] bounds_checks: bool,
-    #[builder(default)] force_loop_bounding: bool,
+    #[builder(into)] bounds_checks: bool,
+    #[builder(into)] force_loop_bounding: bool,
 ) -> ShaderRuntimeChecks {
     ShaderRuntimeChecks {
         bounds_checks,
@@ -553,10 +557,10 @@ pub fn shader_runtime_checks(
 
 #[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn stencil_face_state(
-    compare: CompareFunction,
-    #[builder(default)] fail_op: StencilOperation,
-    #[builder(default)] depth_fail_op: StencilOperation,
-    #[builder(default)] pass_op: StencilOperation,
+    #[builder(into)] compare: CompareFunction,
+    #[builder(into)] fail_op: StencilOperation,
+    #[builder(into)] depth_fail_op: StencilOperation,
+    #[builder(into)] pass_op: StencilOperation,
 ) -> StencilFaceState {
     StencilFaceState {
         compare,
@@ -568,10 +572,10 @@ pub fn stencil_face_state(
 
 #[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn stencil_state(
-    #[builder(default)] front: StencilFaceState,
-    #[builder(default)] back: StencilFaceState,
-    #[builder(default)] read_mask: u32,
-    #[builder(default)] write_mask: u32,
+    #[builder(into)] front: StencilFaceState,
+    #[builder(into)] back: StencilFaceState,
+    #[builder(into)] read_mask: u32,
+    #[builder(into)] write_mask: u32,
 ) -> StencilState {
     StencilState {
         front,
@@ -583,17 +587,17 @@ pub fn stencil_state(
 
 #[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn texel_copy_buffer_info_base<B>(
-    buffer: B,
-    #[builder(default)] layout: TexelCopyBufferLayout,
+    #[builder(into)] buffer: B,
+    #[builder(into)] layout: TexelCopyBufferLayout,
 ) -> TexelCopyBufferInfoBase<B> {
     TexelCopyBufferInfoBase { buffer, layout }
 }
 
 #[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn texel_copy_buffer_layout(
-    #[builder(default)] offset: u64,
-    bytes_per_row: Option<u32>,
-    rows_per_image: Option<u32>,
+    #[builder(into)] offset: u64,
+    #[builder(into)] bytes_per_row: Option<u32>,
+    #[builder(into)] rows_per_image: Option<u32>,
 ) -> TexelCopyBufferLayout {
     TexelCopyBufferLayout {
         offset,
@@ -604,10 +608,10 @@ pub fn texel_copy_buffer_layout(
 
 #[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn texel_copy_texture_info_base<T>(
-    texture: T,
-    #[builder(default)] mip_level: u32,
-    #[builder(default)] origin: Origin3d,
-    #[builder(default)] aspect: TextureAspect,
+    #[builder(into)] texture: T,
+    #[builder(into)] mip_level: u32,
+    #[builder(into)] origin: Origin3d,
+    #[builder(into)] aspect: TextureAspect,
 ) -> TexelCopyTextureInfoBase<T> {
     TexelCopyTextureInfoBase {
         texture,
@@ -619,9 +623,9 @@ pub fn texel_copy_texture_info_base<T>(
 
 #[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn texture_transition<T>(
-    texture: T,
-    selector: Option<TextureSelector>,
-    state: TextureUses,
+    #[builder(into)] texture: T,
+    #[builder(into)] selector: Option<TextureSelector>,
+    #[builder(into)] state: TextureUses,
 ) -> TextureTransition<T> {
     TextureTransition {
         texture,
@@ -632,9 +636,9 @@ pub fn texture_transition<T>(
 
 #[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn vertex_attribute(
-    format: VertexFormat,
-    #[builder(default)] offset: u64,
-    #[builder(default)] shader_location: u32,
+    #[builder(into)] format: VertexFormat,
+    #[builder(into)] offset: u64,
+    #[builder(into)] shader_location: u32,
 ) -> VertexAttribute {
     VertexAttribute {
         format,
@@ -645,8 +649,8 @@ pub fn vertex_attribute(
 
 #[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn vertex_buffer_layout<'a>(
-    #[builder(default)] array_stride: BufferAddress,
-    #[builder(default)] step_mode: VertexStepMode,
+    #[builder(into)] array_stride: BufferAddress,
+    #[builder(into)] step_mode: VertexStepMode,
     attributes: &'a [VertexAttribute],
 ) -> VertexBufferLayout<'a> {
     VertexBufferLayout {
@@ -658,9 +662,9 @@ pub fn vertex_buffer_layout<'a>(
 
 #[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn vertex_state<'a>(
-    module: &'a ShaderModule,
-    entry_point: Option<&'a str>,
-    #[builder(default)] compilation_options: PipelineCompilationOptions<'a>,
+    #[builder(into)] module: &'a ShaderModule,
+    #[builder(into)] entry_point: Option<&'a str>,
+    #[builder(into)] compilation_options: PipelineCompilationOptions<'a>,
     buffers: &'a [VertexBufferLayout<'a>],
 ) -> VertexState<'a> {
     VertexState {
@@ -668,5 +672,282 @@ pub fn vertex_state<'a>(
         entry_point,
         compilation_options,
         buffers,
+    }
+}
+
+#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
+pub fn blas_triangle_geometry_size_descriptor(
+    #[builder(into)] vertex_format: VertexFormat,
+    #[builder(into)] vertex_count: u32,
+    #[builder(into)] index_format: Option<IndexFormat>,
+    #[builder(into)] index_count: Option<u32>,
+    #[builder(into)] flags: AccelerationStructureGeometryFlags,
+) -> BlasTriangleGeometrySizeDescriptor {
+    BlasTriangleGeometrySizeDescriptor {
+        vertex_format,
+        vertex_count,
+        index_format,
+        index_count,
+        flags,
+    }
+}
+
+#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
+pub fn buffer_descriptor<'a>(
+    #[builder(into)] label: Option<&'a str>,
+    #[builder(into)] size: u64,
+    #[builder(into)] usage: BufferUsages,
+    #[builder(into)] mapped_at_creation: bool,
+) -> BufferDescriptor<'a> {
+    BufferDescriptor {
+        label,
+        size,
+        usage,
+        mapped_at_creation,
+    }
+}
+
+#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
+pub fn create_blas_descriptor<'a>(
+    #[builder(into)] label: Option<&'a str>,
+    #[builder(into)] flags: AccelerationStructureFlags,
+    #[builder(into)] update_mode: AccelerationStructureUpdateMode,
+) -> CreateBlasDescriptor<'a> {
+    CreateBlasDescriptor {
+        label,
+        flags,
+        update_mode,
+    }
+}
+
+#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
+pub fn create_tlas_descriptor<'a>(
+    #[builder(into)] label: Option<&'a str>,
+    #[builder(into)] max_instances: u32,
+    #[builder(into)] flags: AccelerationStructureFlags,
+    #[builder(into)] update_mode: AccelerationStructureUpdateMode,
+) -> CreateTlasDescriptor<'a> {
+    CreateTlasDescriptor {
+        label,
+        max_instances,
+        flags,
+        update_mode,
+    }
+}
+
+#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
+pub fn device_descriptor<'a>(
+    #[builder(into)] label: Option<&'a str>,
+    #[builder(into)] required_features: Features,
+    #[builder(into)] required_limits: Limits,
+    #[builder(into)] memory_hints: MemoryHints,
+    #[builder(into)] trace: Trace,
+) -> DeviceDescriptor<'a> {
+    DeviceDescriptor {
+        label,
+        required_features,
+        required_limits,
+        memory_hints,
+        trace,
+    }
+}
+
+#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
+pub fn query_set_descriptor<'a>(
+    #[builder(into)] label: Option<&'a str>,
+    #[builder(into)] ty: QueryType,
+    #[builder(into)] count: u32,
+) -> QuerySetDescriptor<'a> {
+    QuerySetDescriptor { label, ty, count }
+}
+
+#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
+pub fn request_adapter_options<'a, 'b>(
+    #[builder(default, into)] power_preference: PowerPreference,
+    #[builder(into)] force_fallback_adapter: bool,
+    #[builder(into)] compatible_surface: Option<&'a Surface<'b>>,
+) -> RequestAdapterOptions<'a, 'b> {
+    RequestAdapterOptions {
+        power_preference,
+        force_fallback_adapter,
+        compatible_surface,
+    }
+}
+
+#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
+pub fn sampler_descriptor<'a>(
+    #[builder(into)] label: Option<&'a str>,
+    #[builder(into)] address_mode_u: AddressMode,
+    #[builder(into)] address_mode_v: AddressMode,
+    #[builder(into)] address_mode_w: AddressMode,
+    #[builder(into)] mag_filter: FilterMode,
+    #[builder(into)] min_filter: FilterMode,
+    #[builder(into)] mipmap_filter: FilterMode,
+    #[builder(into)] lod_min_clamp: f32,
+    #[builder(into)] lod_max_clamp: f32,
+    #[builder(into)] compare: Option<CompareFunction>,
+    #[builder(into)] anisotropy_clamp: u16,
+    #[builder(into)] border_color: Option<SamplerBorderColor>,
+) -> SamplerDescriptor<'a> {
+    SamplerDescriptor {
+        label,
+        address_mode_u,
+        address_mode_v,
+        address_mode_w,
+        mag_filter,
+        min_filter,
+        mipmap_filter,
+        lod_min_clamp,
+        lod_max_clamp,
+        compare,
+        anisotropy_clamp,
+        border_color,
+    }
+}
+
+#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
+pub fn shader_module_descriptor_dxil<'a>(
+    #[builder(into)] entry_point: String,
+    #[builder(into)] label: Option<&'a str>,
+    #[builder(into)] num_workgroups: (u32, u32, u32),
+    source: &'a [u8],
+) -> ShaderModuleDescriptorDxil<'a> {
+    ShaderModuleDescriptorDxil {
+        entry_point,
+        label,
+        num_workgroups,
+        source,
+    }
+}
+
+#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
+pub fn shader_module_descriptor_hlsl<'a>(
+    #[builder(into)] entry_point: String,
+    #[builder(into)] label: Option<&'a str>,
+    #[builder(into)] num_workgroups: (u32, u32, u32),
+    #[builder(into)] source: &'a str,
+) -> ShaderModuleDescriptorHlsl<'a> {
+    ShaderModuleDescriptorHlsl {
+        entry_point,
+        label,
+        num_workgroups,
+        source,
+    }
+}
+
+#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
+pub fn shader_module_descriptor_msl<'a>(
+    #[builder(into)] entry_point: String,
+    #[builder(into)] label: Option<&'a str>,
+    #[builder(into)] num_workgroups: (u32, u32, u32),
+    #[builder(into)] source: Cow<'a, str>,
+) -> ShaderModuleDescriptorMsl<'a> {
+    ShaderModuleDescriptorMsl {
+        entry_point,
+        label,
+        num_workgroups,
+        source,
+    }
+}
+
+#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
+pub fn shader_module_descriptor_spir_v<'a>(
+    #[builder(into)] label: Option<&'a str>,
+    #[builder(into)] source: Cow<'a, [u32]>,
+) -> ShaderModuleDescriptorSpirV<'a> {
+    ShaderModuleDescriptorSpirV { label, source }
+}
+
+#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
+pub fn surface_configuration(
+    #[builder(into)] usage: TextureUsages,
+    #[builder(into)] format: TextureFormat,
+    #[builder(into)] width: u32,
+    #[builder(into)] height: u32,
+    #[builder(into)] present_mode: PresentMode,
+    #[builder(into)] desired_maximum_frame_latency: u32,
+    #[builder(into)] alpha_mode: CompositeAlphaMode,
+    #[builder(into)] view_formats: Vec<TextureFormat>,
+) -> SurfaceConfiguration {
+    SurfaceConfiguration {
+        usage,
+        format,
+        width,
+        height,
+        present_mode,
+        desired_maximum_frame_latency,
+        alpha_mode,
+        view_formats,
+    }
+}
+
+#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
+pub fn texel_copy_buffer_info<'a>(
+    #[builder(into)] buffer: &'a Buffer,
+    #[builder(into)] layout: TexelCopyBufferLayout,
+) -> TexelCopyBufferInfo<'a> {
+    TexelCopyBufferInfo { buffer, layout }
+}
+
+#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
+pub fn texel_copy_texture_info<'a>(
+    #[builder(into)] texture: &'a Texture,
+    #[builder(into)] mip_level: u32,
+    #[builder(into)] origin: Origin3d,
+    #[builder(into)] aspect: TextureAspect,
+) -> TexelCopyTextureInfo<'a> {
+    TexelCopyTextureInfo {
+        texture,
+        mip_level,
+        origin,
+        aspect,
+    }
+}
+
+#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
+pub fn texture_descriptor<'a>(
+    #[builder(into)] label: Option<&'a str>,
+    #[builder(into)] size: Extent3d,
+    #[builder(into)] mip_level_count: u32,
+    #[builder(into)] sample_count: u32,
+    #[builder(into)] dimension: TextureDimension,
+    #[builder(into)] format: TextureFormat,
+    #[builder(into)] usage: TextureUsages,
+    view_formats: &'a [TextureFormat],
+) -> TextureDescriptor<'a> {
+    TextureDescriptor {
+        label,
+        size,
+        mip_level_count,
+        sample_count,
+        dimension,
+        format,
+        usage,
+        view_formats,
+    }
+}
+
+#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
+pub fn texture_view_descriptor<'a>(
+    #[builder(into)] label: Option<&'a str>,
+    #[builder(into)] format: Option<TextureFormat>,
+    #[builder(into)] dimension: Option<TextureViewDimension>,
+    #[builder(into)] usage: Option<TextureUsages>,
+    #[builder(into)] aspect: TextureAspect,
+    #[builder(into)] base_mip_level: u32,
+    #[builder(into)] mip_level_count: Option<u32>,
+    #[builder(into)] base_array_layer: u32,
+    #[builder(into)] array_layer_count: Option<u32>,
+) -> TextureViewDescriptor<'a> {
+    TextureViewDescriptor {
+        label,
+        format,
+        dimension,
+        usage,
+        aspect,
+        base_mip_level,
+        mip_level_count,
+        base_array_layer,
+        array_layer_count,
     }
 }

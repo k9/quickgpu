@@ -64,19 +64,20 @@ impl Scene {
                 vertex_state()
                     .module(&shader)
                     .entry_point("vs_main")
-                    .buffers(&bon::vec![
-                        vertex_buffer_layout()
-                            .array_stride(size_of::<VertexInput>() as wgpu::BufferAddress)
-                            .attributes(&bon::vec![
-                                vertex_attribute()
-                                    .format(VertexFormat::Float32x4)
-                                    .shader_location(0),
-                                vertex_attribute()
-                                    .format(VertexFormat::Float32x2)
-                                    .offset(4 * 4)
-                                    .shader_location(1)
-                            ])
-                    ])
+                    .buffers(&[vertex_buffer_layout()
+                        .array_stride(size_of::<VertexInput>() as wgpu::BufferAddress)
+                        .attributes(&vec![
+                            vertex_attribute()
+                                .format(VertexFormat::Float32x4)
+                                .shader_location(0)
+                                .call(),
+                            vertex_attribute()
+                                .format(VertexFormat::Float32x2)
+                                .offset(4 * 4)
+                                .shader_location(1)
+                                .call(),
+                        ])
+                        .call()])
                     .call(),
             )
             .fragment(
