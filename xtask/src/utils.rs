@@ -2,19 +2,28 @@ use html5ever::tree_builder::TreeSink;
 use proc_macro2::{Span, TokenStream};
 use scraper::{ElementRef, Html, HtmlTreeSink};
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use syn::Ident;
 
-pub(crate) fn output(code: &[TokenStream], format: bool) {
+pub(crate) fn doc_path(file: &str) -> anyhow::Result<PathBuf> {
+    Ok(Path::new(env!("CARGO_WORKSPACE_DIR"))
+        .join("wgpu/target/doc/wgpu/")
+        .join(file)
+        .canonicalize()?)
+}
+
+pub(crate) fn output(code: &[(String, TokenStream)], format: bool) {
     let code = code
-        .into_iter()
-        .map(|c| {
-            if format {
+        .iter()
+        .map(|(idl, c)| {
+            let c = if format {
                 let syntax_tree = syn::parse_file(&c.to_string()).unwrap();
                 prettyplease::unparse(&syntax_tree)
             } else {
                 c.to_string()
-            }
+            };
+
+            format!("{}{}", idl, c)
         })
         .collect::<Vec<String>>()
         .join("\n");

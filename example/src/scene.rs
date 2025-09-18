@@ -2,10 +2,9 @@ use std::borrow::Cow;
 
 use bytemuck::{Pod, Zeroable};
 use quickgpu::builders::{
-    depth_stencil_state, fragment_state, multisample_state, operations, pipeline_layout_descriptor,
-    primitive_state, render_pass_color_attachment, render_pass_depth_stencil_attachment,
-    render_pass_descriptor, render_pipeline_descriptor, vertex_attribute, vertex_buffer_layout,
-    vertex_state,
+    depth_stencil_state, fragment_state, multisample_state, operations, primitive_state,
+    render_pass_color_attachment, render_pass_depth_stencil_attachment, render_pass_descriptor,
+    render_pipeline_descriptor, vertex_attribute, vertex_buffer_layout, vertex_state,
 };
 use wgpu::{
     Buffer, Color, CommandBuffer, CompareFunction, Device, LoadOp, RenderPipeline, TextureFormat,
@@ -54,12 +53,8 @@ impl Scene {
             source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!("../shaders/base.wgsl"))),
         });
 
-        let render_pipeline_layout =
-            device.create_pipeline_layout(&pipeline_layout_descriptor().call());
-
         let render_pipeline = render_pipeline_descriptor()
             .label(Some("Render Pipeline"))
-            .layout(&render_pipeline_layout)
             .vertex(
                 vertex_state()
                     .module(&shader)

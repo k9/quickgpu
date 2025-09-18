@@ -3592,6 +3592,7 @@ dependencies = [
  "scraper",
  "serde_json",
  "syn",
+ "winnow",
 ]
 
 [[package]]
