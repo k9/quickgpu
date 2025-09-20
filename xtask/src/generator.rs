@@ -3,15 +3,19 @@ use convert_case::{Case, Casing};
 use proc_macro2::TokenStream;
 use quote::{ToTokens, quote as q};
 use scraper::{Element, ElementRef, Html};
-use std::{collections::HashMap, fs};
-use syn::Item;
+use std::{
+    collections::{HashMap, HashSet},
+    fs,
+    sync::{LazyLock, Mutex},
+};
+use syn::{Expr, Fields, Item, Type};
 
 use crate::{
     customize::{DefaultValue, FieldConfig, StructConfig, customize_config},
     utils::{self, doc_path, id},
 };
 
-const MIN_FIELDS: usize = 1;
+const MIN_FIELDS: usize = 0;
 
 const SKIP: &[&str] = &[
     "AdapterInfo",
@@ -34,6 +38,11 @@ const SKIP: &[&str] = &[
 pub struct Generator {
     html: Html,
     idl_hints: HashMap<String, String>,
+}
+
+thread_local! {
+    static FTYPES: LazyLock<Mutex<HashSet<String>>> =
+        LazyLock::new(||  Mutex::new(HashSet::new()) );
 }
 
 impl Generator {
@@ -87,6 +96,27 @@ impl Generator {
             builders.push(emit_builder(config.clone()));
         }
 
+        FTYPES.with(|types| {
+            let types = types.lock().unwrap();
+            for ty in types.iter() {
+                if ty.len() > 1
+                    && ty.chars().nth(0).unwrap().is_ascii_uppercase()
+                    && !ty.starts_with("Option")
+                {
+                    let ty = format!("struct {ty} {{}}");
+                    /*println!(
+                        "{:?}",
+                        syn::parse_str::<Item>(&ty).map(|ty| match ty {
+                            Item::Struct(item_struct) =>
+                                format!("{:?}", item_struct.generics.to_token_stream()),
+                            _ => ty.to_token_stream().to_string(),
+                        })
+                    );*/
+                    println!("{ty}");
+                }
+            }
+        });
+
         Ok(builders)
     }
 
@@ -120,7 +150,7 @@ impl Generator {
         let file = syn::parse_file(&struct_decl)?;
         let item = file.items.first().context("Couldn't parse struct")?;
 
-        process_struct_decl(item)
+        self.process_struct_decl(root, item)
     }
 
     fn process_type_alias(
@@ -147,7 +177,7 @@ impl Generator {
         let file = syn::parse_file(&type_alias_decl)?;
         let item = file.items.first().context("Couldn't parse struct")?;
 
-        process_struct_decl(item)
+        self.process_struct_decl(root, item)
     }
 
     pub fn select<'s>(
@@ -158,44 +188,61 @@ impl Generator {
         let selector = scraper::Selector::parse(selector).unwrap();
         Ok(within.select(&selector).collect())
     }
-}
 
-fn process_struct_decl(item: &Item) -> Result<Option<StructConfig>, anyhow::Error> {
-    if let Item::Struct(item) = item
-        && item.fields.len() > MIN_FIELDS
-        && !SKIP.contains(&item.ident.to_string().as_str())
-    {
-        let fn_ident = &item.ident.to_string().to_case(Case::Snake);
-        let fn_ident = fn_ident.replace("_2_d", "_2d");
-        let fn_ident = fn_ident.replace("_3_d", "_3d");
-        let fn_ident = id(&fn_ident);
-        let generics = item.generics.clone();
+    pub fn process_struct_decl<'a>(
+        &self,
+        root: &ElementRef<'a>,
+        item: &Item,
+    ) -> Result<Option<StructConfig>, anyhow::Error> {
+        if let Item::Struct(item) = item
+            && matches!(item.fields, Fields::Named(_))
+            && item.fields.len() > MIN_FIELDS
+            && !SKIP.contains(&item.ident.to_string().as_str())
+        {
+            let fn_ident = &item.ident.to_string().to_case(Case::Snake);
+            let fn_ident = fn_ident.replace("_2_d", "_2d");
+            let fn_ident = fn_ident.replace("_3_d", "_3d");
+            let fn_ident = id(&fn_ident);
+            let generics = item.generics.clone();
 
-        let value_ident = &item.ident;
+            let value_ident = &item.ident;
 
-        let mut config = StructConfig {
-            name: value_ident.clone(),
-            fn_name: fn_ident,
-            fields: vec![],
-            generics: generics.to_token_stream(),
-            idl_hint: None,
-        };
+            let mut config = StructConfig {
+                name: value_ident.clone(),
+                fn_name: fn_ident,
+                fields: vec![],
+                generics: generics.to_token_stream(),
+                idl_hint: None,
+            };
 
-        for f in item.fields.iter() {
-            let field_ident = f.ident.clone().unwrap();
-            let field_type = f.ty.clone();
+            let selector = format!("*[id^='impl-Default-for-{}']", &config.name.to_string());
 
-            config.fields.push(FieldConfig {
-                name: field_ident,
-                ty: field_type.to_token_stream(),
-                default_value: DefaultValue::Skip,
-                into: true,
-            });
+            let fragment = self.select(root, &selector);
+            println!("{} {}", fragment.unwrap().len(), &selector);
+
+            for f in item.fields.iter() {
+                let field_ident = f.ident.clone().unwrap();
+                let field_type = f.ty.clone();
+
+                FTYPES.with(|ftypes| {
+                    ftypes
+                        .lock()
+                        .unwrap()
+                        .insert(field_type.to_token_stream().to_string());
+                });
+
+                config.fields.push(FieldConfig {
+                    name: field_ident,
+                    ty: field_type.to_token_stream(),
+                    default_value: DefaultValue::Skip,
+                    into: true,
+                });
+            }
+
+            Ok(Some(config))
+        } else {
+            Ok(None)
         }
-
-        Ok(Some(config))
-    } else {
-        Ok(None)
     }
 }
 

@@ -6,6 +6,7 @@ use crate::builders::{
 };
 
 pub mod builders;
+pub mod default_check;
 
 impl<'a, S> builders::RenderPipelineDescriptorBuilder<'a, S>
 where

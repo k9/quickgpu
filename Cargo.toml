@@ -3,6 +3,6 @@ members = [
     "xtask",
     "quickgpu",
     "example"
-]
+, "default_check"]
 exclude = ["wgpu"]
 resolver = "2"
