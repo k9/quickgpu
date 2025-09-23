@@ -23,7 +23,6 @@ pub struct StructConfig {
     pub name: Ident,
     pub fn_name: Ident,
     pub generics: TokenStream,
-    pub idl_hint: Option<String>,
 }
 
 pub(crate) fn customize_config(struct_config: StructConfig) -> StructConfig {

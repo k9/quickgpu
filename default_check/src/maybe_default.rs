@@ -1,3 +1,5 @@
+use serde::{Deserialize, Serialize};
+
 pub trait MaybeDefault<T> {
     fn maybe_default() -> Option<T>;
 }
@@ -14,3 +16,6 @@ impl<T: Default> MaybeDefault<T> for T {
         Some(T::default())
     }
 }
+
+#[derive(Default, Debug, Serialize, Deserialize)]
+pub struct DummyStruct;

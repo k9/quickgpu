@@ -3,14 +3,7 @@ use std::num::{NonZero, NonZeroU32};
 use std::ops::Range;
 use wgpu::{wgt::TextureSelector, *};
 
-/*
-
-{
-    required GPUBindGroupLayout layout;
-    required sequence<GPUBindGroupEntry> entries;
-}
-
-*/#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
+#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn bind_group_descriptor<'a>(
     #[builder(default = None, into)]
     label: Label<'a>,
@@ -18,6 +11,7 @@ pub fn bind_group_descriptor<'a>(
     layout: &'a BindGroupLayout,
     entries: &'a [BindGroupEntry<'a>],
 ) -> BindGroupDescriptor<'a> {
+    let zzz = "";
     BindGroupDescriptor {
         label,
         layout,
@@ -25,58 +19,34 @@ pub fn bind_group_descriptor<'a>(
     }
 }
 
-/*
-
-{
-    required GPUIndex32 binding;
-    required GPUBindingResource resource;
-}
-
-*/#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
+#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn bind_group_entry<'a>(
     #[builder(into)]
     binding: u32,
     #[builder(into)]
     resource: BindingResource<'a>,
 ) -> BindGroupEntry<'a> {
+    let zzz = "";
     BindGroupEntry {
         binding,
         resource,
     }
 }
 
-/*
-
-{
-    required sequence<GPUBindGroupLayoutEntry> entries;
-}
-
-*/#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
+#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn bind_group_layout_descriptor<'a>(
     #[builder(default = None, into)]
     label: Label<'a>,
     entries: &'a [BindGroupLayoutEntry],
 ) -> BindGroupLayoutDescriptor<'a> {
+    let zzz = "";
     BindGroupLayoutDescriptor {
         label,
         entries,
     }
 }
 
-/*
-
-{
-    required GPUIndex32 binding;
-    required GPUShaderStageFlags visibility;
-
-    GPUBufferBindingLayout buffer;
-    GPUSamplerBindingLayout sampler;
-    GPUTextureBindingLayout texture;
-    GPUStorageTextureBindingLayout storageTexture;
-    GPUExternalTextureBindingLayout externalTexture;
-}
-
-*/#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
+#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn bind_group_layout_entry(
     #[builder(into)]
     binding: u32,
@@ -87,22 +57,13 @@ pub fn bind_group_layout_entry(
     #[builder(into)]
     count: Option<NonZero<u32>>,
 ) -> BindGroupLayoutEntry {
+    let zzz = "";
     BindGroupLayoutEntry {
         binding,
         visibility,
         ty,
         count,
     }
-}
-
-#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
-pub fn blas_build_entry<'a>(
-    #[builder(into)]
-    blas: &'a Blas,
-    #[builder(into)]
-    geometry: BlasGeometries<'a>,
-) -> BlasBuildEntry<'a> {
-    BlasBuildEntry { blas, geometry }
 }
 
 #[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
@@ -124,6 +85,7 @@ pub fn blas_triangle_geometry<'a>(
     #[builder(into)]
     transform_buffer_offset: Option<BufferAddress>,
 ) -> BlasTriangleGeometry<'a> {
+    let zzz = "";
     BlasTriangleGeometry {
         size,
         vertex_buffer,
@@ -136,15 +98,7 @@ pub fn blas_triangle_geometry<'a>(
     }
 }
 
-/*
-
-{
-    GPUBlendOperation operation = "add";
-    GPUBlendFactor srcFactor = "one";
-    GPUBlendFactor dstFactor = "zero";
-}
-
-*/#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
+#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn blend_component(
     #[builder(default = BlendFactor::One, into)]
     src_factor: BlendFactor,
@@ -153,6 +107,7 @@ pub fn blend_component(
     #[builder(default = BlendOperation::Add, into)]
     operation: BlendOperation,
 ) -> BlendComponent {
+    let zzz = "";
     BlendComponent {
         src_factor,
         dst_factor,
@@ -160,32 +115,18 @@ pub fn blend_component(
     }
 }
 
-/*
-
-{
-    required GPUBlendComponent color;
-    required GPUBlendComponent alpha;
-}
-
-*/#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
+#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn blend_state(
     #[builder(into)]
     color: BlendComponent,
     #[builder(into)]
     alpha: BlendComponent,
 ) -> BlendState {
+    let zzz = "";
     BlendState { color, alpha }
 }
 
-/*
-
-{
-    required GPUBuffer buffer;
-    GPUSize64 offset = 0;
-    GPUSize64 size;
-}
-
-*/#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
+#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn buffer_binding<'a>(
     #[builder(into)]
     buffer: &'a Buffer,
@@ -194,6 +135,7 @@ pub fn buffer_binding<'a>(
     #[builder(into)]
     size: Option<BufferSize>,
 ) -> BufferBinding<'a> {
+    let zzz = "";
     BufferBinding {
         buffer,
         offset,
@@ -212,19 +154,11 @@ pub fn color(
     #[builder(into)]
     a: f64,
 ) -> Color {
+    let zzz = "";
     Color { r, g, b, a }
 }
 
-/*
-
-{
-    required GPUTextureFormat format;
-
-    GPUBlendState blend;
-    GPUColorWriteFlags writeMask = 0xF;  // GPUColorWrite.ALL
-}
-
-*/#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
+#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn color_target_state(
     #[builder(into)]
     format: TextureFormat,
@@ -233,6 +167,7 @@ pub fn color_target_state(
     #[builder(default = ColorWrites::default(), into)]
     write_mask: ColorWrites,
 ) -> ColorTargetState {
+    let zzz = "";
     ColorTargetState {
         format,
         blend,
@@ -240,16 +175,12 @@ pub fn color_target_state(
     }
 }
 
-/*
-
-{
-}
-
-*/#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
+#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn command_buffer_descriptor<L>(
     #[builder(into)]
     label: L,
 ) -> CommandBufferDescriptor<L> {
+    let zzz = "";
     CommandBufferDescriptor { label }
 }
 
@@ -258,37 +189,25 @@ pub fn compilation_info(
     #[builder(into)]
     messages: Vec<CompilationMessage>,
 ) -> CompilationInfo {
+    let zzz = "";
     CompilationInfo { messages }
 }
 
-/*
-
-{
-    GPUComputePassTimestampWrites timestampWrites;
-}
-
-*/#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
+#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn compute_pass_descriptor<'a>(
     #[builder(default = None, into)]
     label: Label<'a>,
     #[builder(into)]
     timestamp_writes: Option<ComputePassTimestampWrites<'a>>,
 ) -> ComputePassDescriptor<'a> {
+    let zzz = "";
     ComputePassDescriptor {
         label,
         timestamp_writes,
     }
 }
 
-/*
-
-{
-    required GPUQuerySet querySet;
-    GPUSize32 beginningOfPassWriteIndex;
-    GPUSize32 endOfPassWriteIndex;
-}
-
-*/#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
+#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn compute_pass_timestamp_writes<'a>(
     #[builder(into)]
     query_set: &'a QuerySet,
@@ -297,6 +216,7 @@ pub fn compute_pass_timestamp_writes<'a>(
     #[builder(into)]
     end_of_pass_write_index: Option<u32>,
 ) -> ComputePassTimestampWrites<'a> {
+    let zzz = "";
     ComputePassTimestampWrites {
         query_set,
         beginning_of_pass_write_index,
@@ -304,13 +224,7 @@ pub fn compute_pass_timestamp_writes<'a>(
     }
 }
 
-/*
-
-{
-    required GPUProgrammableStage compute;
-}
-
-*/#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
+#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn compute_pipeline_descriptor<'a>(
     #[builder(default = None, into)]
     label: Label<'a>,
@@ -325,6 +239,7 @@ pub fn compute_pipeline_descriptor<'a>(
     #[builder(into)]
     cache: Option<&'a PipelineCache>,
 ) -> ComputePipelineDescriptor<'a> {
+    let zzz = "";
     ComputePipelineDescriptor {
         label,
         layout,
@@ -335,14 +250,7 @@ pub fn compute_pipeline_descriptor<'a>(
     }
 }
 
-/*
-
-{
-    PredefinedColorSpace colorSpace = "srgb";
-    boolean premultipliedAlpha = false;
-}
-
-*/#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
+#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn copy_external_image_dest_info<T>(
     #[builder(into)]
     texture: T,
@@ -357,6 +265,7 @@ pub fn copy_external_image_dest_info<T>(
     #[builder(default = false, into)]
     premultiplied_alpha: bool,
 ) -> CopyExternalImageDestInfo<T> {
+    let zzz = "";
     CopyExternalImageDestInfo {
         texture,
         mip_level,
@@ -367,26 +276,7 @@ pub fn copy_external_image_dest_info<T>(
     }
 }
 
-/*
-
-{
-    required GPUTextureFormat format;
-
-    boolean depthWriteEnabled;
-    GPUCompareFunction depthCompare;
-
-    GPUStencilFaceState stencilFront = {};
-    GPUStencilFaceState stencilBack = {};
-
-    GPUStencilValue stencilReadMask = 0xFFFFFFFF;
-    GPUStencilValue stencilWriteMask = 0xFFFFFFFF;
-
-    GPUDepthBias depthBias = 0;
-    float depthBiasSlopeScale = 0;
-    float depthBiasClamp = 0;
-}
-
-*/#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
+#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn depth_bias_state(
     #[builder(into)]
     constant: i32,
@@ -395,6 +285,7 @@ pub fn depth_bias_state(
     #[builder(into)]
     clamp: f32,
 ) -> DepthBiasState {
+    let zzz = "";
     DepthBiasState {
         constant,
         slope_scale,
@@ -402,26 +293,7 @@ pub fn depth_bias_state(
     }
 }
 
-/*
-
-{
-    required GPUTextureFormat format;
-
-    boolean depthWriteEnabled;
-    GPUCompareFunction depthCompare;
-
-    GPUStencilFaceState stencilFront = {};
-    GPUStencilFaceState stencilBack = {};
-
-    GPUStencilValue stencilReadMask = 0xFFFFFFFF;
-    GPUStencilValue stencilWriteMask = 0xFFFFFFFF;
-
-    GPUDepthBias depthBias = 0;
-    float depthBiasSlopeScale = 0;
-    float depthBiasClamp = 0;
-}
-
-*/#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
+#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn depth_stencil_state(
     #[builder(into)]
     format: TextureFormat,
@@ -434,6 +306,7 @@ pub fn depth_stencil_state(
     #[builder(into)]
     bias: DepthBiasState,
 ) -> DepthStencilState {
+    let zzz = "";
     DepthStencilState {
         format,
         depth_write_enabled,
@@ -448,6 +321,7 @@ pub fn dx_12_backend_options(
     #[builder(into)]
     shader_compiler: Dx12Compiler,
 ) -> Dx12BackendOptions {
+    let zzz = "";
     Dx12BackendOptions {
         shader_compiler,
     }
@@ -462,6 +336,7 @@ pub fn extent_3d(
     #[builder(into)]
     depth_or_array_layers: u32,
 ) -> Extent3d {
+    let zzz = "";
     Extent3d {
         width,
         height,
@@ -469,13 +344,7 @@ pub fn extent_3d(
     }
 }
 
-/*
-
-{
-    required sequence<GPUColorTargetState?> targets;
-}
-
-*/#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
+#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn fragment_state<'a>(
     #[builder(into)]
     module: &'a ShaderModule,
@@ -485,6 +354,7 @@ pub fn fragment_state<'a>(
     compilation_options: PipelineCompilationOptions<'a>,
     targets: &'a [Option<ColorTargetState>],
 ) -> FragmentState<'a> {
+    let zzz = "";
     FragmentState {
         module,
         entry_point,
@@ -500,6 +370,7 @@ pub fn gl_backend_options(
     #[builder(into)]
     fence_behavior: GlFenceBehavior,
 ) -> GlBackendOptions {
+    let zzz = "";
     GlBackendOptions {
         gles_minor_version,
         fence_behavior,
@@ -519,6 +390,7 @@ pub fn image_subresource_range(
     #[builder(into)]
     array_layer_count: Option<u32>,
 ) -> ImageSubresourceRange {
+    let zzz = "";
     ImageSubresourceRange {
         aspect,
         base_mip_level,
@@ -539,6 +411,7 @@ pub fn instance_descriptor(
     #[builder(into)]
     backend_options: BackendOptions,
 ) -> InstanceDescriptor {
+    let zzz = "";
     InstanceDescriptor {
         backends,
         flags,
@@ -554,21 +427,14 @@ pub fn memory_budget_thresholds(
     #[builder(into)]
     for_device_loss: Option<u8>,
 ) -> MemoryBudgetThresholds {
+    let zzz = "";
     MemoryBudgetThresholds {
         for_resource_creation,
         for_device_loss,
     }
 }
 
-/*
-
-{
-    GPUSize32 count = 1;
-    GPUSampleMask mask = 0xFFFFFFFF;
-    boolean alphaToCoverageEnabled = false;
-}
-
-*/#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
+#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn multisample_state(
     #[builder(into)]
     count: u32,
@@ -577,6 +443,7 @@ pub fn multisample_state(
     #[builder(into)]
     alpha_to_coverage_enabled: bool,
 ) -> MultisampleState {
+    let zzz = "";
     MultisampleState {
         count,
         mask,
@@ -586,6 +453,7 @@ pub fn multisample_state(
 
 #[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn noop_backend_options(#[builder(into)] enable: bool) -> NoopBackendOptions {
+    let zzz = "";
     NoopBackendOptions { enable }
 }
 
@@ -596,11 +464,13 @@ pub fn operations<V>(
     #[builder(into)]
     store: StoreOp,
 ) -> Operations<V> {
+    let zzz = "";
     Operations { load, store }
 }
 
 #[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn origin_2d(#[builder(into)] x: u32, #[builder(into)] y: u32) -> Origin2d {
+    let zzz = "";
     Origin2d { x, y }
 }
 
@@ -613,6 +483,7 @@ pub fn origin_3d(
     #[builder(into)]
     z: u32,
 ) -> Origin3d {
+    let zzz = "";
     Origin3d { x, y, z }
 }
 
@@ -625,6 +496,7 @@ pub fn pipeline_cache_descriptor<'a>(
     #[builder(into)]
     fallback: bool,
 ) -> PipelineCacheDescriptor<'a> {
+    let zzz = "";
     PipelineCacheDescriptor {
         label,
         data,
@@ -638,25 +510,21 @@ pub fn pipeline_compilation_options<'a>(
     #[builder(into)]
     zero_initialize_workgroup_memory: bool,
 ) -> PipelineCompilationOptions<'a> {
+    let zzz = "";
     PipelineCompilationOptions {
         constants,
         zero_initialize_workgroup_memory,
     }
 }
 
-/*
-
-{
-    required sequence<GPUBindGroupLayout?> bindGroupLayouts;
-}
-
-*/#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
+#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn pipeline_layout_descriptor<'a>(
     #[builder(default = None, into)]
     label: Label<'a>,
     bind_group_layouts: &'a [&'a BindGroupLayout],
     push_constant_ranges: &'a [PushConstantRange],
 ) -> PipelineLayoutDescriptor<'a> {
+    let zzz = "";
     PipelineLayoutDescriptor {
         label,
         bind_group_layouts,
@@ -664,19 +532,7 @@ pub fn pipeline_layout_descriptor<'a>(
     }
 }
 
-/*
-
-{
-    GPUPrimitiveTopology topology = "triangle-list";
-    GPUIndexFormat stripIndexFormat;
-    GPUFrontFace frontFace = "ccw";
-    GPUCullMode cullMode = "none";
-
-    // Requires "depth-clip-control" feature.
-    boolean unclippedDepth = false;
-}
-
-*/#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
+#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn primitive_state(
     #[builder(into)]
     topology: PrimitiveTopology,
@@ -693,6 +549,7 @@ pub fn primitive_state(
     #[builder(into)]
     conservative: bool,
 ) -> PrimitiveState {
+    let zzz = "";
     PrimitiveState {
         topology,
         strip_index_format,
@@ -711,17 +568,11 @@ pub fn push_constant_range(
     #[builder(into)]
     range: Range<u32>,
 ) -> PushConstantRange {
+    let zzz = "";
     PushConstantRange { stages, range }
 }
 
-/*
-
-{
-    boolean depthReadOnly = false;
-    boolean stencilReadOnly = false;
-}
-
-*/#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
+#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn render_bundle_depth_stencil(
     #[builder(into)]
     format: TextureFormat,
@@ -730,6 +581,7 @@ pub fn render_bundle_depth_stencil(
     #[builder(into)]
     stencil_read_only: bool,
 ) -> RenderBundleDepthStencil {
+    let zzz = "";
     RenderBundleDepthStencil {
         format,
         depth_read_only,
@@ -737,14 +589,7 @@ pub fn render_bundle_depth_stencil(
     }
 }
 
-/*
-
-{
-    boolean depthReadOnly = false;
-    boolean stencilReadOnly = false;
-}
-
-*/#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
+#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn render_bundle_encoder_descriptor<'a>(
     #[builder(default = None, into)]
     label: Label<'a>,
@@ -756,6 +601,7 @@ pub fn render_bundle_encoder_descriptor<'a>(
     #[builder(into)]
     multiview: Option<NonZeroU32>,
 ) -> RenderBundleEncoderDescriptor<'a> {
+    let zzz = "";
     RenderBundleEncoderDescriptor {
         label,
         color_formats,
@@ -765,19 +611,7 @@ pub fn render_bundle_encoder_descriptor<'a>(
     }
 }
 
-/*
-
-{
-    required (GPUTexture or GPUTextureView) view;
-    GPUIntegerCoordinate depthSlice;
-    (GPUTexture or GPUTextureView) resolveTarget;
-
-    GPUColor clearValue;
-    required GPULoadOp loadOp;
-    required GPUStoreOp storeOp;
-}
-
-*/#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
+#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn render_pass_color_attachment<'tex>(
     #[builder(into)]
     view: &'tex TextureView,
@@ -788,6 +622,7 @@ pub fn render_pass_color_attachment<'tex>(
     #[builder(into)]
     ops: Operations<Color>,
 ) -> RenderPassColorAttachment<'tex> {
+    let zzz = "";
     RenderPassColorAttachment {
         view,
         depth_slice,
@@ -796,23 +631,7 @@ pub fn render_pass_color_attachment<'tex>(
     }
 }
 
-/*
-
-{
-    required (GPUTexture or GPUTextureView) view;
-
-    float depthClearValue;
-    GPULoadOp depthLoadOp;
-    GPUStoreOp depthStoreOp;
-    boolean depthReadOnly = false;
-
-    GPUStencilValue stencilClearValue = 0;
-    GPULoadOp stencilLoadOp;
-    GPUStoreOp stencilStoreOp;
-    boolean stencilReadOnly = false;
-}
-
-*/#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
+#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn render_pass_depth_stencil_attachment<'tex>(
     #[builder(into)]
     view: &'tex TextureView,
@@ -821,6 +640,7 @@ pub fn render_pass_depth_stencil_attachment<'tex>(
     #[builder(into)]
     stencil_ops: Option<Operations<u32>>,
 ) -> RenderPassDepthStencilAttachment<'tex> {
+    let zzz = "";
     RenderPassDepthStencilAttachment {
         view,
         depth_ops,
@@ -828,17 +648,7 @@ pub fn render_pass_depth_stencil_attachment<'tex>(
     }
 }
 
-/*
-
-{
-    required sequence<GPURenderPassColorAttachment?> colorAttachments;
-    GPURenderPassDepthStencilAttachment depthStencilAttachment;
-    GPUQuerySet occlusionQuerySet;
-    GPURenderPassTimestampWrites timestampWrites;
-    GPUSize64 maxDrawCount = 50000000;
-}
-
-*/#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
+#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn render_pass_descriptor<'a>(
     #[builder(default = None, into)]
     label: Label<'a>,
@@ -850,6 +660,7 @@ pub fn render_pass_descriptor<'a>(
     #[builder(into)]
     occlusion_query_set: Option<&'a QuerySet>,
 ) -> RenderPassDescriptor<'a> {
+    let zzz = "";
     RenderPassDescriptor {
         label,
         color_attachments,
@@ -859,15 +670,7 @@ pub fn render_pass_descriptor<'a>(
     }
 }
 
-/*
-
-{
-    required GPUQuerySet querySet;
-    GPUSize32 beginningOfPassWriteIndex;
-    GPUSize32 endOfPassWriteIndex;
-}
-
-*/#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
+#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn render_pass_timestamp_writes<'a>(
     #[builder(into)]
     query_set: &'a QuerySet,
@@ -876,6 +679,7 @@ pub fn render_pass_timestamp_writes<'a>(
     #[builder(into)]
     end_of_pass_write_index: Option<u32>,
 ) -> RenderPassTimestampWrites<'a> {
+    let zzz = "";
     RenderPassTimestampWrites {
         query_set,
         beginning_of_pass_write_index,
@@ -883,17 +687,7 @@ pub fn render_pass_timestamp_writes<'a>(
     }
 }
 
-/*
-
-{
-    required GPUVertexState vertex;
-    GPUPrimitiveState primitive = {};
-    GPUDepthStencilState depthStencil;
-    GPUMultisampleState multisample = {};
-    GPUFragmentState fragment;
-}
-
-*/#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
+#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn render_pipeline_descriptor<'a>(
     #[builder(default = None, into)]
     label: Label<'a>,
@@ -914,6 +708,7 @@ pub fn render_pipeline_descriptor<'a>(
     #[builder(into)]
     cache: Option<&'a PipelineCache>,
 ) -> RenderPipelineDescriptor<'a> {
+    let zzz = "";
     RenderPipelineDescriptor {
         label,
         layout,
@@ -927,16 +722,7 @@ pub fn render_pipeline_descriptor<'a>(
     }
 }
 
-/*
-
-{
-    DOMString featureLevel = "core";
-    GPUPowerPreference powerPreference;
-    boolean forceFallbackAdapter = false;
-    boolean xrCompatible = false;
-}
-
-*/#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
+#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn request_adapter_options_base<S>(
     #[builder(default, into)]
     power_preference: PowerPreference,
@@ -945,6 +731,7 @@ pub fn request_adapter_options_base<S>(
     #[builder(into)]
     compatible_surface: Option<S>,
 ) -> RequestAdapterOptionsBase<S> {
+    let zzz = "";
     RequestAdapterOptionsBase {
         power_preference,
         force_fallback_adapter,
@@ -952,20 +739,14 @@ pub fn request_adapter_options_base<S>(
     }
 }
 
-/*
-
-{
-    required USVString code;
-    sequence<GPUShaderModuleCompilationHint> compilationHints = [];
-}
-
-*/#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
+#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn shader_module_descriptor<'a>(
     #[builder(default = None, into)]
     label: Label<'a>,
     #[builder(into)]
     source: ShaderSource<'a>,
 ) -> ShaderModuleDescriptor<'a> {
+    let zzz = "";
     ShaderModuleDescriptor {
         label,
         source,
@@ -979,22 +760,14 @@ pub fn shader_runtime_checks(
     #[builder(into)]
     force_loop_bounding: bool,
 ) -> ShaderRuntimeChecks {
+    let zzz = "";
     ShaderRuntimeChecks {
         bounds_checks,
         force_loop_bounding,
     }
 }
 
-/*
-
-{
-    GPUCompareFunction compare = "always";
-    GPUStencilOperation failOp = "keep";
-    GPUStencilOperation depthFailOp = "keep";
-    GPUStencilOperation passOp = "keep";
-}
-
-*/#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
+#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn stencil_face_state(
     #[builder(into)]
     compare: CompareFunction,
@@ -1005,6 +778,7 @@ pub fn stencil_face_state(
     #[builder(into)]
     pass_op: StencilOperation,
 ) -> StencilFaceState {
+    let zzz = "";
     StencilFaceState {
         compare,
         fail_op,
@@ -1013,26 +787,7 @@ pub fn stencil_face_state(
     }
 }
 
-/*
-
-{
-    required GPUTextureFormat format;
-
-    boolean depthWriteEnabled;
-    GPUCompareFunction depthCompare;
-
-    GPUStencilFaceState stencilFront = {};
-    GPUStencilFaceState stencilBack = {};
-
-    GPUStencilValue stencilReadMask = 0xFFFFFFFF;
-    GPUStencilValue stencilWriteMask = 0xFFFFFFFF;
-
-    GPUDepthBias depthBias = 0;
-    float depthBiasSlopeScale = 0;
-    float depthBiasClamp = 0;
-}
-
-*/#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
+#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn stencil_state(
     #[builder(into)]
     front: StencilFaceState,
@@ -1043,6 +798,7 @@ pub fn stencil_state(
     #[builder(into)]
     write_mask: u32,
 ) -> StencilState {
+    let zzz = "";
     StencilState {
         front,
         back,
@@ -1051,34 +807,21 @@ pub fn stencil_state(
     }
 }
 
-/*
-
-{
-    required GPUBuffer buffer;
-}
-
-*/#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
+#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn texel_copy_buffer_info_base<B>(
     #[builder(into)]
     buffer: B,
     #[builder(into)]
     layout: TexelCopyBufferLayout,
 ) -> TexelCopyBufferInfoBase<B> {
+    let zzz = "";
     TexelCopyBufferInfoBase {
         buffer,
         layout,
     }
 }
 
-/*
-
-{
-    GPUSize64 offset = 0;
-    GPUSize32 bytesPerRow;
-    GPUSize32 rowsPerImage;
-}
-
-*/#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
+#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn texel_copy_buffer_layout(
     #[builder(into)]
     offset: u64,
@@ -1087,6 +830,7 @@ pub fn texel_copy_buffer_layout(
     #[builder(into)]
     rows_per_image: Option<u32>,
 ) -> TexelCopyBufferLayout {
+    let zzz = "";
     TexelCopyBufferLayout {
         offset,
         bytes_per_row,
@@ -1094,16 +838,7 @@ pub fn texel_copy_buffer_layout(
     }
 }
 
-/*
-
-{
-    required GPUTexture texture;
-    GPUIntegerCoordinate mipLevel = 0;
-    GPUOrigin3D origin = {};
-    GPUTextureAspect aspect = "all";
-}
-
-*/#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
+#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn texel_copy_texture_info_base<T>(
     #[builder(into)]
     texture: T,
@@ -1114,6 +849,7 @@ pub fn texel_copy_texture_info_base<T>(
     #[builder(into)]
     aspect: TextureAspect,
 ) -> TexelCopyTextureInfoBase<T> {
+    let zzz = "";
     TexelCopyTextureInfoBase {
         texture,
         mip_level,
@@ -1131,6 +867,7 @@ pub fn texture_transition<T>(
     #[builder(into)]
     state: TextureUses,
 ) -> TextureTransition<T> {
+    let zzz = "";
     TextureTransition {
         texture,
         selector,
@@ -1138,16 +875,7 @@ pub fn texture_transition<T>(
     }
 }
 
-/*
-
-{
-    required GPUVertexFormat format;
-    required GPUSize64 offset;
-
-    required GPUIndex32 shaderLocation;
-}
-
-*/#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
+#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn vertex_attribute(
     #[builder(into)]
     format: VertexFormat,
@@ -1156,6 +884,7 @@ pub fn vertex_attribute(
     #[builder(into)]
     shader_location: u32,
 ) -> VertexAttribute {
+    let zzz = "";
     VertexAttribute {
         format,
         offset,
@@ -1163,15 +892,7 @@ pub fn vertex_attribute(
     }
 }
 
-/*
-
-{
-    required GPUSize64 arrayStride;
-    GPUVertexStepMode stepMode = "vertex";
-    required sequence<GPUVertexAttribute> attributes;
-}
-
-*/#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
+#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn vertex_buffer_layout<'a>(
     #[builder(into)]
     array_stride: BufferAddress,
@@ -1179,6 +900,7 @@ pub fn vertex_buffer_layout<'a>(
     step_mode: VertexStepMode,
     attributes: &'a [VertexAttribute],
 ) -> VertexBufferLayout<'a> {
+    let zzz = "";
     VertexBufferLayout {
         array_stride,
         step_mode,
@@ -1186,13 +908,7 @@ pub fn vertex_buffer_layout<'a>(
     }
 }
 
-/*
-
-{
-    sequence<GPUVertexBufferLayout?> buffers = [];
-}
-
-*/#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
+#[bon::builder(state_mod(vis = "pub(crate)"), derive(Into))]
 pub fn vertex_state<'a>(
     #[builder(into)]
     module: &'a ShaderModule,
@@ -1202,6 +918,7 @@ pub fn vertex_state<'a>(
     compilation_options: PipelineCompilationOptions<'a>,
     buffers: &'a [VertexBufferLayout<'a>],
 ) -> VertexState<'a> {
+    let zzz = "";
     VertexState {
         module,
         entry_point,
@@ -1223,6 +940,7 @@ pub fn blas_triangle_geometry_size_descriptor(
     #[builder(into)]
     flags: AccelerationStructureGeometryFlags,
 ) -> BlasTriangleGeometrySizeDescriptor {
+    let zzz = "";
     BlasTriangleGeometrySizeDescriptor {
         vertex_format,
         vertex_count,
@@ -1243,6 +961,7 @@ pub fn buffer_descriptor<'a>(
     #[builder(into)]
     mapped_at_creation: bool,
 ) -> BufferDescriptor<'a> {
+    let zzz = "";
     BufferDescriptor {
         label,
         size,
@@ -1256,6 +975,7 @@ pub fn command_encoder_descriptor<'a>(
     #[builder(into)]
     label: Option<&'a str>,
 ) -> CommandEncoderDescriptor<'a> {
+    let zzz = "";
     CommandEncoderDescriptor { label }
 }
 
@@ -1268,6 +988,7 @@ pub fn create_blas_descriptor<'a>(
     #[builder(into)]
     update_mode: AccelerationStructureUpdateMode,
 ) -> CreateBlasDescriptor<'a> {
+    let zzz = "";
     CreateBlasDescriptor {
         label,
         flags,
@@ -1286,6 +1007,7 @@ pub fn create_tlas_descriptor<'a>(
     #[builder(into)]
     update_mode: AccelerationStructureUpdateMode,
 ) -> CreateTlasDescriptor<'a> {
+    let zzz = "";
     CreateTlasDescriptor {
         label,
         max_instances,
@@ -1307,6 +1029,7 @@ pub fn device_descriptor<'a>(
     #[builder(into)]
     trace: Trace,
 ) -> DeviceDescriptor<'a> {
+    let zzz = "";
     DeviceDescriptor {
         label,
         required_features,
@@ -1325,6 +1048,7 @@ pub fn query_set_descriptor<'a>(
     #[builder(into)]
     count: u32,
 ) -> QuerySetDescriptor<'a> {
+    let zzz = "";
     QuerySetDescriptor {
         label,
         ty,
@@ -1337,6 +1061,7 @@ pub fn render_bundle_descriptor<'a>(
     #[builder(into)]
     label: Option<&'a str>,
 ) -> RenderBundleDescriptor<'a> {
+    let zzz = "";
     RenderBundleDescriptor { label }
 }
 
@@ -1349,6 +1074,7 @@ pub fn request_adapter_options<'a, 'b>(
     #[builder(into)]
     compatible_surface: Option<&'a Surface<'b>>,
 ) -> RequestAdapterOptions<'a, 'b> {
+    let zzz = "";
     RequestAdapterOptions {
         power_preference,
         force_fallback_adapter,
@@ -1383,6 +1109,7 @@ pub fn sampler_descriptor<'a>(
     #[builder(into)]
     border_color: Option<SamplerBorderColor>,
 ) -> SamplerDescriptor<'a> {
+    let zzz = "";
     SamplerDescriptor {
         label,
         address_mode_u,
@@ -1409,6 +1136,7 @@ pub fn shader_module_descriptor_dxil<'a>(
     num_workgroups: (u32, u32, u32),
     source: &'a [u8],
 ) -> ShaderModuleDescriptorDxil<'a> {
+    let zzz = "";
     ShaderModuleDescriptorDxil {
         entry_point,
         label,
@@ -1428,6 +1156,7 @@ pub fn shader_module_descriptor_hlsl<'a>(
     #[builder(into)]
     source: &'a str,
 ) -> ShaderModuleDescriptorHlsl<'a> {
+    let zzz = "";
     ShaderModuleDescriptorHlsl {
         entry_point,
         label,
@@ -1447,6 +1176,7 @@ pub fn shader_module_descriptor_msl<'a>(
     #[builder(into)]
     source: Cow<'a, str>,
 ) -> ShaderModuleDescriptorMsl<'a> {
+    let zzz = "";
     ShaderModuleDescriptorMsl {
         entry_point,
         label,
@@ -1462,6 +1192,7 @@ pub fn shader_module_descriptor_spir_v<'a>(
     #[builder(into)]
     source: Cow<'a, [u32]>,
 ) -> ShaderModuleDescriptorSpirV<'a> {
+    let zzz = "";
     ShaderModuleDescriptorSpirV {
         label,
         source,
@@ -1487,6 +1218,7 @@ pub fn surface_configuration(
     #[builder(into)]
     view_formats: Vec<TextureFormat>,
 ) -> SurfaceConfiguration {
+    let zzz = "";
     SurfaceConfiguration {
         usage,
         format,
@@ -1506,6 +1238,7 @@ pub fn texel_copy_buffer_info<'a>(
     #[builder(into)]
     layout: TexelCopyBufferLayout,
 ) -> TexelCopyBufferInfo<'a> {
+    let zzz = "";
     TexelCopyBufferInfo {
         buffer,
         layout,
@@ -1523,6 +1256,7 @@ pub fn texel_copy_texture_info<'a>(
     #[builder(into)]
     aspect: TextureAspect,
 ) -> TexelCopyTextureInfo<'a> {
+    let zzz = "";
     TexelCopyTextureInfo {
         texture,
         mip_level,
@@ -1549,6 +1283,7 @@ pub fn texture_descriptor<'a>(
     usage: TextureUsages,
     view_formats: &'a [TextureFormat],
 ) -> TextureDescriptor<'a> {
+    let zzz = "";
     TextureDescriptor {
         label,
         size,
@@ -1582,6 +1317,7 @@ pub fn texture_view_descriptor<'a>(
     #[builder(into)]
     array_layer_count: Option<u32>,
 ) -> TextureViewDescriptor<'a> {
+    let zzz = "";
     TextureViewDescriptor {
         label,
         format,

@@ -33,16 +33,8 @@ fn main() -> anyhow::Result<()> {
     let cli = <Cli as clap::Parser>::parse();
     match &cli.command {
         Commands::Generate => {
-            let mut idl = include_str!("../../webgpu.idl");
-
-            let idl_hints = parse_idl(&mut idl)
-                .map_err(|e| anyhow!(e))?
-                .into_iter()
-                .collect::<HashMap<_, _>>();
-
             let path = doc_path("index.html")?;
-            let mut generator =
-                Generator::new(Html::parse_document(&fs::read_to_string(path)?), idl_hints);
+            let mut generator = Generator::new(Html::parse_document(&fs::read_to_string(path)?));
 
             output(&generator.generate()?, true);
         }

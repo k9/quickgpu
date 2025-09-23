@@ -12,10 +12,10 @@ pub(crate) fn doc_path(file: &str) -> anyhow::Result<PathBuf> {
         .canonicalize()?)
 }
 
-pub(crate) fn output(code: &[(String, TokenStream)], format: bool) {
+pub(crate) fn output(code: &[TokenStream], format: bool) {
     let code = code
         .iter()
-        .map(|(idl, c)| {
+        .map(|c| {
             let c = if format {
                 let syntax_tree = syn::parse_file(&c.to_string()).unwrap();
                 prettyplease::unparse(&syntax_tree)
@@ -23,7 +23,7 @@ pub(crate) fn output(code: &[(String, TokenStream)], format: bool) {
                 c.to_string()
             };
 
-            format!("{}{}", idl, c)
+            c.to_string()
         })
         .collect::<Vec<String>>()
         .join("\n");
