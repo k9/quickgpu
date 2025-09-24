@@ -1,8 +1,10 @@
 [workspace]
-members = [
-    "xtask",
-    "quickgpu",
-    "example"
-, "default_check"]
+members = ["xtask", "quickgpu", "example", "placeholder"]
 exclude = ["wgpu"]
 resolver = "2"
+
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3

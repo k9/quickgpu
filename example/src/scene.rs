@@ -4,11 +4,13 @@ use bytemuck::{Pod, Zeroable};
 use quickgpu::builders::{
     depth_stencil_state, fragment_state, multisample_state, operations, primitive_state,
     render_pass_color_attachment, render_pass_depth_stencil_attachment, render_pass_descriptor,
-    render_pipeline_descriptor, vertex_attribute, vertex_buffer_layout, vertex_state,
+    render_pipeline_descriptor, shader_module_descriptor, vertex_attribute, vertex_buffer_layout,
+    vertex_state,
 };
 use wgpu::{
-    Buffer, Color, CommandBuffer, CompareFunction, Device, LoadOp, RenderPipeline, TextureFormat,
-    VertexFormat, util::DeviceExt,
+    Buffer, Color, CommandBuffer, CompareFunction, Device, LoadOp, RenderPipeline, ShaderSource,
+    TextureFormat, VertexFormat,
+    util::{BufferInitDescriptor, DeviceExt},
 };
 
 use crate::app::RenderTextures;
@@ -48,20 +50,23 @@ const INDICES: &[u16] = &[0, 1, 2, 0, 2, 3];
 
 impl Scene {
     pub fn new(device: &Device, format: TextureFormat, sample_count: u32) -> Self {
-        let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: None,
-            source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!("../shaders/base.wgsl"))),
-        });
+        let shader = device.create_shader_module(
+            shader_module_descriptor()
+                .source(ShaderSource::Wgsl(Cow::Borrowed(include_str!(
+                    "../shaders/base.wgsl"
+                ))))
+                .call(),
+        );
 
         let render_pipeline = render_pipeline_descriptor()
-            .label(Some("Render Pipeline"))
+            .label("Render Pipeline")
             .vertex(
                 vertex_state()
                     .module(&shader)
                     .entry_point("vs_main")
                     .buffers(&[vertex_buffer_layout()
                         .array_stride(size_of::<VertexInput>() as wgpu::BufferAddress)
-                        .attributes(&vec![
+                        .attributes(&[
                             vertex_attribute()
                                 .format(VertexFormat::Float32x4)
                                 .shader_location(0)
@@ -93,13 +98,13 @@ impl Scene {
             .multisample(multisample_state().count(sample_count).call())
             .create_with(device);
 
-        let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        let vertex_buffer = device.create_buffer_init(&BufferInitDescriptor {
             label: Some("Vertex Buffer"),
             contents: bytemuck::cast_slice(VERTICES),
             usage: wgpu::BufferUsages::VERTEX,
         });
 
-        let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        let index_buffer = device.create_buffer_init(&BufferInitDescriptor {
             label: Some("Index Buffer"),
             contents: bytemuck::cast_slice(INDICES),
             usage: wgpu::BufferUsages::INDEX,
@@ -125,7 +130,7 @@ impl Scene {
 
         {
             let mut render_pass = render_pass_descriptor()
-                .label(Some("Render Pass"))
+                .label("Render Pass")
                 .color_attachments(&[Some(
                     render_pass_color_attachment()
                         .view(render_textures.view)
