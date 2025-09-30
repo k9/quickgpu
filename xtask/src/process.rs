@@ -1,35 +1,39 @@
-use std::{fs, path::Path};
+use std::{fs, path::Path, process};
 
 use convert_case::Casing;
 use ra_ap_edition::Edition;
 use ra_ap_hir::{
     Adt, Crate, DisplayTarget, HasVisibility, HirDisplay, Impl, ModuleDef, ScopeDef, Semantics,
-    StructKind, Visibility,
+    StructKind, Visibility, db::DefDatabase,
 };
 use ra_ap_ide_db::RootDatabase;
 use ra_ap_load_cargo::{LoadCargoConfig, ProcMacroServerChoice, load_workspace};
 use ra_ap_paths::{AbsPathBuf, Utf8PathBuf};
 use ra_ap_project_model::{CargoConfig, ProjectManifest, ProjectWorkspace, RustLibSource};
 
-use crate::default_overrides::{DefaultValue, get_default_value};
+use crate::{
+    default_overrides::{DefaultValue, get_default_value},
+    utils::lines,
+};
 
 const EDITION: Edition = Edition::Edition2024;
 
 pub fn process() -> anyhow::Result<()> {
-    /*let (path, crate_name) = (
+    let (path, crate_name) = (
         Path::new("/Users/work/src/ratesttest").to_path_buf(),
         "ratesttest",
-    );*/
+    );
 
-    let (path, crate_name) = (
+    /*let (path, crate_name) = (
         Path::new(env!("CARGO_WORKSPACE_DIR")).join("placeholder"),
         "placeholder",
-    );
+    );*/
 
     let mut code = vec![
         "
 use bon::builder;
 use wgpu::*;
+use wgpu::util::*;
     "
         .to_string(),
     ];
@@ -75,32 +79,74 @@ use wgpu::*;
 
     for (name, def) in module.scope(&db, None) {
         if let ScopeDef::ModuleDef(ModuleDef::Adt(Adt::Struct(def))) = def {
-            if def.kind(&db) == StructKind::Record
-                && def.visibility(&db) == Visibility::Public
-                && def
-                    .fields(&db)
-                    .iter()
-                    .all(|f| f.visibility(&db) == Visibility::Public)
+            if let Some(value) = struct_builder(&db, display_target, &semantics, module, name, def)
             {
-                code.extend_from_slice(&struct_builder(
-                    &db,
-                    display_target,
-                    &semantics,
-                    module,
-                    name,
-                    def,
-                ));
+                code.push(lines(value, false));
+            }
+        } else if let ScopeDef::ModuleDef(ModuleDef::TypeAlias(def)) = def {
+            //
+            // @todo: try a simple typedef and look at generics
+            //
+
+            // rhs of alias expression?
+            println!("\nplaceholders");
+            let x = def.ty_placeholders(&db); //.generic_params(&db);
+            println!("{:?}", x.display_source_code(&db, module.into(), true));
+            for ta in x.type_arguments() {
+                println!("{:?}", ta.display(&db, display_target).to_string());
+            }
+
+            // which parameters are set in rhs of alias
+            println!("\nty");
+            let x = def.ty(&db);
+            println!("{:?}", x.display_source_code(&db, module.into(), true));
+            for ta in x.type_arguments() {
+                println!("{:?}", ta.display(&db, display_target).to_string());
+            }
+
+            println!("\nfields");
+            for f in x.fields(&db) {
+                let ff = f.0;
+                println!("{}", ff.display(&db, display_target));
+            }
+
+            // lhs of alias
+            println!("\nparams");
+            let x = db.type_alias_signature(def.into());
+            println!("{}", x.name.display(&db, EDITION));
+
+            let x = x.generic_params.iter_type_or_consts();
+            for (_, x) in x {
+                println!("{:?}", x);
+            }
+
+            if let Some(target) = def.ty(&db).as_adt().and_then(|adt| adt.as_struct()) {
+                // struct which alias points to
+                println!("\nTarget {}", target.display(&db, display_target));
+
+                for mut ta in target.ty(&db).type_arguments() {
+                    println!("{:?}", ta.display(&db, display_target).to_string());
+                }
+
+                if let Some(value) =
+                    struct_builder(&db, display_target, &semantics, module, name, target)
+                {
+                    code.push(lines(value, false));
+                }
+            } else {
+                println!("Not adt {:?}", def.name(&db).as_str())
             }
         }
     }
 
-    //let code = prettify(&code);
-    let code = code.join("\n").replace("\n\n", "\n");
+    let code = lines(code, true);
 
-    fs::write(
-        Path::new(env!("CARGO_WORKSPACE_DIR")).join("quickgpu/src/builders.rs"),
-        code,
-    )?;
+    let output_path = Path::new(env!("CARGO_WORKSPACE_DIR")).join("quickgpu/src/builders.rs");
+    fs::write(&output_path, code)?;
+
+    process::Command::new("rustfmt")
+        .args(output_path.to_str())
+        .output()?;
 
     Ok(())
 }
@@ -112,14 +158,25 @@ fn struct_builder(
     module: ra_ap_hir::Module,
     name: ra_ap_hir::Name,
     def: ra_ap_hir::Struct,
-) -> Vec<String> {
+) -> Option<Vec<String>> {
+    if def.kind(db) != StructKind::Record
+        || def.visibility(db) != Visibility::Public
+        || def
+            .fields(db)
+            .iter()
+            .any(|f| f.visibility(db) != Visibility::Public)
+    {
+        return None;
+    };
+
     let mut code = vec![];
-    let ty = def.ty(db);
     if let Some(default_impl) = get_default_impl(db, def.ty(db)) {
         let text = default_impl_text(semantics, db, default_impl);
         code.push(format!(
             "
 /*
+    Default impl on type to build:
+
     {text}
 */"
         ));
@@ -130,6 +187,7 @@ fn struct_builder(
         .type_and_const_arguments(db, display_target)
         .map(|t| t.to_string());
 
+    let ty = def.ty(db);
     let lifetimes = ty
         .generic_parameters(db, display_target)
         .map(|p| p.to_string())
@@ -151,9 +209,8 @@ fn struct_builder(
     let struct_name_fn = struct_name.to_case(convert_case::Case::Snake);
 
     code.push(format!(
-        "
-#[builder(state_mod(vis = \"pub(crate)\"))]
-pub fn {struct_name_fn}{generics}(",
+        "#[builder(state_mod(vis = \"pub(crate)\"))]
+        pub fn {struct_name_fn}{generics}(",
     ));
 
     for f in def.fields(db) {
@@ -189,28 +246,22 @@ pub fn {struct_name_fn}{generics}(",
     code.push(format!(
         "
 ) -> {struct_name}{generics} {{
-    {struct_name} {{
-"
+    {struct_name} {{"
     ));
 
     for f in def.fields(db) {
         let name = f.name(db).display(db, EDITION).to_string();
-        code.push(format!(
-            "
-        {name},
-"
-        ));
+        code.push(format!("{name},"));
     }
 
     code.push(
         "
     }
-}
-"
+}"
         .to_string(),
     );
 
-    code
+    Some(code)
 }
 
 fn get_default_impl(db: &RootDatabase, ty: ra_ap_hir::Type<'_>) -> Option<Impl> {

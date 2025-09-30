@@ -1,11 +1,24 @@
-use wgpu::{CommandEncoder, Device, RenderPassDepthStencilAttachment};
+use wgpu::{
+    CommandEncoder, Device, RenderPassDepthStencilAttachment, RequestAdapterOptions,
+    util::DeviceExt,
+};
 
 use crate::builders::{
-    RenderPassDepthStencilAttachmentBuilder, render_pass_depth_stencil_attachment_builder,
-    render_pass_descriptor_builder, render_pipeline_descriptor_builder,
+    RenderPassDepthStencilAttachmentBuilder, buffer_init_descriptor_builder,
+    render_pass_depth_stencil_attachment_builder, render_pass_descriptor_builder,
+    render_pipeline_descriptor_builder,
 };
 
 pub mod builders;
+
+impl<'a, S> builders::BufferInitDescriptorBuilder<'a, S>
+where
+    S: buffer_init_descriptor_builder::IsComplete,
+{
+    pub fn create_with(self, device: &Device) -> wgpu::Buffer {
+        device.create_buffer_init(&self.call())
+    }
+}
 
 impl<'a, S> builders::RenderPipelineDescriptorBuilder<'a, S>
 where

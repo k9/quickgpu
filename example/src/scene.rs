@@ -2,10 +2,10 @@ use std::borrow::Cow;
 
 use bytemuck::{Pod, Zeroable};
 use quickgpu::builders::{
-    depth_stencil_state, fragment_state, multisample_state, operations, primitive_state,
-    render_pass_color_attachment, render_pass_depth_stencil_attachment, render_pass_descriptor,
-    render_pipeline_descriptor, shader_module_descriptor, vertex_attribute, vertex_buffer_layout,
-    vertex_state,
+    buffer_init_descriptor, depth_stencil_state, fragment_state, multisample_state, operations,
+    primitive_state, render_pass_color_attachment, render_pass_depth_stencil_attachment,
+    render_pass_descriptor, render_pipeline_descriptor, shader_module_descriptor, vertex_attribute,
+    vertex_buffer_layout, vertex_state,
 };
 use wgpu::{
     Buffer, Color, CommandBuffer, CompareFunction, Device, LoadOp, RenderPipeline, ShaderSource,
@@ -98,17 +98,17 @@ impl Scene {
             .multisample(multisample_state().count(sample_count).call())
             .create_with(device);
 
-        let vertex_buffer = device.create_buffer_init(&BufferInitDescriptor {
-            label: Some("Vertex Buffer"),
-            contents: bytemuck::cast_slice(VERTICES),
-            usage: wgpu::BufferUsages::VERTEX,
-        });
+        let vertex_buffer = buffer_init_descriptor()
+            .label("Vertex Buffer")
+            .contents(bytemuck::cast_slice(VERTICES))
+            .usage(wgpu::BufferUsages::VERTEX)
+            .create_with(device);
 
-        let index_buffer = device.create_buffer_init(&BufferInitDescriptor {
-            label: Some("Index Buffer"),
-            contents: bytemuck::cast_slice(INDICES),
-            usage: wgpu::BufferUsages::INDEX,
-        });
+        let index_buffer = buffer_init_descriptor()
+            .label("Index Buffer")
+            .contents(bytemuck::cast_slice(INDICES))
+            .usage(wgpu::BufferUsages::INDEX)
+            .create_with(device);
 
         Scene {
             render_pipeline,
