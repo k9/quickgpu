@@ -1,0 +1,118 @@
+use std::{
+    fs::File,
+    io::{BufRead, BufReader},
+    path::Path,
+};
+
+use rustdoc_types::{Crate, Id, ItemEnum, Span};
+
+use crate::data::Data;
+
+#[derive(Debug)]
+#[allow(dead_code)]
+pub struct Source {
+    pub source: String,
+    pub filename: String,
+    pub line: u64,
+}
+
+#[derive(Debug)]
+#[allow(dead_code)]
+pub enum DefaultValue {
+    None { msg: String },
+    Default { source: Source },
+    Value { source: Source, value: String },
+}
+
+impl DefaultValue {
+    pub fn get_comment(&self) -> String {
+        match self {
+            DefaultValue::None { msg } => format!("{}\n", msg),
+            DefaultValue::Default { source } | DefaultValue::Value { source, value: _ } => {
+                format!(
+                    "Default from: {}:{}\n{}",
+                    source.filename, source.line, source.source
+                )
+            }
+        }
+    }
+}
+
+pub(crate) fn get_default(id: Id, krate: &Crate, data: &Data) -> DefaultValue {
+    if let Some(item) = krate.index.get(&id) {
+        if let Some(impls) = match &item.inner {
+            ItemEnum::Struct(s) => Some(s.impls.clone()),
+            ItemEnum::Enum(e) => Some(e.impls.clone()),
+            _ => None,
+        } {
+            for impl_ in impls {
+                if let Some(item) = krate.index.get(&impl_)
+                    && let ItemEnum::Impl(impl_) = &item.inner
+                    && impl_.trait_.as_ref().map(|trait_| &trait_.path)
+                        == Some(&"Default".to_string())
+                {
+                    return analyze_default(item.span.as_ref().unwrap());
+                }
+            }
+        } else {
+            return DefaultValue::None {
+                msg: format!("Unhandled {:?} {:?}", item.name, id),
+            };
+        }
+    } else {
+        #[allow(clippy::collapsible_else_if, clippy::collapsible_if)]
+        if let Some(path) = krate.paths.get(&id)
+            && let Some(other_krate) = path.path.first()
+            && let Some(entry) = path.path.last()
+        {
+            if other_krate == "wgpu_types" {
+                for (id, item) in data.iter_wgt() {
+                    if item.name == Some(entry.to_string()) {
+                        return get_default(*id, &data.wgt, data);
+                    }
+                }
+
+                return DefaultValue::None {
+                    msg: format!("wgpu_types not found {}", entry),
+                };
+            } else if !["core", "alloc"].contains(&other_krate.as_str()) {
+                return DefaultValue::None {
+                    msg: format!("other {}", other_krate),
+                };
+            }
+        }
+    }
+
+    DefaultValue::None {
+        msg: "Item not found".to_string(),
+    }
+}
+
+pub(crate) fn analyze_default(span: &Span) -> DefaultValue {
+    let path = Path::new("/Users/work/src/wgpu/").join(&span.filename);
+    let filename = span.filename.to_str().unwrap().to_string();
+
+    if let Ok(input) = File::open(&path) {
+        let buffered = BufReader::new(input);
+        let mut lines = buffered.lines().enumerate();
+
+        let mut source = "".to_string();
+        while let Some((num, Ok(contents))) = lines.next() {
+            if num >= span.begin.0 - 1 && num < span.end.0 {
+                source.push_str(&format!("{contents}\n"));
+            }
+        }
+
+        DefaultValue::Default {
+            source: Source {
+                source,
+                filename,
+                line: span.begin.0 as u64,
+            },
+        }
+    } else {
+        DefaultValue::None {
+            msg: format!("Can't find file {filename}"),
+        }
+    }
+}

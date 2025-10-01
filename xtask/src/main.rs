@@ -1,10 +1,10 @@
-use clap::{Parser, Subcommand, command};
+pub mod analyze;
+pub mod analyze_default;
+pub mod data;
+pub mod generate;
+pub mod utils;
 
-use crate::process::process;
-
-pub mod default_overrides;
-pub mod process;
-mod utils;
+use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -23,7 +23,7 @@ fn main() -> anyhow::Result<()> {
 
     let cli = <Cli as clap::Parser>::parse();
     match &cli.command {
-        Commands::Generate => process()?,
+        Commands::Generate => generate::generate()?,
     };
     Ok(())
 }
