@@ -6,7 +6,7 @@ use std::{
 
 use rustdoc_types::{Crate, Id, Item, ItemEnum, Span};
 
-use crate::data::Data;
+use crate::data::{Data, DataItem};
 
 #[derive(Debug)]
 #[allow(dead_code)]
@@ -96,7 +96,7 @@ fn default_in_other_crate(id: Id, krate: &Crate, data: &Data) -> DefaultValue {
         && let Some(entry) = path.path.last()
     {
         if other_krate == "wgpu_types" {
-            for (id, item) in data.iter_wgt() {
+            for DataItem { id, item, .. } in data.iter_wgt() {
                 if item.name == Some(entry.to_string()) {
                     return get_default(*id, &data.wgt, data);
                 }

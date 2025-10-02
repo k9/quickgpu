@@ -1,4 +1,6 @@
-use rustdoc_types::{Crate, Generics, Id, Item, ItemEnum, Span, StructKind, Type, Visibility};
+use rustdoc_types::{
+    Crate, Generics, Id, Item, ItemEnum, Path, Span, StructKind, Type, TypeAlias, Visibility,
+};
 
 use crate::{
     analyze_default::{DefaultValue, get_default},
@@ -14,12 +16,18 @@ pub struct FieldParts {
 }
 
 #[derive(Debug)]
+pub struct AliasParts {
+    pub source: Path,
+}
+
+#[derive(Debug)]
 #[allow(dead_code)]
 pub struct StructParts {
     pub name: String,
     pub generics: Generics,
     pub default_value: DefaultValue,
     pub fields: Vec<FieldParts>,
+    pub alias: Option<AliasParts>,
 }
 
 #[derive(Debug)]
@@ -45,7 +53,12 @@ pub enum FieldAnalysis {
 }
 
 impl StructAnalysis {
-    pub fn analyze(item: &Item, krate: &Crate, data: &Data) -> StructAnalysis {
+    pub fn analyze(
+        item: &Item,
+        krate: &Crate,
+        data: &Data,
+        alias: Option<TypeAlias>,
+    ) -> StructAnalysis {
         let ItemEnum::Struct(s) = &item.inner else {
             return StructAnalysis::NotStruct;
         };
@@ -88,14 +101,20 @@ impl StructAnalysis {
         }
 
         let default_value = get_default(item.id, krate, data);
+        let alias = get_alias_parts(alias);
 
         Self::Parts(StructParts {
             name,
             generics: s.generics.clone(),
             fields,
             default_value,
+            alias,
         })
     }
+}
+
+fn get_alias_parts(alias: Option<TypeAlias>) -> Option<AliasParts> {
+    None
 }
 
 fn analyze_field(field: Id, krate: &Crate, data: &Data) -> FieldAnalysis {
@@ -130,11 +149,11 @@ fn analyze_field(field: Id, krate: &Crate, data: &Data) -> FieldAnalysis {
 pub fn report(_v: &Item, analysis: &StructAnalysis) {
     match analysis {
         StructAnalysis::Parts(p) => {
-            println!("{}", p.name);
-            println!("    default: {:?}", p.default_value);
-            println!("    fields:");
+            //println!("{}", p.name);
+            //println!("    default: {:?}", p.default_value);
+            //println!("    fields:");
             for f in &p.fields {
-                println!("        {:?} {:?}", f.name, f.default_value);
+                //    println!("        {:?} {:?}", f.name, f.default_value);
             }
         }
         StructAnalysis::NotStruct => {}

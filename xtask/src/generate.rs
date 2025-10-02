@@ -1,15 +1,23 @@
 use crate::{
     analyze::{FieldParts, StructAnalysis, StructParts, report},
     analyze_default::DefaultValue,
-    data,
+    data::{self, DataItem},
     utils::{ident, parse_docs, relative_path, rustfmt},
 };
 use anyhow::Context;
 use convert_case::{Case, Casing};
 use proc_macro2::TokenStream;
 use quote::{ToTokens, quote as q};
-use rustdoc_types::{GenericArg, GenericArgs, GenericParamDef, GenericParamDefKind, Type};
+use rustdoc_types::{
+    GenericArg, GenericArgs, GenericParamDef, GenericParamDefKind, ItemEnum, Type,
+};
 use syn::{Expr, Lifetime, parse_str};
+
+#[derive(Debug)]
+pub struct UseInstance {
+    pub source: String,
+    pub name: String,
+}
 
 const SKIP: &[&str] = &[
     "AdapterInfo",
@@ -42,36 +50,74 @@ pub fn generate() -> anyhow::Result<()> {
         parse_docs("wgpu/target/doc/wgpu_types.json")?,
     );
 
-    let mut wgt_structs = vec![];
+    /*
+        wgpu_types: struct TexelCopyBufferInfo
+        wgpu: use wgt::TexelCopyBufferInfo as TexelCopyBufferInfoBase
+          exported as struct with "Base" and original generics
+        wgpu: type TexelCopyBufferInfo = TexelCopyBufferInfoBase
+          exported as type alias w/ new generics
+    */
 
-    for (_, v) in data.iter_base() {
-        if let rustdoc_types::ItemEnum::Use(u) = &v.inner
+    let mut use_items_wgt = vec![];
+    for DataItem { item, .. } in data.iter_base() {
+        if let rustdoc_types::ItemEnum::Use(u) = &item.inner
             && !u.is_glob
             && u.source.starts_with("wgt::")
         {
-            wgt_structs.push(u.name.to_string());
+            use_items_wgt.push(UseInstance {
+                source: final_path(&u.source.clone())?,
+                name: u.name.clone(),
+            });
         }
     }
 
     let mut structs = vec![];
-    for (_, v) in data.iter_wgt() {
-        if let Some(name) = &v.name
-            && wgt_structs.contains(name)
+    for DataItem { item, .. } in data.iter_wgt() {
+        if let Some(name) = &item.name
+            && let Some(wgt) = use_items_wgt.iter().find(|wgt| &wgt.source == name)
         {
-            let analysis = StructAnalysis::analyze(v, &data.wgt, &data);
-            report(v, &analysis);
+            let mut item = item.clone();
+            item.name = Some(wgt.name.clone());
+
+            let analysis = StructAnalysis::analyze(&item, &data.wgt, &data, None);
+            report(&item, &analysis);
             if let StructAnalysis::Parts(parts) = analysis {
                 structs.push(parts);
             }
         }
     }
 
-    for (_, v) in data.iter_base() {
-        let analysis = StructAnalysis::analyze(v, &data.base, &data);
-        report(v, &analysis);
+    for DataItem { item, .. } in data.iter_base() {
+        let analysis = StructAnalysis::analyze(item, &data.base, &data, None);
+        report(item, &analysis);
         if let StructAnalysis::Parts(parts) = analysis {
             structs.push(parts);
         }
+    }
+
+    for DataItem { item, .. } in data.iter_base() {
+        if let ItemEnum::TypeAlias(ta) = &item.inner
+            && let Type::ResolvedPath(path) = &ta.type_
+        {
+            let mut ta_path = final_path(&path.path)?;
+            if let Some(use_item) = use_items_wgt.iter().find(|u| u.name == ta_path) {
+                ta_path = final_path(&use_item.source)?;
+            };
+
+            let target = data.iter_both().find(|DataItem { item, .. }| {
+                item.name.as_deref() == Some(&ta_path)
+                    && !matches!(item.inner, ItemEnum::TypeAlias(_))
+            });
+
+            if let Some(target) = target {
+                let analysis = StructAnalysis::analyze(target.item, target.krate, &data, None);
+                report(target.item, &analysis);
+
+                if let StructAnalysis::Parts(parts) = analysis {
+                    structs.push(parts);
+                }
+            }
+        };
     }
 
     let structs = structs
@@ -191,13 +237,9 @@ fn type_tokens(field_type: &Type) -> anyhow::Result<TokenStream> {
     match field_type {
         Type::ResolvedPath(path) => {
             let args = generic_args(path.args.clone())?;
-            let path = path
-                .path
-                .split("::")
-                .last()
-                .context("Problem parsing path")?;
+            let path = final_path(&path.path)?;
 
-            let path = parse_str::<Expr>(path)?;
+            let path = parse_str::<Expr>(&path)?;
             Ok(q!(#path #args))
         }
         Type::Primitive(p) => Ok(ident(p).to_token_stream()),
@@ -237,6 +279,14 @@ fn type_tokens(field_type: &Type) -> anyhow::Result<TokenStream> {
         }
         ty => panic!("Failed to handle type {:?}", ty),
     }
+}
+
+fn final_path(path: &str) -> anyhow::Result<String> {
+    Ok(path
+        .split("::")
+        .last()
+        .context("Problem parsing path")?
+        .to_string())
 }
 
 fn generic_params(struct_item: &StructParts) -> anyhow::Result<TokenStream> {

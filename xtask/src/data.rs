@@ -5,29 +5,35 @@ pub struct Data {
     pub wgt: Crate,
 }
 
-pub trait ItemIter<'a>: Iterator<Item = (&'a Id, &'a Item)> {}
-
-impl<'a, T> ItemIter<'a> for T where T: Iterator<Item = (&'a Id, &'a Item)> {}
+#[derive(Debug)]
+pub struct DataItem<'a> {
+    pub id: &'a Id,
+    pub item: &'a Item,
+    pub krate: &'a Crate,
+}
 
 impl<'a> Data {
     pub fn new(base: Crate, wgt: Crate) -> Self {
         Self { base, wgt }
     }
 
-    pub fn iter_base(&'a self) -> impl ItemIter<'a> {
-        self.base.index.iter()
+    pub fn iter_base(&'a self) -> impl Iterator<Item = DataItem<'a>> {
+        self.base.index.iter().map(|item| DataItem {
+            id: item.0,
+            item: item.1,
+            krate: &self.base,
+        })
     }
 
-    pub fn iter_wgt(&'a self) -> impl ItemIter<'a> {
-        self.wgt.index.iter()
+    pub fn iter_wgt(&'a self) -> impl Iterator<Item = DataItem<'a>> {
+        self.wgt.index.iter().map(|item| DataItem {
+            id: item.0,
+            item: item.1,
+            krate: &self.wgt,
+        })
     }
 
-    #[allow(dead_code)]
-    pub fn iter_both(&self) -> impl Iterator<Item = ((&Id, &Item), &Crate)> {
-        self.base
-            .index
-            .iter()
-            .map(|item| (item, &self.base))
-            .chain(self.wgt.index.iter().map(|item| (item, &self.wgt)))
+    pub fn iter_both(&'a self) -> impl Iterator<Item = DataItem<'a>> {
+        self.iter_base().chain(self.iter_wgt())
     }
 }
