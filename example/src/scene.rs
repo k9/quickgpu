@@ -10,7 +10,6 @@ use quickgpu::builders::{
 use wgpu::{
     Buffer, Color, CommandBuffer, CompareFunction, Device, LoadOp, RenderPipeline, ShaderSource,
     TextureFormat, VertexFormat,
-    util::{BufferInitDescriptor, DeviceExt},
 };
 
 use crate::app::RenderTextures;

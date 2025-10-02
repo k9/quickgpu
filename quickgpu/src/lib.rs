@@ -1,7 +1,4 @@
-use wgpu::{
-    CommandEncoder, Device, RenderPassDepthStencilAttachment, RequestAdapterOptions,
-    util::DeviceExt,
-};
+use wgpu::{CommandEncoder, Device, RenderPassDepthStencilAttachment, util::DeviceExt};
 
 use crate::builders::{
     RenderPassDepthStencilAttachmentBuilder, buffer_init_descriptor_builder,

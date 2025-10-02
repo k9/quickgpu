@@ -1,7 +1,7 @@
-use rustdoc_types::{Crate, Id, Item, ItemEnum, Span, StructKind, Type, Visibility};
+use rustdoc_types::{Crate, Generics, Id, Item, ItemEnum, Span, StructKind, Type, Visibility};
 
 use crate::{
-    analyze_default::{self, DefaultValue},
+    analyze_default::{DefaultValue, get_default},
     data::Data,
 };
 
@@ -17,6 +17,7 @@ pub struct FieldParts {
 #[allow(dead_code)]
 pub struct StructParts {
     pub name: String,
+    pub generics: Generics,
     pub default_value: DefaultValue,
     pub fields: Vec<FieldParts>,
 }
@@ -86,10 +87,11 @@ impl StructAnalysis {
             };
         }
 
-        let default_value = analyze_default::get_default(item.id, krate, data);
+        let default_value = get_default(item.id, krate, data);
 
         Self::Parts(StructParts {
             name,
+            generics: s.generics.clone(),
             fields,
             default_value,
         })
@@ -97,36 +99,32 @@ impl StructAnalysis {
 }
 
 fn analyze_field(field: Id, krate: &Crate, data: &Data) -> FieldAnalysis {
-    let field_parts = {
-        let Some(field) = krate.index.get(&field) else {
-            return FieldAnalysis::NotFound(field);
-        };
-
-        let Some(name) = field.name.as_ref().map(|x| x.to_string()) else {
-            return FieldAnalysis::NoName(field.id);
-        };
-
-        let ItemEnum::StructField(struct_field) = &field.inner else {
-            return FieldAnalysis::NotPath(format!("{:?}", field.inner));
-        };
-
-        match struct_field {
-            Type::ResolvedPath(path) => FieldParts {
-                name,
-                default_value: analyze_default::get_default(path.id, krate, data),
-                ty: struct_field.clone(),
-            },
-            _ => FieldParts {
-                name,
-                default_value: DefaultValue::None {
-                    msg: "Field type not ResolvedPath".to_string(),
-                },
-                ty: struct_field.clone(),
-            },
-        }
+    let Some(field) = krate.index.get(&field) else {
+        return FieldAnalysis::NotFound(field);
     };
 
-    FieldAnalysis::Parts(field_parts)
+    let Some(name) = field.name.as_ref().map(|x| x.to_string()) else {
+        return FieldAnalysis::NoName(field.id);
+    };
+
+    let ItemEnum::StructField(struct_field) = &field.inner else {
+        return FieldAnalysis::NotPath(format!("{:?}", field.inner));
+    };
+
+    match struct_field {
+        Type::ResolvedPath(path) => FieldAnalysis::Parts(FieldParts {
+            name,
+            default_value: get_default(path.id, krate, data),
+            ty: struct_field.clone(),
+        }),
+        _ => FieldAnalysis::Parts(FieldParts {
+            name,
+            default_value: DefaultValue::None {
+                msg: "Field type not ResolvedPath".to_string(),
+            },
+            ty: struct_field.clone(),
+        }),
+    }
 }
 
 pub fn report(_v: &Item, analysis: &StructAnalysis) {
