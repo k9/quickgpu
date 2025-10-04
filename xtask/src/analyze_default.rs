@@ -29,6 +29,7 @@ pub enum DefaultValue {
         source: Option<Source>,
         value: String,
     },
+    Generic,
 }
 
 fn no_default(msg: String) -> DefaultValue {
@@ -49,11 +50,12 @@ impl DefaultValue {
                     "".to_string()
                 }
             }
+            DefaultValue::Generic => "".to_string(),
         }
     }
 }
 
-pub(crate) fn get_default(id: Id, krate: &Crate, data: &Data) -> DefaultValue {
+pub fn get_default(id: Id, krate: &Crate, data: &Data) -> DefaultValue {
     if let Some(item) = krate.index.get(&id) {
         default_in_this_crate(id, krate, item)
     } else {
@@ -66,6 +68,7 @@ fn default_in_this_crate(id: Id, krate: &Crate, item: &Item) -> DefaultValue {
         if name == "LoadOp" {
             return no_default("LoadOp needs default bound".to_string());
         }
+
         if name == "Label" {
             return DefaultValue::Default { source: None };
         }

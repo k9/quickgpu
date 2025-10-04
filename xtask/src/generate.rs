@@ -2,6 +2,7 @@ use crate::{
     analyze::{FieldParts, StructAnalysis, StructParts, report},
     analyze_default::DefaultValue,
     data::{self, DataItem},
+    type_alias_helpers::{TypeAliasMap, get_type_alias_map},
     utils::{ident, parse_docs, relative_path, rustfmt},
 };
 use anyhow::Context;
@@ -79,7 +80,7 @@ pub fn generate() -> anyhow::Result<()> {
             let mut item = item.clone();
             item.name = Some(wgt.name.clone());
 
-            let analysis = StructAnalysis::analyze(&item, &data.wgt, &data, None);
+            let analysis = StructAnalysis::analyze(&item, &data.wgt, &data, TypeAliasMap::None);
             report(&item, &analysis);
             if let StructAnalysis::Parts(parts) = analysis {
                 structs.push(parts);
@@ -88,7 +89,7 @@ pub fn generate() -> anyhow::Result<()> {
     }
 
     for DataItem { item, .. } in data.iter_base() {
-        let analysis = StructAnalysis::analyze(item, &data.base, &data, None);
+        let analysis = StructAnalysis::analyze(item, &data.base, &data, TypeAliasMap::None);
         report(item, &analysis);
         if let StructAnalysis::Parts(parts) = analysis {
             structs.push(parts);
@@ -110,7 +111,8 @@ pub fn generate() -> anyhow::Result<()> {
             });
 
             if let Some(target) = target {
-                let analysis = StructAnalysis::analyze(target.item, target.krate, &data, None);
+                let map = get_type_alias_map(target.item, ta, path);
+                let analysis = StructAnalysis::analyze(target.item, target.krate, &data, map);
                 report(target.item, &analysis);
 
                 if let StructAnalysis::Parts(parts) = analysis {
@@ -127,8 +129,10 @@ pub fn generate() -> anyhow::Result<()> {
     let mut builders = vec![(
         "".to_string(),
         "
+use std::borrow::Cow;
 use std::ops::Range;
 use std::num::NonZeroU32;
+
 use wgpu::*;
 use wgpu::util::*;
 use wgpu::wgt::TextureSelector;
@@ -164,7 +168,7 @@ fn generate_struct(struct_item: StructParts) -> anyhow::Result<(String, String)>
 
     let mut fn_params = vec![];
     for f in &struct_item.fields {
-        fn_params.push(field_fn_param(f)?)
+        fn_params.push(field_fn_param(f, &struct_item.type_alias_map)?)
     }
 
     let mut return_params = vec![];
@@ -174,6 +178,7 @@ fn generate_struct(struct_item: StructParts) -> anyhow::Result<(String, String)>
 
     let code = q!(
         #[bon::builder(state_mod(vis="pub(crate)"))]
+        #[builder(derive(Into))]
         pub fn #fn_ident #struct_generics(
             #(#fn_params),*
         ) -> #struct_ident #struct_generics {
@@ -192,17 +197,27 @@ pub struct GeneratedField {
     pub return_param: TokenStream,
 }
 
-fn field_fn_param(field: &FieldParts) -> anyhow::Result<TokenStream> {
+fn field_fn_param(
+    field: &FieldParts,
+    type_alias_map: &TypeAliasMap,
+) -> anyhow::Result<TokenStream> {
     let field_name = ident(&field.name);
 
     let mut attrs = vec![];
+
+    let field_type = &field.ty;
+    let field_type = type_tokens(field_type, type_alias_map)?;
+
     match &field.default_value {
         DefaultValue::None { msg: _ } => (),
         DefaultValue::Default { source: _ } => attrs.push(q!(default)),
         DefaultValue::Value { source: _, value } => attrs.push(q!(default=#value)),
+        DefaultValue::Generic => {
+            if field_type.to_string().starts_with("Label <") {
+                attrs.push(q!(default));
+            }
+        }
     };
-
-    let field_type = &field.ty;
 
     if let Type::BorrowedRef { type_, .. } = &field.ty
         && matches!(**type_, Type::Slice(_))
@@ -211,8 +226,6 @@ fn field_fn_param(field: &FieldParts) -> anyhow::Result<TokenStream> {
     } else {
         attrs.push(q!(into));
     };
-
-    let field_type = type_tokens(field_type)?;
 
     let attrs = if attrs.is_empty() {
         q!()
@@ -233,17 +246,24 @@ fn field_return_param(field: &FieldParts) -> anyhow::Result<TokenStream> {
     Ok(q!(#field_name))
 }
 
-fn type_tokens(field_type: &Type) -> anyhow::Result<TokenStream> {
+fn type_tokens(field_type: &Type, type_alias_map: &TypeAliasMap) -> anyhow::Result<TokenStream> {
     match field_type {
         Type::ResolvedPath(path) => {
-            let args = generic_args(path.args.clone())?;
+            let args = generic_args(path.args.clone(), type_alias_map)?;
             let path = final_path(&path.path)?;
 
             let path = parse_str::<Expr>(&path)?;
             Ok(q!(#path #args))
         }
         Type::Primitive(p) => Ok(ident(p).to_token_stream()),
-        Type::Generic(g) => Ok(ident(g).to_token_stream()),
+        Type::Generic(g) => {
+            let type_ = type_alias_map.map_generic(g);
+            if let Type::Generic(generic) = type_ {
+                Ok(ident(&generic).to_token_stream())
+            } else {
+                type_tokens(&type_, type_alias_map)
+            }
+        }
         Type::BorrowedRef {
             lifetime,
             is_mutable,
@@ -259,18 +279,18 @@ fn type_tokens(field_type: &Type) -> anyhow::Result<TokenStream> {
                 tokens.push(q!(mut));
             }
 
-            tokens.push(type_tokens(type_)?);
+            tokens.push(type_tokens(type_, type_alias_map)?);
 
             Ok(q!(#(#tokens)*))
         }
         Type::Slice(ty) => {
-            let inner = type_tokens(ty)?;
+            let inner = type_tokens(ty, type_alias_map)?;
             Ok(q!([#inner]))
         }
         Type::Tuple(tuple) => {
             let mut tokens = vec![];
             for item in tuple {
-                tokens.push(type_tokens(item)?);
+                tokens.push(type_tokens(item, type_alias_map)?);
             }
 
             Ok(q!(
@@ -292,7 +312,11 @@ fn final_path(path: &str) -> anyhow::Result<String> {
 fn generic_params(struct_item: &StructParts) -> anyhow::Result<TokenStream> {
     let mut struct_generics = vec![];
 
-    for GenericParamDef { name, kind } in &struct_item.generics.params {
+    let generics = struct_item
+        .type_alias_map
+        .map_generics(&struct_item.generics);
+
+    for GenericParamDef { name, kind } in &generics.params {
         let mut tokens = vec![];
         match kind {
             GenericParamDefKind::Lifetime { outlives: _ } => {
@@ -320,7 +344,10 @@ fn generic_params(struct_item: &StructParts) -> anyhow::Result<TokenStream> {
     Ok(struct_generics)
 }
 
-fn generic_args(args: Option<Box<GenericArgs>>) -> anyhow::Result<TokenStream> {
+fn generic_args(
+    args: Option<Box<GenericArgs>>,
+    type_alias_map: &TypeAliasMap,
+) -> anyhow::Result<TokenStream> {
     let mut struct_generics = vec![];
 
     if let Some(args) = args
@@ -334,10 +361,11 @@ fn generic_args(args: Option<Box<GenericArgs>>) -> anyhow::Result<TokenStream> {
 
             match arg {
                 GenericArg::Lifetime(lifetime) => {
+                    let lifetime = type_alias_map.map_lifetime(&lifetime);
                     tokens.push(parse_str::<Lifetime>(&lifetime)?.to_token_stream());
                 }
                 GenericArg::Type(type_) => {
-                    tokens.push(type_tokens(&type_)?);
+                    tokens.push(type_tokens(&type_, type_alias_map)?);
                 }
                 _ => (),
             };

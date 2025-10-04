@@ -1,10 +1,9 @@
-use rustdoc_types::{
-    Crate, Generics, Id, Item, ItemEnum, Path, Span, StructKind, Type, TypeAlias, Visibility,
-};
+use rustdoc_types::{Crate, Generics, Id, Item, ItemEnum, Span, StructKind, Type, Visibility};
 
 use crate::{
     analyze_default::{DefaultValue, get_default},
     data::Data,
+    type_alias_helpers::TypeAliasMap,
 };
 
 #[derive(Debug)]
@@ -16,18 +15,13 @@ pub struct FieldParts {
 }
 
 #[derive(Debug)]
-pub struct AliasParts {
-    pub source: Path,
-}
-
-#[derive(Debug)]
 #[allow(dead_code)]
 pub struct StructParts {
     pub name: String,
     pub generics: Generics,
     pub default_value: DefaultValue,
     pub fields: Vec<FieldParts>,
-    pub alias: Option<AliasParts>,
+    pub type_alias_map: TypeAliasMap,
 }
 
 #[derive(Debug)]
@@ -57,7 +51,7 @@ impl StructAnalysis {
         item: &Item,
         krate: &Crate,
         data: &Data,
-        alias: Option<TypeAlias>,
+        type_alias_map: TypeAliasMap,
     ) -> StructAnalysis {
         let ItemEnum::Struct(s) = &item.inner else {
             return StructAnalysis::NotStruct;
@@ -101,20 +95,15 @@ impl StructAnalysis {
         }
 
         let default_value = get_default(item.id, krate, data);
-        let alias = get_alias_parts(alias);
 
         Self::Parts(StructParts {
             name,
             generics: s.generics.clone(),
             fields,
             default_value,
-            alias,
+            type_alias_map,
         })
     }
-}
-
-fn get_alias_parts(alias: Option<TypeAlias>) -> Option<AliasParts> {
-    None
 }
 
 fn analyze_field(field: Id, krate: &Crate, data: &Data) -> FieldAnalysis {
@@ -136,6 +125,11 @@ fn analyze_field(field: Id, krate: &Crate, data: &Data) -> FieldAnalysis {
             default_value: get_default(path.id, krate, data),
             ty: struct_field.clone(),
         }),
+        Type::Generic(_) => FieldAnalysis::Parts(FieldParts {
+            name,
+            default_value: DefaultValue::Generic,
+            ty: struct_field.clone(),
+        }),
         _ => FieldAnalysis::Parts(FieldParts {
             name,
             default_value: DefaultValue::None {
@@ -152,7 +146,7 @@ pub fn report(_v: &Item, analysis: &StructAnalysis) {
             //println!("{}", p.name);
             //println!("    default: {:?}", p.default_value);
             //println!("    fields:");
-            for f in &p.fields {
+            for _f in &p.fields {
                 //    println!("        {:?} {:?}", f.name, f.default_value);
             }
         }
