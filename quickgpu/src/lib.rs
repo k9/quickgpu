@@ -2,8 +2,9 @@ use wgpu::{CommandEncoder, Device, RenderPassDepthStencilAttachment, util::Devic
 
 use crate::builders::{
     RenderPassDepthStencilAttachmentBuilder, buffer_init_descriptor_builder,
-    render_pass_depth_stencil_attachment_builder, render_pass_descriptor_builder,
-    render_pipeline_descriptor_builder,
+    command_encoder_descriptor_builder, render_pass_depth_stencil_attachment_builder,
+    render_pass_descriptor_builder, render_pipeline_descriptor_builder,
+    shader_module_descriptor_builder,
 };
 
 pub mod builders;
@@ -23,6 +24,24 @@ where
 {
     pub fn create_with(self, device: &Device) -> wgpu::RenderPipeline {
         device.create_render_pipeline(&self.call())
+    }
+}
+
+impl<'a, S> builders::ShaderModuleDescriptorBuilder<'a, S>
+where
+    S: shader_module_descriptor_builder::IsComplete,
+{
+    pub fn create_with(self, device: &Device) -> wgpu::ShaderModule {
+        device.create_shader_module(self.call())
+    }
+}
+
+impl<'a, S> builders::CommandEncoderDescriptorBuilder<'a, S>
+where
+    S: command_encoder_descriptor_builder::IsComplete,
+{
+    pub fn create_with(self, device: &Device) -> wgpu::CommandEncoder {
+        device.create_command_encoder(&self.call())
     }
 }
 

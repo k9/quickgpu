@@ -43,10 +43,7 @@ const INDICES: &[u16] = &[0, 1, 2, 0, 2, 3];
 
 impl Scene {
     pub fn new(device: &Device, format: TextureFormat, sample_count: u32) -> Self {
-        let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: None,
-            source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!("../shaders/base.wgsl"))),
-        });
+        let shader = device.create_shader_module(include_wgsl!("../shaders/base.wgsl"));
 
         let render_pipeline_layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {

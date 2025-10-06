@@ -1,7 +1,8 @@
+use quote::quote as q;
 use rustdoc_types::{Crate, Generics, Id, Item, ItemEnum, Span, StructKind, Type, Visibility};
 
 use crate::{
-    analyze_default::{DefaultValue, get_default},
+    analyze_default::{StructDefault, get_default, no_default},
     data::Data,
     type_alias_helpers::TypeAliasMap,
 };
@@ -11,7 +12,7 @@ use crate::{
 pub struct FieldParts {
     pub name: String,
     pub ty: Type,
-    pub default_value: DefaultValue,
+    pub default_value: StructDefault,
 }
 
 #[derive(Debug)]
@@ -19,7 +20,7 @@ pub struct FieldParts {
 pub struct StructParts {
     pub name: String,
     pub generics: Generics,
-    pub default_value: DefaultValue,
+    pub default_value: StructDefault,
     pub fields: Vec<FieldParts>,
     pub type_alias_map: TypeAliasMap,
 }
@@ -87,14 +88,14 @@ impl StructAnalysis {
 
         let mut fields = vec![];
 
+        let default_value = get_default(item.id, krate, data);
+
         for field in source_fields {
-            match analyze_field(field, krate, data) {
+            match analyze_field(field, krate, data, &default_value) {
                 FieldAnalysis::Parts(parts) => fields.push(parts),
                 x => return StructAnalysis::FieldIssue(x),
             };
         }
-
-        let default_value = get_default(item.id, krate, data);
 
         Self::Parts(StructParts {
             name,
@@ -106,7 +107,12 @@ impl StructAnalysis {
     }
 }
 
-fn analyze_field(field: Id, krate: &Crate, data: &Data) -> FieldAnalysis {
+fn analyze_field(
+    field: Id,
+    krate: &Crate,
+    data: &Data,
+    struct_default: &StructDefault,
+) -> FieldAnalysis {
     let Some(field) = krate.index.get(&field) else {
         return FieldAnalysis::NotFound(field);
     };
@@ -119,6 +125,31 @@ fn analyze_field(field: Id, krate: &Crate, data: &Data) -> FieldAnalysis {
         return FieldAnalysis::NotPath(format!("{:?}", field.inner));
     };
 
+    if let StructDefault::Fields { source, fields } = struct_default {
+        if let Some(value) = fields.get(&name) {
+            let default_value = if let Type::ResolvedPath(path) = struct_field
+                && path.path == "Option"
+            {
+                no_default("Option doesn't need default")
+            } else if q!(#value).to_string() == q!(Default::default()).to_string() {
+                StructDefault::Default {
+                    source: source.clone(),
+                }
+            } else {
+                StructDefault::Value {
+                    source: source.clone(),
+                    value: value.clone(),
+                }
+            };
+
+            return FieldAnalysis::Parts(FieldParts {
+                name,
+                ty: struct_field.clone(),
+                default_value,
+            });
+        }
+    };
+
     match struct_field {
         Type::ResolvedPath(path) => FieldAnalysis::Parts(FieldParts {
             name,
@@ -127,12 +158,12 @@ fn analyze_field(field: Id, krate: &Crate, data: &Data) -> FieldAnalysis {
         }),
         Type::Generic(_) => FieldAnalysis::Parts(FieldParts {
             name,
-            default_value: DefaultValue::Generic,
+            default_value: StructDefault::Generic,
             ty: struct_field.clone(),
         }),
         _ => FieldAnalysis::Parts(FieldParts {
             name,
-            default_value: DefaultValue::None {
+            default_value: StructDefault::None {
                 msg: "Field type not ResolvedPath".to_string(),
             },
             ty: struct_field.clone(),

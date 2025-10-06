@@ -24,7 +24,7 @@ fn main() -> anyhow::Result<()> {
 
     let cli = <Cli as clap::Parser>::parse();
     match &cli.command {
-        Commands::Generate => generate::generate()?,
+        Commands::Generate => generate::core::generate()?,
     };
     Ok(())
 }

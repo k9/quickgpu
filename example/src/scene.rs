@@ -1,15 +1,13 @@
-use std::borrow::Cow;
-
 use bytemuck::{Pod, Zeroable};
 use quickgpu::builders::{
-    buffer_init_descriptor, depth_stencil_state, fragment_state, multisample_state, operations,
-    primitive_state, render_pass_color_attachment, render_pass_depth_stencil_attachment,
-    render_pass_descriptor, render_pipeline_descriptor, shader_module_descriptor, vertex_attribute,
-    vertex_buffer_layout, vertex_state,
+    buffer_init_descriptor, command_encoder_descriptor, depth_stencil_state, fragment_state,
+    multisample_state, operations, primitive_state, render_pass_color_attachment,
+    render_pass_depth_stencil_attachment, render_pass_descriptor, render_pipeline_descriptor,
+    vertex_attribute, vertex_buffer_layout, vertex_state,
 };
 use wgpu::{
-    Buffer, Color, CommandBuffer, CompareFunction, Device, LoadOp, RenderPipeline, ShaderSource,
-    TextureFormat, VertexFormat,
+    Buffer, Color, CommandBuffer, CompareFunction, Device, LoadOp, RenderPipeline, TextureFormat,
+    VertexFormat, include_wgsl,
 };
 
 use crate::app::RenderTextures;
@@ -49,16 +47,9 @@ const INDICES: &[u16] = &[0, 1, 2, 0, 2, 3];
 
 impl Scene {
     pub fn new(device: &Device, format: TextureFormat, sample_count: u32) -> Self {
-        let shader = device.create_shader_module(
-            shader_module_descriptor()
-                .source(ShaderSource::Wgsl(Cow::Borrowed(include_str!(
-                    "../shaders/base.wgsl"
-                ))))
-                .call(),
-        );
+        let shader = device.create_shader_module(include_wgsl!("../shaders/base.wgsl"));
 
-        let render_pipeline = render_pipeline_descriptor()
-            .label("Render Pipeline")
+        let render_pipeline = render_pipeline_descriptor("Render Pipeline")
             .vertex(
                 vertex_state()
                     .module(&shader)
@@ -68,6 +59,7 @@ impl Scene {
                         .attributes(&[
                             vertex_attribute()
                                 .format(VertexFormat::Float32x4)
+                                .offset(0)
                                 .shader_location(0)
                                 .call(),
                             vertex_attribute()
@@ -76,35 +68,30 @@ impl Scene {
                                 .shader_location(1)
                                 .call(),
                         ])
-                        .call()])
-                    .call(),
+                        .call()]),
             )
             .fragment(
                 fragment_state()
                     .module(&shader)
                     .entry_point("fs_main")
-                    .targets(&[Some(format.into())])
-                    .call(),
+                    .targets(&[Some(format.into())]),
             )
-            .primitive(primitive_state().cull_mode(wgpu::Face::Back).call())
+            .primitive(primitive_state().cull_mode(wgpu::Face::Back))
             .depth_stencil(
                 depth_stencil_state()
                     .format(TextureFormat::Depth32Float)
                     .depth_write_enabled(true)
-                    .depth_compare(CompareFunction::Less)
-                    .call(),
+                    .depth_compare(CompareFunction::Less),
             )
-            .multisample(multisample_state().count(sample_count).call())
+            .multisample(multisample_state().count(sample_count))
             .create_with(device);
 
-        let vertex_buffer = buffer_init_descriptor()
-            .label("Vertex Buffer")
+        let vertex_buffer = buffer_init_descriptor("Vertex Buffer")
             .contents(bytemuck::cast_slice(VERTICES))
             .usage(wgpu::BufferUsages::VERTEX)
             .create_with(device);
 
-        let index_buffer = buffer_init_descriptor()
-            .label("Index Buffer")
+        let index_buffer = buffer_init_descriptor("Index Buffer")
             .contents(bytemuck::cast_slice(INDICES))
             .usage(wgpu::BufferUsages::INDEX)
             .create_with(device);
@@ -124,24 +111,21 @@ impl Scene {
             device,
         }: GPUState,
     ) -> CommandBuffer {
-        let mut encoder =
-            device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+        let mut encoder = command_encoder_descriptor(None).create_with(device);
 
         {
-            let mut render_pass = render_pass_descriptor()
-                .label("Render Pass")
+            let mut render_pass = render_pass_descriptor("Render Pass")
                 .color_attachments(&[Some(
                     render_pass_color_attachment()
                         .view(render_textures.view)
                         .maybe_resolve_target(render_textures.resolve_target)
-                        .ops(operations().load(LoadOp::Clear(Color::WHITE)).call())
+                        .ops(operations().load(LoadOp::Clear(Color::WHITE)))
                         .call(),
                 )])
                 .depth_stencil_attachment(
                     render_pass_depth_stencil_attachment()
                         .view(render_textures.depth)
-                        .depth_ops(operations().load(LoadOp::Clear(1.0)).call())
-                        .call(),
+                        .depth_ops(operations().load(LoadOp::Clear(1.0))),
                 )
                 .begin_with(&mut encoder);
 

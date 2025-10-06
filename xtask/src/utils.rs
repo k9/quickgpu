@@ -52,3 +52,11 @@ pub fn rustfmt(code: String) -> anyhow::Result<String> {
 
     Ok(output_string)
 }
+
+pub fn final_path(path: &str) -> anyhow::Result<String> {
+    Ok(path
+        .split("::")
+        .last()
+        .context("Problem parsing path")?
+        .to_string())
+}
