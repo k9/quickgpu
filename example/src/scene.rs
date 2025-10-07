@@ -1,10 +1,5 @@
 use bytemuck::{Pod, Zeroable};
-use quickgpu::builders::{
-    buffer_init_descriptor, command_encoder_descriptor, depth_stencil_state, fragment_state,
-    multisample_state, operations, primitive_state, render_pass_color_attachment,
-    render_pass_depth_stencil_attachment, render_pass_descriptor, render_pipeline_descriptor,
-    vertex_attribute, vertex_buffer_layout, vertex_state,
-};
+use quickgpu::builders::*;
 use wgpu::{
     Buffer, Color, CommandBuffer, CompareFunction, Device, LoadOp, RenderPipeline, TextureFormat,
     VertexFormat, include_wgsl,
@@ -59,13 +54,13 @@ impl Scene {
                         .attributes(&[
                             vertex_attribute()
                                 .format(VertexFormat::Float32x4)
-                                .offset(0)
-                                .shader_location(0)
+                                .offset(0u64)
+                                .shader_location(0u32)
                                 .call(),
                             vertex_attribute()
                                 .format(VertexFormat::Float32x2)
-                                .offset(4 * 4)
-                                .shader_location(1)
+                                .offset(4 * 4u64)
+                                .shader_location(1u32)
                                 .call(),
                         ])
                         .call()]),

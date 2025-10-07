@@ -1,5 +1,4 @@
 pub mod analyze;
-pub mod analyze_default;
 pub mod data;
 pub mod generate;
 pub mod type_alias_helpers;

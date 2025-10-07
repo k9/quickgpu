@@ -4,7 +4,7 @@ use rustdoc_types::{GenericArg, GenericArgs, GenericParamDef, GenericParamDefKin
 use syn::{Expr, Lifetime, parse_str};
 
 use crate::{
-    analyze::StructParts,
+    analyze::core::StructParts,
     type_alias_helpers::TypeAliasMap,
     utils::{final_path, ident},
 };

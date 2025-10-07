@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 
 use crate::{
-    analyze::{StructAnalysis, StructParts, report},
+    analyze::core::{StructAnalysis, StructParts, report},
     data::{self, DataItem},
     generate::{
         field::{field_details, field_fn_param, field_return_param},

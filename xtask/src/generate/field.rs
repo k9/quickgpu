@@ -4,8 +4,10 @@ use rustdoc_types::Type;
 use syn::Ident;
 
 use crate::{
-    analyze::FieldParts, analyze_default::StructDefault, generate::types::type_tokens,
-    type_alias_helpers::TypeAliasMap, utils::ident,
+    analyze::{core::FieldParts, field_default::FieldDefault},
+    generate::types::type_tokens,
+    type_alias_helpers::TypeAliasMap,
+    utils::ident,
 };
 
 pub struct GeneratedField {
@@ -61,8 +63,8 @@ pub fn field_details(
     let mut default = None;
 
     match &field.default_value {
-        StructDefault::None { msg: _ } => (),
-        StructDefault::Default { source: _ } => {
+        FieldDefault::None { msg: _ } => (),
+        FieldDefault::Default => {
             if ty.to_string().starts_with("LoadOp <") {
                 println!("{:?}", ty);
             }
@@ -73,7 +75,7 @@ pub fn field_details(
                 default = q!(default).into();
             }
         }
-        StructDefault::Value { source: _, value } => {
+        FieldDefault::Value { value } => {
             if !q!(#value)
                 .to_string()
                 .starts_with(&q!(LoadOp::).to_string())
@@ -98,15 +100,11 @@ pub fn field_details(
                 }
             }
         }
-        StructDefault::Generic => {
+        FieldDefault::Generic => {
             if ty.to_string().starts_with("Label <") {
                 start_fn = q!(start_fn).into();
             }
         }
-        StructDefault::Fields {
-            source: _,
-            fields: _,
-        } => {}
     };
 
     if let Type::BorrowedRef { type_, .. } = &field.ty
