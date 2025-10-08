@@ -1,0 +1,8 @@
+[package]
+name = "quickgpu"
+version = "0.0.0"
+edition = "2024"
+
+[dependencies]
+bon = "3.7.2"
+wgpu = { version = "26.0.1" }
