@@ -97,7 +97,12 @@ pub fn parse_crate(
 ) -> AResult<NodeIndex> {
     write_expanded(&output_path, &crate_path)?;
 
-    let file = syn::parse_file(&std::fs::read_to_string(output_path)?)?;
+    let Ok(contents) = std::fs::read_to_string(output_path.clone()) else {
+        bail!("Failed to read {:?}", &output_path);
+    };
+
+    let file = syn::parse_file(&contents)?;
+
     let crate_root = dummy_module(crate_name, file.items);
     let id = analysis.modules.push_index(crate_root);
     let root_index = analysis.graph.add_node(AnalysisItem::Mod(id));
