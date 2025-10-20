@@ -4,11 +4,11 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-bytemuck = "1.23.2"
+bytemuck = "1.24.0"
 env_logger = "0.11"
 log = "0.4.28"
 pollster = "0.4.0"
-wgpu = "26.0.1"
+wgpu = "27.0.1"
 winit = "0.30.12"
 quickgpu = { path="../quickgpu" }
-bon = "3.7.2"
+bon = "3.8.1"

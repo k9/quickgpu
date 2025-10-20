@@ -1,8 +1,4 @@
-use std::{
-    io::{Read, Write},
-    path::PathBuf,
-    process::Stdio,
-};
+use std::path::PathBuf;
 
 use anyhow::Context;
 use proc_macro2::Span;
@@ -25,32 +21,13 @@ pub fn ident(name: &str) -> Ident {
     Ident::new(name, Span::call_site())
 }
 
-pub fn rustfmt(code: String) -> anyhow::Result<String> {
-    let mut cmd = std::process::Command::new("rustfmt")
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .spawn()?;
+pub fn rustfmt(path: PathBuf) -> anyhow::Result<()> {
+    std::process::Command::new("rustfmt")
+        .arg(path.into_os_string())
+        .output()
+        .context("Couldn't format builders")?;
 
-    let mut stdin = cmd
-        .stdin
-        .take()
-        .context("Can't access stdin during rustfmt")?;
-
-    let mut stdout = cmd
-        .stdout
-        .take()
-        .context("Can't access stdout during rustfmt")?;
-
-    std::thread::spawn(move || {
-        stdin.write_all(&code.into_bytes()).unwrap();
-    });
-
-    cmd.wait()?;
-
-    let mut output_string = "".to_string();
-    stdout.read_to_string(&mut output_string)?;
-
-    Ok(output_string)
+    Ok(())
 }
 
 pub fn final_path(path: &str) -> anyhow::Result<String> {

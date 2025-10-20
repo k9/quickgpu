@@ -17,6 +17,7 @@ pub struct GenericArgsList {
 #[derive(Debug)]
 pub enum TypeAliasMap {
     Map {
+        name: String,
         alias_generics: Generics,
         alias_args: GenericArgsList,
         target_params: GenericParamsList,
@@ -63,9 +64,17 @@ impl TypeAliasMap {
 
         Type::Generic(generic.to_string())
     }
+
+    pub(crate) fn map_name(&self, name: &str) -> String {
+        if let TypeAliasMap::Map { name, .. } = self {
+            return name.clone();
+        };
+
+        name.to_string()
+    }
 }
 
-pub fn get_type_alias_map(item: &Item, ta: &TypeAlias, path: &Path) -> TypeAliasMap {
+pub fn get_type_alias_map(name: String, item: &Item, ta: &TypeAlias, path: &Path) -> TypeAliasMap {
     let target_generics = match &item.inner {
         ItemEnum::Struct(s) => Some(s.generics.clone()),
         ItemEnum::Enum(e) => Some(e.generics.clone()),
@@ -86,6 +95,7 @@ pub fn get_type_alias_map(item: &Item, ta: &TypeAlias, path: &Path) -> TypeAlias
         //     = Abc<'a, Option<u64> // type alias path args
 
         return TypeAliasMap::Map {
+            name,
             alias_generics: ta.generics.clone(),
             alias_args: get_args_list(args),
             target_params: get_params_list(target_generics),

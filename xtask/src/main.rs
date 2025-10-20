@@ -1,6 +1,7 @@
 pub mod analyze;
 pub mod data;
 pub mod generate;
+pub mod output;
 pub mod type_alias_helpers;
 pub mod utils;
 
@@ -23,7 +24,8 @@ fn main() -> anyhow::Result<()> {
 
     let cli = <Cli as clap::Parser>::parse();
     match &cli.command {
-        Commands::Generate => generate::core::generate()?,
-    };
+        Commands::Generate => generate::generate(),
+    }?;
+
     Ok(())
 }

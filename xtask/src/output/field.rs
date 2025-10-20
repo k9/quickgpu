@@ -5,7 +5,7 @@ use syn::Ident;
 
 use crate::{
     analyze::{core::FieldParts, field_default::FieldDefault},
-    generate::types::type_tokens,
+    output::types::type_tokens,
     type_alias_helpers::TypeAliasMap,
     utils::ident,
 };
@@ -17,6 +17,7 @@ pub struct GeneratedField {
 
 pub struct FieldDetails {
     pub name: Ident,
+    pub path: String,
     pub ty: TokenStream,
     pub start_fn: Option<TokenStream>,
     pub into: Option<TokenStream>,
@@ -30,6 +31,8 @@ pub fn field_fn_param(
         start_fn,
         into,
         default,
+        path,
+        ..
     }: FieldDetails,
 ) -> anyhow::Result<TokenStream> {
     let attrs = [start_fn, into, default]
@@ -45,7 +48,10 @@ pub fn field_fn_param(
         )
     };
 
+    let doc = format!("Sets [`{path}::{name}`]");
     Ok(q!(
+        #[rustfmt::skip]
+        #[doc=#doc]
         #attrs
         #name: #ty
     ))
@@ -53,6 +59,7 @@ pub fn field_fn_param(
 
 pub fn field_details(
     field: &FieldParts,
+    path: &str,
     type_alias_map: &TypeAliasMap,
 ) -> anyhow::Result<FieldDetails> {
     let name = ident(&field.name);
@@ -117,6 +124,7 @@ pub fn field_details(
 
     Ok(FieldDetails {
         name,
+        path: path.to_string(),
         ty,
         start_fn,
         into,

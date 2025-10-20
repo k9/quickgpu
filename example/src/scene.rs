@@ -56,14 +56,14 @@ impl Scene {
                                 .format(VertexFormat::Float32x4)
                                 .offset(0u64)
                                 .shader_location(0u32)
-                                .call(),
+                                .build(),
                             vertex_attribute()
                                 .format(VertexFormat::Float32x2)
                                 .offset(4 * 4u64)
                                 .shader_location(1u32)
-                                .call(),
+                                .build(),
                         ])
-                        .call()]),
+                        .build()]),
             )
             .fragment(
                 fragment_state()
@@ -78,7 +78,7 @@ impl Scene {
                     .depth_write_enabled(true)
                     .depth_compare(CompareFunction::Less),
             )
-            .multisample(multisample_state().count(sample_count))
+            .multisample(multisample_state().count(sample_count).build())
             .create_with(device);
 
         let vertex_buffer = buffer_init_descriptor("Vertex Buffer")
@@ -115,7 +115,7 @@ impl Scene {
                         .view(render_textures.view)
                         .maybe_resolve_target(render_textures.resolve_target)
                         .ops(operations().load(LoadOp::Clear(Color::WHITE)))
-                        .call(),
+                        .build(),
                 )])
                 .depth_stencil_attachment(
                     render_pass_depth_stencil_attachment()

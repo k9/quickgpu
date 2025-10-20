@@ -1,3 +1,5 @@
+use std::sync::LazyLock;
+
 use quote::quote as q;
 use regex::Regex;
 use rustdoc_types::{Crate, Generics, Id, Item, ItemEnum, Span, StructKind, Type, Visibility};
@@ -23,6 +25,7 @@ pub struct FieldParts {
 #[allow(dead_code)]
 pub struct StructParts {
     pub name: String,
+    pub path: String,
     pub generics: Generics,
     pub default_value: StructDefault,
     pub fields: Vec<FieldParts>,
@@ -50,6 +53,13 @@ pub enum FieldAnalysis {
     NoName(Id),
     NotPath(String),
 }
+
+static API_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"wgpu-[0-9\.]*/src/api/").unwrap());
+static UTIL_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"wgpu-[0-9\.]*/src/util/").unwrap());
+static TYPES_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"wgpu-types-[0-9\.]*/src/").unwrap());
 
 impl StructAnalysis {
     pub fn analyze(
@@ -82,19 +92,24 @@ impl StructAnalysis {
             return StructAnalysis::HasNotVisibleFields;
         };
 
-        let api = Regex::new(r"wgpu-[0-9\.]*/src/api/").unwrap();
-        let util = Regex::new(r"wgpu-[0-9\.]*/src/util/").unwrap();
-        let types = Regex::new(r"wgpu-types-[0-9\.]*/src/").unwrap();
-        if !item.span.as_ref().is_some_and(|span| {
-            let filename = span.filename.clone().into_os_string();
-            let Some(filename) = filename.to_str() else {
-                return false;
-            };
+        let Some(span) = item.span.as_ref() else {
+            return StructAnalysis::WrongPath(item.span.clone());
+        };
 
-            api.is_match(filename) || util.is_match(filename) || types.is_match(filename)
-        }) {
+        let filename = span.filename.clone().into_os_string();
+        let Some(filename) = filename.to_str() else {
+            return StructAnalysis::WrongPath(item.span.clone());
+        };
+
+        let is_api = API_REGEX.is_match(filename);
+        let is_util = UTIL_REGEX.is_match(filename);
+        let is_types = TYPES_REGEX.is_match(filename);
+
+        if !(is_api || is_util || is_types) {
             return StructAnalysis::WrongPath(item.span.clone());
         }
+
+        let path_prefix = if is_util { "wgpu::util" } else { "wgpu" };
 
         let mut fields = vec![];
 
@@ -107,8 +122,11 @@ impl StructAnalysis {
             };
         }
 
+        let path = format!("{path_prefix}::{name}");
+
         Self::Parts(StructParts {
             name,
+            path,
             generics: s.generics.clone(),
             fields,
             default_value,

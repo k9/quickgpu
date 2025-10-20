@@ -14,7 +14,7 @@ where
     S: buffer_init_descriptor_builder::IsComplete,
 {
     pub fn create_with(self, device: &Device) -> wgpu::Buffer {
-        device.create_buffer_init(&self.call())
+        device.create_buffer_init(&self.build())
     }
 }
 
@@ -23,7 +23,7 @@ where
     S: render_pipeline_descriptor_builder::IsComplete,
 {
     pub fn create_with(self, device: &Device) -> wgpu::RenderPipeline {
-        device.create_render_pipeline(&self.call())
+        device.create_render_pipeline(&self.build())
     }
 }
 
@@ -32,7 +32,7 @@ where
     S: shader_module_descriptor_builder::IsComplete,
 {
     pub fn create_with(self, device: &Device) -> wgpu::ShaderModule {
-        device.create_shader_module(self.call())
+        device.create_shader_module(self.build())
     }
 }
 
@@ -41,7 +41,7 @@ where
     S: command_encoder_descriptor_builder::IsComplete,
 {
     pub fn create_with(self, device: &Device) -> wgpu::CommandEncoder {
-        device.create_command_encoder(&self.call())
+        device.create_command_encoder(&self.build())
     }
 }
 
@@ -50,7 +50,7 @@ where
     S: render_pass_descriptor_builder::IsComplete,
 {
     pub fn begin_with(self, encoder: &'encoder mut CommandEncoder) -> wgpu::RenderPass<'encoder> {
-        encoder.begin_render_pass(&self.call())
+        encoder.begin_render_pass(&self.build())
     }
 }
 
@@ -67,7 +67,7 @@ where
     type Output = RenderPassDepthStencilAttachment<'a>;
 
     fn nested_build(self) -> Self::Output {
-        self.call()
+        self.build()
     }
 }
 

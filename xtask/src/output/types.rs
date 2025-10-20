@@ -137,6 +137,14 @@ pub fn type_tokens(
                 (#(#tokens),*)
             ))
         }
+        Type::Array { type_, len } => {
+            let tokens = type_tokens(type_, type_alias_map)?;
+            let len: usize = len.parse()?;
+
+            Ok(q!(
+                [#tokens; #len]
+            ))
+        }
         ty => panic!("Failed to handle type {:?}", ty),
     }
 }

@@ -59,6 +59,7 @@ impl App {
         let (device, queue) = adapter
             .request_device(&wgpu::DeviceDescriptor {
                 label: None,
+                experimental_features: wgpu::ExperimentalFeatures::disabled(),
                 required_features: wgpu::Features::empty(),
                 // Make sure we use the texture resolution limits from the adapter,
                 // so we can support images the size of the swapchain.

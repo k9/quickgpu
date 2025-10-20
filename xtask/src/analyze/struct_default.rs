@@ -187,7 +187,16 @@ fn struct_fields(struct_literal: &syn::ExprStruct) -> HashMap<String, Expr> {
 
     for f in &struct_literal.fields {
         let member = &f.member;
-        let expr = &f.expr;
+        let mut expr = f.expr.clone();
+
+        if let Expr::MethodCall(method) = &mut expr
+            && method.method.to_token_stream().to_string() == q!(into).to_string()
+        {
+            let value = method.receiver.clone();
+
+            // @todo: base this on field type instead of hard-coding `String`
+            expr = syn::parse_quote!(Into::<String>::into(#value));
+        }
 
         fields.insert(q!(#member).to_string(), expr.clone());
     }
