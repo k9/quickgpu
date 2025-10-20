@@ -2,6 +2,12 @@ pub struct BigType {
     pub a: u32,
 }
 
+impl Default for BigType {
+    fn default() -> Self {
+        Self { a: 123 }
+    }
+}
+
 mod counters {
     pub struct CounterA {}
     pub struct CounterB {}

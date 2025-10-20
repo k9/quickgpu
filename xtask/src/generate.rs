@@ -1,5 +1,5 @@
 use anyhow::Context;
-use discover_exports::{Analysis, ExportedItem, discover, parse_crate};
+use discover_exports::{Analysis, AnalysisEdge, ExportedItem, discover, parse_crate};
 use syn::{Fields, FieldsNamed, ItemStruct};
 
 use crate::utils::relative_path;
@@ -28,22 +28,22 @@ pub fn generate() -> anyhow::Result<()> {
     let root_index = parse_crate(
         &mut analysis,
         relative_path("expanded/wgpu.rs"),
-        relative_path("doc_target"),
+        relative_path("wgpu/wgpu"),
         "crate",
     )?;
-    /*
-        let root_types_index = parse_crate(
-            &mut analysis,
-            relative_path("expanded/wgpu_types.rs"),
-            relative_path("wgpu/wgpu-types"),
-            "wgt",
-        )
-        .unwrap();
 
-        analysis
-            .graph
-            .update_edge(root_index, root_types_index, AnalysisEdge::Normal);
-    */
+    let root_types_index = parse_crate(
+        &mut analysis,
+        relative_path("expanded/wgpu_types.rs"),
+        relative_path("wgpu/wgpu-types"),
+        "wgt",
+    )
+    .unwrap();
+
+    analysis
+        .graph
+        .update_edge(root_index, root_types_index, AnalysisEdge::Normal);
+
     let exports = discover(analysis, root_index).unwrap();
 
     let structs = exports

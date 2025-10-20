@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use petgraph::graph::NodeIndex;
 
-use crate::analyze::{AnalysisRef, process_use_statements};
+use crate::analyze::{AnalysisRef, process_impls, process_use_statements};
 use crate::analyze::{keep_only_pub, list_exports};
 
 mod analyze;
@@ -31,6 +31,8 @@ pub fn discover(mut analysis: Analysis, root_index: NodeIndex) -> AResult<Export
             num_edges = new_num_edges;
         }
     }
+
+    process_impls(&mut analysis, root_index)?;
 
     println!(
         "skipped mod names: {}",

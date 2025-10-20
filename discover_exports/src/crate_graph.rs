@@ -13,7 +13,7 @@ pub fn print_dot(analysis: &Analysis) {
                 let label = match s {
                     AnalysisItem::Struct(id) => {
                         let item = &analysis.structs[*id];
-                        let name = &item.ident;
+                        let name = &item.item.ident;
 
                         format!("{name}")
                     }

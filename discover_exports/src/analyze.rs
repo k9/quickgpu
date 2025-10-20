@@ -10,14 +10,24 @@ use crate::{
 use anyhow::{Context, bail};
 use petgraph::{algo::astar, graph::NodeIndex, prelude::StableGraph, visit::Bfs};
 use proc_macro2::Span;
-use syn::{Item, ItemMod, ItemStruct, ItemType, UseTree, Visibility, spanned::Spanned};
+use quote::ToTokens;
+use syn::{
+    ImplItem, Item, ItemEnum, ItemImpl, ItemMod, ItemStruct, ItemType, Type, UseTree, Visibility,
+    spanned::Spanned,
+};
+
+pub struct AnalysisStruct {
+    pub item: ItemStruct,
+    pub impls: Vec<ItemImpl>,
+}
 
 #[derive(Default)]
 pub struct Analysis {
     pub crates: HashMap<String, NodeIndex>,
     pub graph: StableGraph<AnalysisItem, AnalysisEdge>,
-    pub structs: Vec<ItemStruct>,
+    pub structs: Vec<AnalysisStruct>,
     pub types: Vec<ItemType>,
+    pub impls: Vec<ItemImpl>,
     pub modules: Vec<ItemMod>,
 }
 
@@ -48,7 +58,7 @@ pub enum AnalysisItem {
 
 #[derive(Clone, Copy)]
 pub enum AnalysisRef<'a> {
-    Struct(&'a ItemStruct),
+    Struct(&'a AnalysisStruct),
     Type(&'a ItemType),
     Mod(&'a ItemMod),
 }
@@ -137,7 +147,11 @@ pub fn process_subtree(analysis: &mut Analysis, parent_mod: NodeIndex) -> AResul
                 process_subtree(analysis, child_mod)?;
             }
             Item::Struct(struct_item) => {
-                let id = analysis.structs.push_index(struct_item.clone());
+                let id = analysis.structs.push_index(AnalysisStruct {
+                    item: struct_item.clone(),
+                    impls: vec![],
+                });
+
                 let child = analysis.graph.add_node(AnalysisItem::Struct(id));
                 analysis
                     .graph
@@ -258,6 +272,35 @@ fn process_use_tree(
     Ok(())
 }
 
+pub fn process_impls(analysis: &mut Analysis, parent_mod: NodeIndex) -> AResult<()> {
+    let mut bfs = Bfs::new(&analysis.graph, parent_mod);
+    while let Some(node_index) = bfs.next(&analysis.graph) {
+        if let AnalysisRef::Mod(module) = AnalysisItem::node_index_ref(analysis, node_index)? {
+            let module = module.clone();
+            if let Some((_, items)) = &module.content {
+                for item in items {
+                    if let Item::Impl(item) = item {
+                        if let Some((_, trait_path, _)) = &item.trait_
+                            && let Type::Path(ty_path) = *item.self_ty.clone()
+                        {
+                            let trait_path = trait_path.to_token_stream().to_string();
+                            if trait_path.ends_with("Default") {
+                                println!(
+                                    "{} {}",
+                                    trait_path,
+                                    ty_path.to_token_stream().to_string()
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(())
+}
+
 fn find_neighbor<'a>(
     analysis: &'a Analysis,
     item_tree_node: NodeIndex,
@@ -267,7 +310,7 @@ fn find_neighbor<'a>(
     for neighbor in neighbors {
         match AnalysisItem::node_index_ref(analysis, neighbor) {
             Ok(AnalysisRef::Struct(struct_item)) => {
-                if token_string(&struct_item.ident) == token_string(&ident) {
+                if token_string(&struct_item.item.ident) == token_string(&ident) {
                     return Some((neighbor, AnalysisRef::Struct(struct_item)));
                 }
             }
@@ -308,7 +351,7 @@ fn keep_only_gather(analysis: &mut Analysis, node_index: NodeIndex) -> AResult<V
         if let Some(item) = analysis.graph.node_weight(neighbor) {
             match item.get_ref(analysis) {
                 Ok(AnalysisRef::Struct(struct_item)) => {
-                    if matches!(struct_item.vis, Visibility::Public(_)) {
+                    if matches!(struct_item.item.vis, Visibility::Public(_)) {
                         to_keep.push(neighbor);
                     }
                 }
@@ -381,8 +424,8 @@ fn list_export_item<'a>(
     for segment_index in graph_path.1 {
         let mut name = match AnalysisItem::node_index_ref(analysis, segment_index)? {
             AnalysisRef::Struct(struct_item) => {
-                span = Some(struct_item.span());
-                struct_item.ident.to_string()
+                span = Some(struct_item.item.span());
+                struct_item.item.ident.to_string()
             }
             AnalysisRef::Type(type_item) => {
                 span = Some(type_item.span());
