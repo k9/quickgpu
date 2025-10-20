@@ -1,0 +1,16 @@
+pub struct Abc {
+    pub z: String,
+}
+
+mod z {
+    pub struct ZZ {}
+}
+
+pub use super::BigTypeAlias;
+pub use crate::tlt::{CounterB, CounterC};
+pub use z::ZZ;
+
+#[allow(dead_code)]
+pub(crate) struct Def {
+    pub def: String,
+}
