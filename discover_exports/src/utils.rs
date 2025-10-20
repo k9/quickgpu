@@ -6,6 +6,7 @@ use std::fs::File;
 
 use std::path::PathBuf;
 
+use anyhow::bail;
 use proc_macro2::Span;
 
 use quote::ToTokens;
@@ -24,7 +25,10 @@ pub fn token_string<'a>(s: &impl ToTokens) -> String {
 }
 
 pub fn write_expanded(output_path: &PathBuf, crate_path: &PathBuf) -> Result<(), anyhow::Error> {
-    let output = File::create(output_path)?;
+    let Ok(output) = File::create(output_path) else {
+        bail!("Failed to create {:?}", &output_path);
+    };
+
     Command::new("cargo")
         .arg("expand")
         .current_dir(crate_path)

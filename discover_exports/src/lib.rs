@@ -7,7 +7,6 @@ use crate::analyze::{keep_only_pub, list_exports};
 
 mod analyze;
 mod crate_graph;
-mod paths;
 mod utils;
 
 pub use analyze::{Analysis, AnalysisEdge, ExportedItem, parse_crate};
