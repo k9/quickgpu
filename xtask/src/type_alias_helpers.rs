@@ -18,6 +18,7 @@ pub struct GenericArgsList {
 pub enum TypeAliasMap {
     Map {
         name: String,
+        filename: String,
         alias_generics: Generics,
         alias_args: GenericArgsList,
         target_params: GenericParamsList,
@@ -72,14 +73,33 @@ impl TypeAliasMap {
 
         name.to_string()
     }
+
+    pub(crate) fn map_filename(&self, filename: &str) -> String {
+        if let TypeAliasMap::Map { filename, .. } = self {
+            return filename.clone();
+        };
+
+        filename.to_string()
+    }
 }
 
-pub fn get_type_alias_map(name: String, item: &Item, ta: &TypeAlias, path: &Path) -> TypeAliasMap {
-    let target_generics = match &item.inner {
+pub fn get_type_alias_map(item: &Item, target: &Item, ta: &TypeAlias, path: &Path) -> TypeAliasMap {
+    let name = item.name.clone().unwrap();
+
+    let filename = item
+        .span
+        .clone()
+        .unwrap()
+        .filename
+        .into_os_string()
+        .into_string()
+        .unwrap();
+
+    let target_generics = match &target.inner {
         ItemEnum::Struct(s) => Some(s.generics.clone()),
         ItemEnum::Enum(e) => Some(e.generics.clone()),
         _ => {
-            println!("unhandled target generics {:?}", item);
+            println!("unhandled target generics {:?}", target);
             None
         }
     };
@@ -96,6 +116,7 @@ pub fn get_type_alias_map(name: String, item: &Item, ta: &TypeAlias, path: &Path
 
         return TypeAliasMap::Map {
             name,
+            filename,
             alias_generics: ta.generics.clone(),
             alias_args: get_args_list(args),
             target_params: get_params_list(target_generics),

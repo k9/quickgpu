@@ -1,572 +1,31 @@
 use std::borrow::Cow;
 use std::num::NonZeroU32;
 use std::ops::Range;
-
 use wgpu::util::*;
 use wgpu::wgt::{Dx12SwapchainKind, Dx12UseFrameLatencyWaitableObject, TextureSelector};
 use wgpu::*;
 
 /*
-Unhandled Some("TextureTransition") Id(4291)
-
-*/
-#[doc = "\n        Returns [`TextureTransitionBuilder`] for building [`wgpu::TextureTransition`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
-# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn texture_transition<T>(
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::TextureTransition::texture`]"]
-    #[builder(into)]
-    texture: T,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::TextureTransition::selector`]"]
-    #[builder(into)]
-    selector: Option<TextureSelector>,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::TextureTransition::state`]"]
-    #[builder(into)]
-    state: TextureUses,
-) -> TextureTransition<T> {
-    TextureTransition {
-        texture,
-        selector,
-        state,
-    }
-}
-
-/*
-Unhandled Some("RenderBundleDepthStencil") Id(4998)
-
-*/
-#[doc = "\n        Returns [`RenderBundleDepthStencilBuilder`] for building [`wgpu::RenderBundleDepthStencil`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
-# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn render_bundle_depth_stencil(
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::RenderBundleDepthStencil::format`]"]
-    #[builder(into)]
-    format: TextureFormat,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::RenderBundleDepthStencil::depth_read_only`]"]
-    #[builder(into)]
-    depth_read_only: bool,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::RenderBundleDepthStencil::stencil_read_only`]"]
-    #[builder(into)]
-    stencil_read_only: bool,
-) -> RenderBundleDepthStencil {
-    RenderBundleDepthStencil {
-        format,
-        depth_read_only,
-        stencil_read_only,
-    }
-}
-
-/*
 Derived default
 */
-#[doc = "\n        Returns [`ImageSubresourceRangeBuilder`] for building [`wgpu::ImageSubresourceRange`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
+
+#[doc = "\nReturns [`CommandBufferDescriptorBuilder`] for building [`wgpu::CommandBufferDescriptor`]\n\n|Field|Status|\n|-|-|\n|label|Required|\n"]
 # [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn image_subresource_range(
+pub fn command_buffer_descriptor<L>(
     #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::ImageSubresourceRange::aspect`]"]
-    #[builder(into, default)]
-    aspect: TextureAspect,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::ImageSubresourceRange::base_mip_level`]"]
-    #[builder(into, default)]
-    base_mip_level: u32,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::ImageSubresourceRange::mip_level_count`]"]
-    #[builder(into)]
-    mip_level_count: Option<u32>,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::ImageSubresourceRange::base_array_layer`]"]
-    #[builder(into, default)]
-    base_array_layer: u32,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::ImageSubresourceRange::array_layer_count`]"]
-    #[builder(into)]
-    array_layer_count: Option<u32>,
-) -> ImageSubresourceRange {
-    ImageSubresourceRange {
-        aspect,
-        base_mip_level,
-        mip_level_count,
-        base_array_layer,
-        array_layer_count,
-    }
-}
-
-/*
-Default from: /Users/work/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wgpu-types-27.0.1/src/lib.rs:1728
-    pub const REPLACE: Self = Self {
-        src_factor: BlendFactor::One,
-        dst_factor: BlendFactor::Zero,
-        operation: BlendOperation::Add,
-    };
-
-*/
-#[doc = "\n        Returns [`BlendComponentBuilder`] for building [`wgpu::BlendComponent`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
-# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn blend_component(
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::BlendComponent::src_factor`]"]
-    # [builder (into , default = BlendFactor :: One)]
-    src_factor: BlendFactor,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::BlendComponent::dst_factor`]"]
-    # [builder (into , default = BlendFactor :: Zero)]
-    dst_factor: BlendFactor,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::BlendComponent::operation`]"]
-    # [builder (into , default = BlendOperation :: Add)]
-    operation: BlendOperation,
-) -> BlendComponent {
-    BlendComponent {
-        src_factor,
-        dst_factor,
-        operation,
-    }
-}
-
-/*
-Default from: /Users/work/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wgpu-types-27.0.1/src/lib.rs:7869
-impl Default for ShaderRuntimeChecks {
-    fn default() -> Self {
-        Self::checked()
-    }
-}
-
-*/
-#[doc = "\n        Returns [`ShaderRuntimeChecksBuilder`] for building [`wgpu::ShaderRuntimeChecks`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
-# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn shader_runtime_checks(
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::ShaderRuntimeChecks::bounds_checks`]"]
-    #[builder(into)]
-    bounds_checks: bool,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::ShaderRuntimeChecks::force_loop_bounding`]"]
-    #[builder(into)]
-    force_loop_bounding: bool,
-) -> ShaderRuntimeChecks {
-    ShaderRuntimeChecks {
-        bounds_checks,
-        force_loop_bounding,
-    }
-}
-
-/*
-Unhandled Some("DepthStencilState") Id(3204)
-
-*/
-#[doc = "\n        Returns [`DepthStencilStateBuilder`] for building [`wgpu::DepthStencilState`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
-# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn depth_stencil_state(
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::DepthStencilState::format`]"]
-    #[builder(into)]
-    format: TextureFormat,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::DepthStencilState::depth_write_enabled`]"]
-    #[builder(into)]
-    depth_write_enabled: bool,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::DepthStencilState::depth_compare`]"]
-    #[builder(into)]
-    depth_compare: CompareFunction,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::DepthStencilState::stencil`]"]
-    #[builder(into, default)]
-    stencil: StencilState,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::DepthStencilState::bias`]"]
-    #[builder(into, default)]
-    bias: DepthBiasState,
-) -> DepthStencilState {
-    DepthStencilState {
-        format,
-        depth_write_enabled,
-        depth_compare,
-        stencil,
-        bias,
-    }
-}
-
-/*
-Derived default
-*/
-#[doc = "\n        Returns [`DrawIndirectArgsBuilder`] for building [`wgpu::DrawIndirectArgs`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
-# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn draw_indirect_args(
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::DrawIndirectArgs::vertex_count`]"]
-    #[builder(into, default)]
-    vertex_count: u32,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::DrawIndirectArgs::instance_count`]"]
-    #[builder(into, default)]
-    instance_count: u32,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::DrawIndirectArgs::first_vertex`]"]
-    #[builder(into, default)]
-    first_vertex: u32,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::DrawIndirectArgs::first_instance`]"]
-    #[builder(into, default)]
-    first_instance: u32,
-) -> DrawIndirectArgs {
-    DrawIndirectArgs {
-        vertex_count,
-        instance_count,
-        first_vertex,
-        first_instance,
-    }
-}
-
-/*
-Derived default
-*/
-#[doc = "\n        Returns [`TexelCopyBufferLayoutBuilder`] for building [`wgpu::TexelCopyBufferLayout`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
-# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn texel_copy_buffer_layout(
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::TexelCopyBufferLayout::offset`]"]
-    #[builder(into, default)]
-    offset: BufferAddress,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::TexelCopyBufferLayout::bytes_per_row`]"]
-    #[builder(into)]
-    bytes_per_row: Option<u32>,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::TexelCopyBufferLayout::rows_per_image`]"]
-    #[builder(into)]
-    rows_per_image: Option<u32>,
-) -> TexelCopyBufferLayout {
-    TexelCopyBufferLayout {
-        offset,
-        bytes_per_row,
-        rows_per_image,
-    }
-}
-
-/*
-Derived default
-*/
-#[doc = "\n        Returns [`BackendOptionsBuilder`] for building [`wgpu::BackendOptions`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
-# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn backend_options(
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::BackendOptions::gl`]"]
-    #[builder(into, default)]
-    gl: GlBackendOptions,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::BackendOptions::dx12`]"]
-    #[builder(into, default)]
-    dx12: Dx12BackendOptions,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::BackendOptions::noop`]"]
-    #[builder(into, default)]
-    noop: NoopBackendOptions,
-) -> BackendOptions {
-    BackendOptions { gl, dx12, noop }
-}
-
-/*
-Derived default
-*/
-#[doc = "\n        Returns [`DrawIndexedIndirectArgsBuilder`] for building [`wgpu::DrawIndexedIndirectArgs`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
-# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn draw_indexed_indirect_args(
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::DrawIndexedIndirectArgs::index_count`]"]
-    #[builder(into, default)]
-    index_count: u32,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::DrawIndexedIndirectArgs::instance_count`]"]
-    #[builder(into, default)]
-    instance_count: u32,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::DrawIndexedIndirectArgs::first_index`]"]
-    #[builder(into, default)]
-    first_index: u32,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::DrawIndexedIndirectArgs::base_vertex`]"]
-    #[builder(into, default)]
-    base_vertex: i32,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::DrawIndexedIndirectArgs::first_instance`]"]
-    #[builder(into, default)]
-    first_instance: u32,
-) -> DrawIndexedIndirectArgs {
-    DrawIndexedIndirectArgs {
-        index_count,
-        instance_count,
-        first_index,
-        base_vertex,
-        first_instance,
-    }
-}
-
-/*
-Unhandled Some("PushConstantRange") Id(4938)
-
-*/
-#[doc = "\n        Returns [`PushConstantRangeBuilder`] for building [`wgpu::PushConstantRange`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
-# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn push_constant_range(
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::PushConstantRange::stages`]"]
-    #[builder(into)]
-    stages: ShaderStages,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::PushConstantRange::range`]"]
-    #[builder(into)]
-    range: Range<u32>,
-) -> PushConstantRange {
-    PushConstantRange { stages, range }
-}
-
-/*
-Derived default
-*/
-#[doc = "\n        Returns [`Dx12BackendOptionsBuilder`] for building [`wgpu::Dx12BackendOptions`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
-# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn dx_12_backend_options(
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::Dx12BackendOptions::shader_compiler`]"]
-    #[builder(into, default)]
-    shader_compiler: Dx12Compiler,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::Dx12BackendOptions::presentation_system`]"]
-    #[builder(into, default)]
-    presentation_system: Dx12SwapchainKind,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::Dx12BackendOptions::latency_waitable_object`]"]
-    #[builder(into, default)]
-    latency_waitable_object: Dx12UseFrameLatencyWaitableObject,
-) -> Dx12BackendOptions {
-    Dx12BackendOptions {
-        shader_compiler,
-        presentation_system,
-        latency_waitable_object,
-    }
-}
-
-/*
-Default from: /Users/work/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wgpu-types-27.0.1/src/lib.rs:1152
-impl Default for DownlevelLimits {
-    fn default() -> Self {
-        DownlevelLimits {}
-    }
-}
-
-*/
-#[doc = "\n        Returns [`DownlevelLimitsBuilder`] for building [`wgpu::DownlevelLimits`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
-# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn downlevel_limits() -> DownlevelLimits {
-    DownlevelLimits {}
-}
-
-/*
-Default from: /Users/work/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wgpu-types-27.0.1/src/lib.rs:374
-impl<S> Default for RequestAdapterOptions<S> {
-    fn default() -> Self {
-        Self {
-            power_preference: PowerPreference::default(),
-            force_fallback_adapter: false,
-            compatible_surface: None,
-        }
-    }
-}
-
-*/
-#[doc = "\n        Returns [`RequestAdapterOptionsBaseBuilder`] for building [`wgpu::RequestAdapterOptionsBase`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
-# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn request_adapter_options_base<S>(
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::RequestAdapterOptionsBase::power_preference`]"]
-    # [builder (into , default = PowerPreference :: default ())]
-    power_preference: PowerPreference,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::RequestAdapterOptionsBase::force_fallback_adapter`]"]
-    #[builder(into, default = false)]
-    force_fallback_adapter: bool,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::RequestAdapterOptionsBase::compatible_surface`]"]
-    #[builder(into)]
-    compatible_surface: Option<S>,
-) -> RequestAdapterOptionsBase<S> {
-    RequestAdapterOptionsBase {
-        power_preference,
-        force_fallback_adapter,
-        compatible_surface,
-    }
-}
-
-/*
-Unhandled Some("BlendState") Id(2373)
-
-*/
-#[doc = "\n        Returns [`BlendStateBuilder`] for building [`wgpu::BlendState`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
-# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn blend_state(
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::BlendState::color`]"]
-    #[builder(into, default)]
-    color: BlendComponent,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::BlendState::alpha`]"]
-    #[builder(into, default)]
-    alpha: BlendComponent,
-) -> BlendState {
-    BlendState { color, alpha }
-}
-
-/*
-Unhandled Some("CopyExternalImageDestInfo") Id(5305)
-
-*/
-#[doc = "\n        Returns [`CopyExternalImageDestInfoBuilder`] for building [`wgpu::CopyExternalImageDestInfo`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
-# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn copy_external_image_dest_info<T>(
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::CopyExternalImageDestInfo::texture`]"]
-    #[builder(into)]
-    texture: T,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::CopyExternalImageDestInfo::mip_level`]"]
-    #[builder(into)]
-    mip_level: u32,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::CopyExternalImageDestInfo::origin`]"]
-    #[builder(into, default)]
-    origin: Origin3d,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::CopyExternalImageDestInfo::aspect`]"]
-    #[builder(into, default)]
-    aspect: TextureAspect,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::CopyExternalImageDestInfo::color_space`]"]
-    #[builder(into)]
-    color_space: PredefinedColorSpace,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::CopyExternalImageDestInfo::premultiplied_alpha`]"]
-    #[builder(into)]
-    premultiplied_alpha: bool,
-) -> CopyExternalImageDestInfo<T> {
-    CopyExternalImageDestInfo {
-        texture,
-        mip_level,
-        origin,
-        aspect,
-        color_space,
-        premultiplied_alpha,
-    }
-}
-
-/*
-Unhandled Some("Origin2d") Id(4515)
-
-*/
-#[doc = "\n        Returns [`Origin2dBuilder`] for building [`wgpu::Origin2d`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
-# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn origin2d(
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::Origin2d::x`]"]
-    #[builder(into)]
-    x: u32,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::Origin2d::y`]"]
-    #[builder(into)]
-    y: u32,
-) -> Origin2d {
-    Origin2d { x, y }
-}
-
-/*
-Derived default
-*/
-#[doc = "\n        Returns [`MemoryBudgetThresholdsBuilder`] for building [`wgpu::MemoryBudgetThresholds`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
-# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn memory_budget_thresholds(
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::MemoryBudgetThresholds::for_resource_creation`]"]
-    #[builder(into)]
-    for_resource_creation: Option<u8>,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::MemoryBudgetThresholds::for_device_loss`]"]
-    #[builder(into)]
-    for_device_loss: Option<u8>,
-) -> MemoryBudgetThresholds {
-    MemoryBudgetThresholds {
-        for_resource_creation,
-        for_device_loss,
-    }
-}
-
-/*
-Unhandled Some("TexelCopyTextureInfo") Id(4844)
-
-*/
-#[doc = "\n        Returns [`TexelCopyTextureInfoBaseBuilder`] for building [`wgpu::TexelCopyTextureInfoBase`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
-# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn texel_copy_texture_info_base<T>(
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::TexelCopyTextureInfoBase::texture`]"]
-    #[builder(into)]
-    texture: T,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::TexelCopyTextureInfoBase::mip_level`]"]
-    #[builder(into)]
-    mip_level: u32,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::TexelCopyTextureInfoBase::origin`]"]
-    #[builder(into, default)]
-    origin: Origin3d,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::TexelCopyTextureInfoBase::aspect`]"]
-    #[builder(into, default)]
-    aspect: TextureAspect,
-) -> TexelCopyTextureInfoBase<T> {
-    TexelCopyTextureInfoBase {
-        texture,
-        mip_level,
-        origin,
-        aspect,
-    }
-}
-
-/*
-Derived default
-*/
-#[doc = "\n        Returns [`DepthBiasStateBuilder`] for building [`wgpu::DepthBiasState`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
-# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn depth_bias_state(
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::DepthBiasState::constant`]"]
-    #[builder(into, default)]
-    constant: i32,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::DepthBiasState::slope_scale`]"]
-    #[builder(into, default)]
-    slope_scale: f32,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::DepthBiasState::clamp`]"]
-    #[builder(into, default)]
-    clamp: f32,
-) -> DepthBiasState {
-    DepthBiasState {
-        constant,
-        slope_scale,
-        clamp,
-    }
+    #[doc = "Sets [`wgpu::CommandBufferDescriptor::label`]"]
+    #[builder(start_fn, into)]
+    label: L,
+) -> CommandBufferDescriptor<L> {
+    CommandBufferDescriptor { label }
 }
 
 /*
 Unhandled Some("VertexAttribute") Id(3577)
 
 */
-#[doc = "\n        Returns [`VertexAttributeBuilder`] for building [`wgpu::VertexAttribute`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
+
+#[doc = "\nReturns [`VertexAttributeBuilder`] for building [`wgpu::VertexAttribute`]\n\n|Field|Status|\n|-|-|\n|format|Required|\n|offset|Required|\n|shader_location|Required|\n"]
 # [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
 pub fn vertex_attribute(
     #[rustfmt::skip]
@@ -592,7 +51,106 @@ pub fn vertex_attribute(
 /*
 Derived default
 */
-#[doc = "\n        Returns [`InstanceDescriptorBuilder`] for building [`wgpu::InstanceDescriptor`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
+
+#[doc = "\nReturns [`BackendOptionsBuilder`] for building [`wgpu::BackendOptions`]\n\n|Field|Status|\n|-|-|\n|gl|Defaults to `GlBackendOptions::default()`|\n|dx12|Defaults to `Dx12BackendOptions::default()`|\n|noop|Defaults to `NoopBackendOptions::default()`|\n"]
+# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
+pub fn backend_options(
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::BackendOptions::gl`]"]
+    #[builder(into, default)]
+    gl: GlBackendOptions,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::BackendOptions::dx12`]"]
+    #[builder(into, default)]
+    dx12: Dx12BackendOptions,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::BackendOptions::noop`]"]
+    #[builder(into, default)]
+    noop: NoopBackendOptions,
+) -> BackendOptions {
+    BackendOptions { gl, dx12, noop }
+}
+
+/*
+Unhandled Some("RenderBundleDepthStencil") Id(4998)
+
+*/
+
+#[doc = "\nReturns [`RenderBundleDepthStencilBuilder`] for building [`wgpu::RenderBundleDepthStencil`]\n\n|Field|Status|\n|-|-|\n|format|Required|\n|depth_read_only|Required|\n|stencil_read_only|Required|\n"]
+# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
+pub fn render_bundle_depth_stencil(
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::RenderBundleDepthStencil::format`]"]
+    #[builder(into)]
+    format: TextureFormat,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::RenderBundleDepthStencil::depth_read_only`]"]
+    #[builder(into)]
+    depth_read_only: bool,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::RenderBundleDepthStencil::stencil_read_only`]"]
+    #[builder(into)]
+    stencil_read_only: bool,
+) -> RenderBundleDepthStencil {
+    RenderBundleDepthStencil {
+        format,
+        depth_read_only,
+        stencil_read_only,
+    }
+}
+
+/*
+Unhandled Some("BlendState") Id(2373)
+
+*/
+
+#[doc = "\nReturns [`BlendStateBuilder`] for building [`wgpu::BlendState`]\n\n|Field|Status|\n|-|-|\n|color|Defaults to `BlendComponent::default()`|\n|alpha|Defaults to `BlendComponent::default()`|\n"]
+# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
+pub fn blend_state(
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::BlendState::color`]"]
+    #[builder(into, default)]
+    color: BlendComponent,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::BlendState::alpha`]"]
+    #[builder(into, default)]
+    alpha: BlendComponent,
+) -> BlendState {
+    BlendState { color, alpha }
+}
+
+/*
+Derived default
+*/
+
+#[doc = "\nReturns [`ColorBuilder`] for building [`wgpu::Color`]\n\n|Field|Status|\n|-|-|\n|r|Defaults to `f64::default()`|\n|g|Defaults to `f64::default()`|\n|b|Defaults to `f64::default()`|\n|a|Defaults to `f64::default()`|\n"]
+# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
+pub fn color(
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::Color::r`]"]
+    #[builder(into, default)]
+    r: f64,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::Color::g`]"]
+    #[builder(into, default)]
+    g: f64,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::Color::b`]"]
+    #[builder(into, default)]
+    b: f64,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::Color::a`]"]
+    #[builder(into, default)]
+    a: f64,
+) -> Color {
+    Color { r, g, b, a }
+}
+
+/*
+Derived default
+*/
+
+#[doc = "\nReturns [`InstanceDescriptorBuilder`] for building [`wgpu::InstanceDescriptor`]\n\n|Field|Status|\n|-|-|\n|backends|Defaults to `Backends::default()`|\n|flags|Defaults to `InstanceFlags::default()`|\n|memory_budget_thresholds|Defaults to `MemoryBudgetThresholds::default()`|\n|backend_options|Defaults to `BackendOptions::default()`|\n"]
 # [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
 pub fn instance_descriptor(
     #[rustfmt::skip]
@@ -621,112 +179,137 @@ pub fn instance_descriptor(
 }
 
 /*
-Unhandled Some("BindGroupLayoutEntry") Id(5215)
+Unhandled Some("TextureTransition") Id(4291)
 
 */
-#[doc = "\n        Returns [`BindGroupLayoutEntryBuilder`] for building [`wgpu::BindGroupLayoutEntry`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
+
+#[doc = "\nReturns [`TextureTransitionBuilder`] for building [`wgpu::TextureTransition`]\n\n|Field|Status|\n|-|-|\n|texture|Required|\n|selector|Defaults to `Option::None`|\n|state|Required|\n"]
 # [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn bind_group_layout_entry(
+pub fn texture_transition<T>(
     #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::BindGroupLayoutEntry::binding`]"]
+    #[doc = "Sets [`wgpu::TextureTransition::texture`]"]
     #[builder(into)]
-    binding: u32,
+    texture: T,
     #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::BindGroupLayoutEntry::visibility`]"]
+    #[doc = "Sets [`wgpu::TextureTransition::selector`]"]
     #[builder(into)]
-    visibility: ShaderStages,
+    selector: Option<TextureSelector>,
     #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::BindGroupLayoutEntry::ty`]"]
+    #[doc = "Sets [`wgpu::TextureTransition::state`]"]
     #[builder(into)]
-    ty: BindingType,
+    state: TextureUses,
+) -> TextureTransition<T> {
+    TextureTransition {
+        texture,
+        selector,
+        state,
+    }
+}
+
+/*
+Default from: /Users/work/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wgpu-types-27.0.1/src/lib.rs:1992
+impl Default for MultisampleState {
+    fn default() -> Self {
+        MultisampleState {
+            count: 1,
+            mask: !0,
+            alpha_to_coverage_enabled: false,
+        }
+    }
+}
+
+*/
+
+#[doc = "\nReturns [`MultisampleStateBuilder`] for building [`wgpu::MultisampleState`]\n\n|Field|Status|\n|-|-|\n|count|Defaults to `1u32`|\n|mask|Defaults to `!0u64`|\n|alpha_to_coverage_enabled|Defaults to `false`|\n"]
+# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
+pub fn multisample_state(
     #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::BindGroupLayoutEntry::count`]"]
-    #[builder(into)]
-    count: Option<NonZeroU32>,
-) -> BindGroupLayoutEntry {
-    BindGroupLayoutEntry {
-        binding,
-        visibility,
-        ty,
+    #[doc = "Sets [`wgpu::MultisampleState::count`]"]
+    #[builder(into, default = 1u32)]
+    count: u32,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::MultisampleState::mask`]"]
+    # [builder (into , default = ! 0u64)]
+    mask: u64,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::MultisampleState::alpha_to_coverage_enabled`]"]
+    #[builder(into, default = false)]
+    alpha_to_coverage_enabled: bool,
+) -> MultisampleState {
+    MultisampleState {
         count,
+        mask,
+        alpha_to_coverage_enabled,
     }
 }
 
 /*
-Derived default
+Unhandled Some("TexelCopyTextureInfo") Id(4844)
+
 */
-#[doc = "\n        Returns [`StencilStateBuilder`] for building [`wgpu::StencilState`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
+
+#[doc = "\nReturns [`TexelCopyTextureInfoBaseBuilder`] for building [`wgpu::TexelCopyTextureInfoBase`]\n\n|Field|Status|\n|-|-|\n|texture|Required|\n|mip_level|Required|\n|origin|Defaults to `Origin3d::default()`|\n|aspect|Defaults to `TextureAspect::default()`|\n"]
 # [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn stencil_state(
+pub fn texel_copy_texture_info_base<T>(
     #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::StencilState::front`]"]
-    #[builder(into, default)]
-    front: StencilFaceState,
+    #[doc = "Sets [`wgpu::TexelCopyTextureInfoBase::texture`]"]
+    #[builder(into)]
+    texture: T,
     #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::StencilState::back`]"]
-    #[builder(into, default)]
-    back: StencilFaceState,
+    #[doc = "Sets [`wgpu::TexelCopyTextureInfoBase::mip_level`]"]
+    #[builder(into)]
+    mip_level: u32,
     #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::StencilState::read_mask`]"]
+    #[doc = "Sets [`wgpu::TexelCopyTextureInfoBase::origin`]"]
     #[builder(into, default)]
-    read_mask: u32,
+    origin: Origin3d,
     #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::StencilState::write_mask`]"]
+    #[doc = "Sets [`wgpu::TexelCopyTextureInfoBase::aspect`]"]
     #[builder(into, default)]
-    write_mask: u32,
-) -> StencilState {
-    StencilState {
-        front,
-        back,
-        read_mask,
-        write_mask,
+    aspect: TextureAspect,
+) -> TexelCopyTextureInfoBase<T> {
+    TexelCopyTextureInfoBase {
+        texture,
+        mip_level,
+        origin,
+        aspect,
     }
 }
 
 /*
-Derived default
+Default from: /Users/work/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wgpu-types-27.0.1/src/lib.rs:4786
+impl<V: Default> Default for Operations<V> {
+    #[inline]
+    fn default() -> Self {
+        Self {
+            load: LoadOp::<V>::default(),
+            store: StoreOp::default(),
+        }
+    }
+}
+
 */
-#[doc = "\n        Returns [`ColorBuilder`] for building [`wgpu::Color`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
+
+#[doc = "\nReturns [`OperationsBuilder`] for building [`wgpu::Operations`]\n\n|Field|Status|\n|-|-|\n|load|Required|\n|store|Defaults to `StoreOp::default()`|\n"]
 # [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn color(
+pub fn operations<V>(
     #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::Color::r`]"]
-    #[builder(into, default)]
-    r: f64,
+    #[doc = "Sets [`wgpu::Operations::load`]"]
+    #[builder(into)]
+    load: LoadOp<V>,
     #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::Color::g`]"]
-    #[builder(into, default)]
-    g: f64,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::Color::b`]"]
-    #[builder(into, default)]
-    b: f64,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::Color::a`]"]
-    #[builder(into, default)]
-    a: f64,
-) -> Color {
-    Color { r, g, b, a }
+    #[doc = "Sets [`wgpu::Operations::store`]"]
+    # [builder (into , default = StoreOp :: default ())]
+    store: StoreOp,
+) -> Operations<V> {
+    Operations { load, store }
 }
 
 /*
 Derived default
 */
-#[doc = "\n        Returns [`NoopBackendOptionsBuilder`] for building [`wgpu::NoopBackendOptions`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
-# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn noop_backend_options(
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::NoopBackendOptions::enable`]"]
-    #[builder(into, default)]
-    enable: bool,
-) -> NoopBackendOptions {
-    NoopBackendOptions { enable }
-}
 
-/*
-Derived default
-*/
-#[doc = "\n        Returns [`PrimitiveStateBuilder`] for building [`wgpu::PrimitiveState`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
+#[doc = "\nReturns [`PrimitiveStateBuilder`] for building [`wgpu::PrimitiveState`]\n\n|Field|Status|\n|-|-|\n|topology|Defaults to `PrimitiveTopology::default()`|\n|strip_index_format|Defaults to `Option::None`|\n|front_face|Defaults to `FrontFace::default()`|\n|cull_mode|Defaults to `Option::None`|\n|unclipped_depth|Defaults to `bool::default()`|\n|polygon_mode|Defaults to `PolygonMode::default()`|\n|conservative|Defaults to `bool::default()`|\n"]
 # [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
 pub fn primitive_state(
     #[rustfmt::skip]
@@ -770,38 +353,105 @@ pub fn primitive_state(
 }
 
 /*
-Default from: /Users/work/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wgpu-types-27.0.1/src/lib.rs:6059
-impl Default for Extent3d {
+Default from: /Users/work/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wgpu-types-27.0.1/src/lib.rs:1728
+    pub const REPLACE: Self = Self {
+        src_factor: BlendFactor::One,
+        dst_factor: BlendFactor::Zero,
+        operation: BlendOperation::Add,
+    };
+
+*/
+
+#[doc = "\nReturns [`BlendComponentBuilder`] for building [`wgpu::BlendComponent`]\n\n|Field|Status|\n|-|-|\n|src_factor|Defaults to `BlendFactor::One`|\n|dst_factor|Defaults to `BlendFactor::Zero`|\n|operation|Defaults to `BlendOperation::Add`|\n"]
+# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
+pub fn blend_component(
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::BlendComponent::src_factor`]"]
+    # [builder (into , default = BlendFactor :: One)]
+    src_factor: BlendFactor,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::BlendComponent::dst_factor`]"]
+    # [builder (into , default = BlendFactor :: Zero)]
+    dst_factor: BlendFactor,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::BlendComponent::operation`]"]
+    # [builder (into , default = BlendOperation :: Add)]
+    operation: BlendOperation,
+) -> BlendComponent {
+    BlendComponent {
+        src_factor,
+        dst_factor,
+        operation,
+    }
+}
+
+/*
+Derived default
+*/
+
+#[doc = "\nReturns [`StencilStateBuilder`] for building [`wgpu::StencilState`]\n\n|Field|Status|\n|-|-|\n|front|Defaults to `StencilFaceState::default()`|\n|back|Defaults to `StencilFaceState::default()`|\n|read_mask|Defaults to `u32::default()`|\n|write_mask|Defaults to `u32::default()`|\n"]
+# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
+pub fn stencil_state(
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::StencilState::front`]"]
+    #[builder(into, default)]
+    front: StencilFaceState,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::StencilState::back`]"]
+    #[builder(into, default)]
+    back: StencilFaceState,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::StencilState::read_mask`]"]
+    #[builder(into, default)]
+    read_mask: u32,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::StencilState::write_mask`]"]
+    #[builder(into, default)]
+    write_mask: u32,
+) -> StencilState {
+    StencilState {
+        front,
+        back,
+        read_mask,
+        write_mask,
+    }
+}
+
+/*
+Default from: /Users/work/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wgpu-types-27.0.1/src/lib.rs:1152
+impl Default for DownlevelLimits {
     fn default() -> Self {
-        Self {
-            width: 1,
-            height: 1,
-            depth_or_array_layers: 1,
-        }
+        DownlevelLimits {}
     }
 }
 
 */
-#[doc = "\n        Returns [`Extent3dBuilder`] for building [`wgpu::Extent3d`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
+
+#[doc = "\nReturns [`DownlevelLimitsBuilder`] for building [`wgpu::DownlevelLimits`]\n\n|Field|Status|\n|-|-|\n"]
 # [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn extent3d(
+pub fn downlevel_limits() -> DownlevelLimits {
+    DownlevelLimits {}
+}
+
+/*
+Derived default
+*/
+
+#[doc = "\nReturns [`GlBackendOptionsBuilder`] for building [`wgpu::GlBackendOptions`]\n\n|Field|Status|\n|-|-|\n|gles_minor_version|Defaults to `Gles3MinorVersion::default()`|\n|fence_behavior|Defaults to `GlFenceBehavior::default()`|\n"]
+# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
+pub fn gl_backend_options(
     #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::Extent3d::width`]"]
-    #[builder(into, default = 1u32)]
-    width: u32,
+    #[doc = "Sets [`wgpu::GlBackendOptions::gles_minor_version`]"]
+    #[builder(into, default)]
+    gles_minor_version: Gles3MinorVersion,
     #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::Extent3d::height`]"]
-    #[builder(into, default = 1u32)]
-    height: u32,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::Extent3d::depth_or_array_layers`]"]
-    #[builder(into, default = 1u32)]
-    depth_or_array_layers: u32,
-) -> Extent3d {
-    Extent3d {
-        width,
-        height,
-        depth_or_array_layers,
+    #[doc = "Sets [`wgpu::GlBackendOptions::fence_behavior`]"]
+    #[builder(into, default)]
+    fence_behavior: GlFenceBehavior,
+) -> GlBackendOptions {
+    GlBackendOptions {
+        gles_minor_version,
+        fence_behavior,
     }
 }
 
@@ -809,7 +459,8 @@ pub fn extent3d(
 Unhandled Some("TexelCopyBufferInfo") Id(5278)
 
 */
-#[doc = "\n        Returns [`TexelCopyBufferInfoBaseBuilder`] for building [`wgpu::TexelCopyBufferInfoBase`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
+
+#[doc = "\nReturns [`TexelCopyBufferInfoBaseBuilder`] for building [`wgpu::TexelCopyBufferInfoBase`]\n\n|Field|Status|\n|-|-|\n|buffer|Required|\n|layout|Defaults to `TexelCopyBufferLayout::default()`|\n"]
 # [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
 pub fn texel_copy_buffer_info_base<B>(
     #[rustfmt::skip]
@@ -825,62 +476,28 @@ pub fn texel_copy_buffer_info_base<B>(
 }
 
 /*
-Derived default
-*/
-#[doc = "\n        Returns [`CoreCountersBuilder`] for building [`wgpu::CoreCounters`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
-# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn core_counters() -> CoreCounters {
-    CoreCounters {}
-}
-
-/*
-Default from: /Users/work/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wgpu-types-27.0.1/src/lib.rs:1992
-impl Default for MultisampleState {
-    fn default() -> Self {
-        MultisampleState {
-            count: 1,
-            mask: !0,
-            alpha_to_coverage_enabled: false,
-        }
-    }
-}
+Default from: /Users/work/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wgpu-types-27.0.1/src/lib.rs:6006
+    pub const ZERO: Self = Self { x: 0, y: 0, z: 0 };
 
 */
-#[doc = "\n        Returns [`MultisampleStateBuilder`] for building [`wgpu::MultisampleState`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
-# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn multisample_state(
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::MultisampleState::count`]"]
-    #[builder(into, default = 1u32)]
-    count: u32,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::MultisampleState::mask`]"]
-    # [builder (into , default = ! 0u64)]
-    mask: u64,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::MultisampleState::alpha_to_coverage_enabled`]"]
-    #[builder(into, default = false)]
-    alpha_to_coverage_enabled: bool,
-) -> MultisampleState {
-    MultisampleState {
-        count,
-        mask,
-        alpha_to_coverage_enabled,
-    }
-}
 
-/*
-Derived default
-*/
-#[doc = "\n        Returns [`CommandBufferDescriptorBuilder`] for building [`wgpu::CommandBufferDescriptor`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
+#[doc = "\nReturns [`Origin3dBuilder`] for building [`wgpu::Origin3d`]\n\n|Field|Status|\n|-|-|\n|x|Defaults to `0u32`|\n|y|Defaults to `0u32`|\n|z|Defaults to `0u32`|\n"]
 # [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn command_buffer_descriptor<L>(
+pub fn origin3d(
     #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::CommandBufferDescriptor::label`]"]
-    #[builder(start_fn, into)]
-    label: L,
-) -> CommandBufferDescriptor<L> {
-    CommandBufferDescriptor { label }
+    #[doc = "Sets [`wgpu::Origin3d::x`]"]
+    #[builder(into, default = 0u32)]
+    x: u32,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::Origin3d::y`]"]
+    #[builder(into, default = 0u32)]
+    y: u32,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::Origin3d::z`]"]
+    #[builder(into, default = 0u32)]
+    z: u32,
+) -> Origin3d {
+    Origin3d { x, y, z }
 }
 
 /*
@@ -897,7 +514,8 @@ impl Default for ExternalTextureTransferFunction {
 }
 
 */
-#[doc = "\n        Returns [`ExternalTextureTransferFunctionBuilder`] for building [`wgpu::ExternalTextureTransferFunction`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
+
+#[doc = "\nReturns [`ExternalTextureTransferFunctionBuilder`] for building [`wgpu::ExternalTextureTransferFunction`]\n\n|Field|Status|\n|-|-|\n|a|Defaults to `1.0`|\n|b|Defaults to `1.0`|\n|g|Defaults to `1.0`|\n|k|Defaults to `1.0`|\n"]
 # [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
 pub fn external_texture_transfer_function(
     #[rustfmt::skip]
@@ -924,7 +542,8 @@ pub fn external_texture_transfer_function(
 Unhandled Some("ColorTargetState") Id(2409)
 
 */
-#[doc = "\n        Returns [`ColorTargetStateBuilder`] for building [`wgpu::ColorTargetState`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
+
+#[doc = "\nReturns [`ColorTargetStateBuilder`] for building [`wgpu::ColorTargetState`]\n\n|Field|Status|\n|-|-|\n|format|Required|\n|blend|Defaults to `Option::None`|\n|write_mask|Defaults to `ColorWrites::default()`|\n"]
 # [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
 pub fn color_target_state(
     #[rustfmt::skip]
@@ -950,41 +569,152 @@ pub fn color_target_state(
 /*
 Derived default
 */
-#[doc = "\n        Returns [`GlBackendOptionsBuilder`] for building [`wgpu::GlBackendOptions`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
+
+#[doc = "\nReturns [`CoreCountersBuilder`] for building [`wgpu::CoreCounters`]\n\n|Field|Status|\n|-|-|\n"]
 # [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn gl_backend_options(
+pub fn core_counters() -> CoreCounters {
+    CoreCounters {}
+}
+
+/*
+Default from: /Users/work/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wgpu-types-27.0.1/src/lib.rs:7869
+impl Default for ShaderRuntimeChecks {
+    fn default() -> Self {
+        Self::checked()
+    }
+}
+
+*/
+
+#[doc = "\nReturns [`ShaderRuntimeChecksBuilder`] for building [`wgpu::ShaderRuntimeChecks`]\n\n|Field|Status|\n|-|-|\n|bounds_checks|Required|\n|force_loop_bounding|Required|\n"]
+# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
+pub fn shader_runtime_checks(
     #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::GlBackendOptions::gles_minor_version`]"]
-    #[builder(into, default)]
-    gles_minor_version: Gles3MinorVersion,
+    #[doc = "Sets [`wgpu::ShaderRuntimeChecks::bounds_checks`]"]
+    #[builder(into)]
+    bounds_checks: bool,
     #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::GlBackendOptions::fence_behavior`]"]
-    #[builder(into, default)]
-    fence_behavior: GlFenceBehavior,
-) -> GlBackendOptions {
-    GlBackendOptions {
-        gles_minor_version,
-        fence_behavior,
+    #[doc = "Sets [`wgpu::ShaderRuntimeChecks::force_loop_bounding`]"]
+    #[builder(into)]
+    force_loop_bounding: bool,
+) -> ShaderRuntimeChecks {
+    ShaderRuntimeChecks {
+        bounds_checks,
+        force_loop_bounding,
     }
 }
 
 /*
-Unhandled Some("BufferTransition") Id(3909)
+Derived default
+*/
+
+#[doc = "\nReturns [`DepthBiasStateBuilder`] for building [`wgpu::DepthBiasState`]\n\n|Field|Status|\n|-|-|\n|constant|Defaults to `i32::default()`|\n|slope_scale|Defaults to `f32::default()`|\n|clamp|Defaults to `f32::default()`|\n"]
+# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
+pub fn depth_bias_state(
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::DepthBiasState::constant`]"]
+    #[builder(into, default)]
+    constant: i32,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::DepthBiasState::slope_scale`]"]
+    #[builder(into, default)]
+    slope_scale: f32,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::DepthBiasState::clamp`]"]
+    #[builder(into, default)]
+    clamp: f32,
+) -> DepthBiasState {
+    DepthBiasState {
+        constant,
+        slope_scale,
+        clamp,
+    }
+}
+
+/*
+Derived default
+*/
+
+#[doc = "\nReturns [`NoopBackendOptionsBuilder`] for building [`wgpu::NoopBackendOptions`]\n\n|Field|Status|\n|-|-|\n|enable|Defaults to `bool::default()`|\n"]
+# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
+pub fn noop_backend_options(
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::NoopBackendOptions::enable`]"]
+    #[builder(into, default)]
+    enable: bool,
+) -> NoopBackendOptions {
+    NoopBackendOptions { enable }
+}
+
+/*
+Unhandled Some("BindGroupLayoutEntry") Id(5215)
 
 */
-#[doc = "\n        Returns [`BufferTransitionBuilder`] for building [`wgpu::BufferTransition`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
+
+#[doc = "\nReturns [`BindGroupLayoutEntryBuilder`] for building [`wgpu::BindGroupLayoutEntry`]\n\n|Field|Status|\n|-|-|\n|binding|Required|\n|visibility|Required|\n|ty|Required|\n|count|Defaults to `Option::None`|\n"]
 # [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn buffer_transition<T>(
+pub fn bind_group_layout_entry(
     #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::BufferTransition::buffer`]"]
+    #[doc = "Sets [`wgpu::BindGroupLayoutEntry::binding`]"]
     #[builder(into)]
-    buffer: T,
+    binding: u32,
     #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::BufferTransition::state`]"]
+    #[doc = "Sets [`wgpu::BindGroupLayoutEntry::visibility`]"]
     #[builder(into)]
-    state: BufferUses,
-) -> BufferTransition<T> {
-    BufferTransition { buffer, state }
+    visibility: ShaderStages,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::BindGroupLayoutEntry::ty`]"]
+    #[builder(into)]
+    ty: BindingType,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::BindGroupLayoutEntry::count`]"]
+    #[builder(into)]
+    count: Option<NonZeroU32>,
+) -> BindGroupLayoutEntry {
+    BindGroupLayoutEntry {
+        binding,
+        visibility,
+        ty,
+        count,
+    }
+}
+
+/*
+Unhandled Some("DepthStencilState") Id(3204)
+
+*/
+
+#[doc = "\nReturns [`DepthStencilStateBuilder`] for building [`wgpu::DepthStencilState`]\n\n|Field|Status|\n|-|-|\n|format|Required|\n|depth_write_enabled|Required|\n|depth_compare|Required|\n|stencil|Defaults to `StencilState::default()`|\n|bias|Defaults to `DepthBiasState::default()`|\n"]
+# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
+pub fn depth_stencil_state(
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::DepthStencilState::format`]"]
+    #[builder(into)]
+    format: TextureFormat,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::DepthStencilState::depth_write_enabled`]"]
+    #[builder(into)]
+    depth_write_enabled: bool,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::DepthStencilState::depth_compare`]"]
+    #[builder(into)]
+    depth_compare: CompareFunction,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::DepthStencilState::stencil`]"]
+    #[builder(into, default)]
+    stencil: StencilState,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::DepthStencilState::bias`]"]
+    #[builder(into, default)]
+    bias: DepthBiasState,
+) -> DepthStencilState {
+    DepthStencilState {
+        format,
+        depth_write_enabled,
+        depth_compare,
+        stencil,
+        bias,
+    }
 }
 
 /*
@@ -997,7 +727,8 @@ Default from: /Users/work/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/w
     };
 
 */
-#[doc = "\n        Returns [`StencilFaceStateBuilder`] for building [`wgpu::StencilFaceState`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
+
+#[doc = "\nReturns [`StencilFaceStateBuilder`] for building [`wgpu::StencilFaceState`]\n\n|Field|Status|\n|-|-|\n|compare|Defaults to `CompareFunction::Always`|\n|fail_op|Defaults to `StencilOperation::Keep`|\n|depth_fail_op|Defaults to `StencilOperation::Keep`|\n|pass_op|Defaults to `StencilOperation::Keep`|\n"]
 # [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
 pub fn stencil_face_state(
     #[rustfmt::skip]
@@ -1028,19 +759,213 @@ pub fn stencil_face_state(
 /*
 Derived default
 */
-#[doc = "\n        Returns [`DispatchIndirectArgsBuilder`] for building [`wgpu::DispatchIndirectArgs`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
+
+#[doc = "\nReturns [`DrawIndexedIndirectArgsBuilder`] for building [`wgpu::util::DrawIndexedIndirectArgs`]\n\n|Field|Status|\n|-|-|\n|index_count|Defaults to `u32::default()`|\n|instance_count|Defaults to `u32::default()`|\n|first_index|Defaults to `u32::default()`|\n|base_vertex|Defaults to `i32::default()`|\n|first_instance|Defaults to `u32::default()`|\n"]
+# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
+pub fn draw_indexed_indirect_args(
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::util::DrawIndexedIndirectArgs::index_count`]"]
+    #[builder(into, default)]
+    index_count: u32,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::util::DrawIndexedIndirectArgs::instance_count`]"]
+    #[builder(into, default)]
+    instance_count: u32,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::util::DrawIndexedIndirectArgs::first_index`]"]
+    #[builder(into, default)]
+    first_index: u32,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::util::DrawIndexedIndirectArgs::base_vertex`]"]
+    #[builder(into, default)]
+    base_vertex: i32,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::util::DrawIndexedIndirectArgs::first_instance`]"]
+    #[builder(into, default)]
+    first_instance: u32,
+) -> DrawIndexedIndirectArgs {
+    DrawIndexedIndirectArgs {
+        index_count,
+        instance_count,
+        first_index,
+        base_vertex,
+        first_instance,
+    }
+}
+
+/*
+Default from: /Users/work/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wgpu-types-27.0.1/src/lib.rs:6059
+impl Default for Extent3d {
+    fn default() -> Self {
+        Self {
+            width: 1,
+            height: 1,
+            depth_or_array_layers: 1,
+        }
+    }
+}
+
+*/
+
+#[doc = "\nReturns [`Extent3dBuilder`] for building [`wgpu::Extent3d`]\n\n|Field|Status|\n|-|-|\n|width|Defaults to `1u32`|\n|height|Defaults to `1u32`|\n|depth_or_array_layers|Defaults to `1u32`|\n"]
+# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
+pub fn extent3d(
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::Extent3d::width`]"]
+    #[builder(into, default = 1u32)]
+    width: u32,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::Extent3d::height`]"]
+    #[builder(into, default = 1u32)]
+    height: u32,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::Extent3d::depth_or_array_layers`]"]
+    #[builder(into, default = 1u32)]
+    depth_or_array_layers: u32,
+) -> Extent3d {
+    Extent3d {
+        width,
+        height,
+        depth_or_array_layers,
+    }
+}
+
+/*
+Unhandled Some("PushConstantRange") Id(4938)
+
+*/
+
+#[doc = "\nReturns [`PushConstantRangeBuilder`] for building [`wgpu::PushConstantRange`]\n\n|Field|Status|\n|-|-|\n|stages|Required|\n|range|Required|\n"]
+# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
+pub fn push_constant_range(
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::PushConstantRange::stages`]"]
+    #[builder(into)]
+    stages: ShaderStages,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::PushConstantRange::range`]"]
+    #[builder(into)]
+    range: Range<u32>,
+) -> PushConstantRange {
+    PushConstantRange { stages, range }
+}
+
+/*
+Unhandled Some("BufferTransition") Id(3909)
+
+*/
+
+#[doc = "\nReturns [`BufferTransitionBuilder`] for building [`wgpu::BufferTransition`]\n\n|Field|Status|\n|-|-|\n|buffer|Required|\n|state|Required|\n"]
+# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
+pub fn buffer_transition<T>(
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::BufferTransition::buffer`]"]
+    #[builder(into)]
+    buffer: T,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::BufferTransition::state`]"]
+    #[builder(into)]
+    state: BufferUses,
+) -> BufferTransition<T> {
+    BufferTransition { buffer, state }
+}
+
+/*
+Derived default
+*/
+
+#[doc = "\nReturns [`Dx12BackendOptionsBuilder`] for building [`wgpu::Dx12BackendOptions`]\n\n|Field|Status|\n|-|-|\n|shader_compiler|Defaults to `Dx12Compiler::default()`|\n|presentation_system|Defaults to `Dx12SwapchainKind::default()`|\n|latency_waitable_object|Defaults to `Dx12UseFrameLatencyWaitableObject::default()`|\n"]
+# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
+pub fn dx_12_backend_options(
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::Dx12BackendOptions::shader_compiler`]"]
+    #[builder(into, default)]
+    shader_compiler: Dx12Compiler,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::Dx12BackendOptions::presentation_system`]"]
+    #[builder(into, default)]
+    presentation_system: Dx12SwapchainKind,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::Dx12BackendOptions::latency_waitable_object`]"]
+    #[builder(into, default)]
+    latency_waitable_object: Dx12UseFrameLatencyWaitableObject,
+) -> Dx12BackendOptions {
+    Dx12BackendOptions {
+        shader_compiler,
+        presentation_system,
+        latency_waitable_object,
+    }
+}
+
+/*
+Derived default
+*/
+
+#[doc = "\nReturns [`DrawIndirectArgsBuilder`] for building [`wgpu::util::DrawIndirectArgs`]\n\n|Field|Status|\n|-|-|\n|vertex_count|Defaults to `u32::default()`|\n|instance_count|Defaults to `u32::default()`|\n|first_vertex|Defaults to `u32::default()`|\n|first_instance|Defaults to `u32::default()`|\n"]
+# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
+pub fn draw_indirect_args(
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::util::DrawIndirectArgs::vertex_count`]"]
+    #[builder(into, default)]
+    vertex_count: u32,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::util::DrawIndirectArgs::instance_count`]"]
+    #[builder(into, default)]
+    instance_count: u32,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::util::DrawIndirectArgs::first_vertex`]"]
+    #[builder(into, default)]
+    first_vertex: u32,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::util::DrawIndirectArgs::first_instance`]"]
+    #[builder(into, default)]
+    first_instance: u32,
+) -> DrawIndirectArgs {
+    DrawIndirectArgs {
+        vertex_count,
+        instance_count,
+        first_vertex,
+        first_instance,
+    }
+}
+
+/*
+Unhandled Some("Origin2d") Id(4515)
+
+*/
+
+#[doc = "\nReturns [`Origin2dBuilder`] for building [`wgpu::Origin2d`]\n\n|Field|Status|\n|-|-|\n|x|Required|\n|y|Required|\n"]
+# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
+pub fn origin2d(
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::Origin2d::x`]"]
+    #[builder(into)]
+    x: u32,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::Origin2d::y`]"]
+    #[builder(into)]
+    y: u32,
+) -> Origin2d {
+    Origin2d { x, y }
+}
+
+/*
+Derived default
+*/
+
+#[doc = "\nReturns [`DispatchIndirectArgsBuilder`] for building [`wgpu::util::DispatchIndirectArgs`]\n\n|Field|Status|\n|-|-|\n|x|Defaults to `u32::default()`|\n|y|Defaults to `u32::default()`|\n|z|Defaults to `u32::default()`|\n"]
 # [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
 pub fn dispatch_indirect_args(
     #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::DispatchIndirectArgs::x`]"]
+    #[doc = "Sets [`wgpu::util::DispatchIndirectArgs::x`]"]
     #[builder(into, default)]
     x: u32,
     #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::DispatchIndirectArgs::y`]"]
+    #[doc = "Sets [`wgpu::util::DispatchIndirectArgs::y`]"]
     #[builder(into, default)]
     y: u32,
     #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::DispatchIndirectArgs::z`]"]
+    #[doc = "Sets [`wgpu::util::DispatchIndirectArgs::z`]"]
     #[builder(into, default)]
     z: u32,
 ) -> DispatchIndirectArgs {
@@ -1048,122 +973,363 @@ pub fn dispatch_indirect_args(
 }
 
 /*
-Default from: /Users/work/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wgpu-types-27.0.1/src/lib.rs:6006
-    pub const ZERO: Self = Self { x: 0, y: 0, z: 0 };
-
+Derived default
 */
-#[doc = "\n        Returns [`Origin3dBuilder`] for building [`wgpu::Origin3d`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
+
+#[doc = "\nReturns [`MemoryBudgetThresholdsBuilder`] for building [`wgpu::MemoryBudgetThresholds`]\n\n|Field|Status|\n|-|-|\n|for_resource_creation|Defaults to `Option::None`|\n|for_device_loss|Defaults to `Option::None`|\n"]
 # [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn origin3d(
+pub fn memory_budget_thresholds(
     #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::Origin3d::x`]"]
-    #[builder(into, default = 0u32)]
-    x: u32,
+    #[doc = "Sets [`wgpu::MemoryBudgetThresholds::for_resource_creation`]"]
+    #[builder(into)]
+    for_resource_creation: Option<u8>,
     #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::Origin3d::y`]"]
-    #[builder(into, default = 0u32)]
-    y: u32,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::Origin3d::z`]"]
-    #[builder(into, default = 0u32)]
-    z: u32,
-) -> Origin3d {
-    Origin3d { x, y, z }
+    #[doc = "Sets [`wgpu::MemoryBudgetThresholds::for_device_loss`]"]
+    #[builder(into)]
+    for_device_loss: Option<u8>,
+) -> MemoryBudgetThresholds {
+    MemoryBudgetThresholds {
+        for_resource_creation,
+        for_device_loss,
+    }
 }
 
 /*
-Default from: /Users/work/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wgpu-types-27.0.1/src/lib.rs:4786
-impl<V: Default> Default for Operations<V> {
-    #[inline]
+Default from: /Users/work/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wgpu-types-27.0.1/src/lib.rs:374
+impl<S> Default for RequestAdapterOptions<S> {
     fn default() -> Self {
         Self {
-            load: LoadOp::<V>::default(),
-            store: StoreOp::default(),
+            power_preference: PowerPreference::default(),
+            force_fallback_adapter: false,
+            compatible_surface: None,
         }
     }
 }
 
 */
-#[doc = "\n        Returns [`OperationsBuilder`] for building [`wgpu::Operations`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
+
+#[doc = "\nReturns [`RequestAdapterOptionsBaseBuilder`] for building [`wgpu::RequestAdapterOptionsBase`]\n\n|Field|Status|\n|-|-|\n|power_preference|Defaults to `PowerPreference::default()`|\n|force_fallback_adapter|Defaults to `false`|\n|compatible_surface|Defaults to `Option::None`|\n"]
 # [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn operations<V>(
+pub fn request_adapter_options_base<S>(
     #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::Operations::load`]"]
+    #[doc = "Sets [`wgpu::RequestAdapterOptionsBase::power_preference`]"]
+    # [builder (into , default = PowerPreference :: default ())]
+    power_preference: PowerPreference,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::RequestAdapterOptionsBase::force_fallback_adapter`]"]
+    #[builder(into, default = false)]
+    force_fallback_adapter: bool,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::RequestAdapterOptionsBase::compatible_surface`]"]
     #[builder(into)]
-    load: LoadOp<V>,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::Operations::store`]"]
-    # [builder (into , default = StoreOp :: default ())]
-    store: StoreOp,
-) -> Operations<V> {
-    Operations { load, store }
-}
-
-/*
-Unhandled Some("CompilationInfo") Id(2541)
-
-*/
-#[doc = "\n        Returns [`CompilationInfoBuilder`] for building [`wgpu::CompilationInfo`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
-# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn compilation_info(
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::CompilationInfo::messages`]"]
-    #[builder(into)]
-    messages: Vec<CompilationMessage>,
-) -> CompilationInfo {
-    CompilationInfo { messages }
-}
-
-/*
-Unhandled Some("VertexBufferLayout") Id(646)
-
-*/
-#[doc = "\n        Returns [`VertexBufferLayoutBuilder`] for building [`wgpu::VertexBufferLayout`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
-# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn vertex_buffer_layout<'a>(
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::VertexBufferLayout::array_stride`]"]
-    #[builder(into)]
-    array_stride: BufferAddress,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::VertexBufferLayout::step_mode`]"]
-    #[builder(into, default)]
-    step_mode: VertexStepMode,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::VertexBufferLayout::attributes`]"]
-    attributes: &'a [VertexAttribute],
-) -> VertexBufferLayout<'a> {
-    VertexBufferLayout {
-        array_stride,
-        step_mode,
-        attributes,
+    compatible_surface: Option<S>,
+) -> RequestAdapterOptionsBase<S> {
+    RequestAdapterOptionsBase {
+        power_preference,
+        force_fallback_adapter,
+        compatible_surface,
     }
 }
 
 /*
-Unhandled Some("BindGroupEntry") Id(270)
+Derived default
+*/
+
+#[doc = "\nReturns [`ImageSubresourceRangeBuilder`] for building [`wgpu::ImageSubresourceRange`]\n\n|Field|Status|\n|-|-|\n|aspect|Defaults to `TextureAspect::default()`|\n|base_mip_level|Defaults to `u32::default()`|\n|mip_level_count|Defaults to `Option::None`|\n|base_array_layer|Defaults to `u32::default()`|\n|array_layer_count|Defaults to `Option::None`|\n"]
+# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
+pub fn image_subresource_range(
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::ImageSubresourceRange::aspect`]"]
+    #[builder(into, default)]
+    aspect: TextureAspect,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::ImageSubresourceRange::base_mip_level`]"]
+    #[builder(into, default)]
+    base_mip_level: u32,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::ImageSubresourceRange::mip_level_count`]"]
+    #[builder(into)]
+    mip_level_count: Option<u32>,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::ImageSubresourceRange::base_array_layer`]"]
+    #[builder(into, default)]
+    base_array_layer: u32,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::ImageSubresourceRange::array_layer_count`]"]
+    #[builder(into)]
+    array_layer_count: Option<u32>,
+) -> ImageSubresourceRange {
+    ImageSubresourceRange {
+        aspect,
+        base_mip_level,
+        mip_level_count,
+        base_array_layer,
+        array_layer_count,
+    }
+}
+
+/*
+Derived default
+*/
+
+#[doc = "\nReturns [`TexelCopyBufferLayoutBuilder`] for building [`wgpu::TexelCopyBufferLayout`]\n\n|Field|Status|\n|-|-|\n|offset|Defaults to `BufferAddress::default()`|\n|bytes_per_row|Defaults to `Option::None`|\n|rows_per_image|Defaults to `Option::None`|\n"]
+# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
+pub fn texel_copy_buffer_layout(
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::TexelCopyBufferLayout::offset`]"]
+    #[builder(into, default)]
+    offset: BufferAddress,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::TexelCopyBufferLayout::bytes_per_row`]"]
+    #[builder(into)]
+    bytes_per_row: Option<u32>,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::TexelCopyBufferLayout::rows_per_image`]"]
+    #[builder(into)]
+    rows_per_image: Option<u32>,
+) -> TexelCopyBufferLayout {
+    TexelCopyBufferLayout {
+        offset,
+        bytes_per_row,
+        rows_per_image,
+    }
+}
+
+/*
+Unhandled Some("CopyExternalImageDestInfo") Id(5305)
 
 */
-#[doc = "\n        Returns [`BindGroupEntryBuilder`] for building [`wgpu::BindGroupEntry`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
+
+#[doc = "\nReturns [`CopyExternalImageDestInfoBuilder`] for building [`wgpu::CopyExternalImageDestInfo`]\n\n|Field|Status|\n|-|-|\n|texture|Required|\n|mip_level|Required|\n|origin|Defaults to `Origin3d::default()`|\n|aspect|Defaults to `TextureAspect::default()`|\n|color_space|Required|\n|premultiplied_alpha|Required|\n"]
 # [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn bind_group_entry<'a>(
+pub fn copy_external_image_dest_info<T>(
     #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::BindGroupEntry::binding`]"]
+    #[doc = "Sets [`wgpu::CopyExternalImageDestInfo::texture`]"]
     #[builder(into)]
-    binding: u32,
+    texture: T,
     #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::BindGroupEntry::resource`]"]
+    #[doc = "Sets [`wgpu::CopyExternalImageDestInfo::mip_level`]"]
     #[builder(into)]
-    resource: BindingResource<'a>,
-) -> BindGroupEntry<'a> {
-    BindGroupEntry { binding, resource }
+    mip_level: u32,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::CopyExternalImageDestInfo::origin`]"]
+    #[builder(into, default)]
+    origin: Origin3d,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::CopyExternalImageDestInfo::aspect`]"]
+    #[builder(into, default)]
+    aspect: TextureAspect,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::CopyExternalImageDestInfo::color_space`]"]
+    #[builder(into)]
+    color_space: PredefinedColorSpace,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::CopyExternalImageDestInfo::premultiplied_alpha`]"]
+    #[builder(into)]
+    premultiplied_alpha: bool,
+) -> CopyExternalImageDestInfo<T> {
+    CopyExternalImageDestInfo {
+        texture,
+        mip_level,
+        origin,
+        aspect,
+        color_space,
+        premultiplied_alpha,
+    }
+}
+
+/*
+Derived default
+*/
+
+#[doc = "\nReturns [`ComputePassDescriptorBuilder`] for building [`wgpu::ComputePassDescriptor`]\n\n|Field|Status|\n|-|-|\n|label|Required|\n|timestamp_writes|Defaults to `Option::None`|\n"]
+# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
+pub fn compute_pass_descriptor<'a>(
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::ComputePassDescriptor::label`]"]
+    #[builder(start_fn, into)]
+    label: Label<'a>,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::ComputePassDescriptor::timestamp_writes`]"]
+    #[builder(into)]
+    timestamp_writes: Option<ComputePassTimestampWrites<'a>>,
+) -> ComputePassDescriptor<'a> {
+    ComputePassDescriptor {
+        label,
+        timestamp_writes,
+    }
+}
+
+/*
+Unhandled Some("BufferBinding") Id(173)
+
+*/
+
+#[doc = "\nReturns [`BufferBindingBuilder`] for building [`wgpu::BufferBinding`]\n\n|Field|Status|\n|-|-|\n|buffer|Required|\n|offset|Required|\n|size|Defaults to `Option::None`|\n"]
+# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
+pub fn buffer_binding<'a>(
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::BufferBinding::buffer`]"]
+    #[builder(into)]
+    buffer: &'a Buffer,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::BufferBinding::offset`]"]
+    #[builder(into)]
+    offset: BufferAddress,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::BufferBinding::size`]"]
+    #[builder(into)]
+    size: Option<BufferSize>,
+) -> BufferBinding<'a> {
+    BufferBinding {
+        buffer,
+        offset,
+        size,
+    }
+}
+
+/*
+Unhandled Some("BindGroupLayoutDescriptor") Id(266)
+
+*/
+
+#[doc = "\nReturns [`BindGroupLayoutDescriptorBuilder`] for building [`wgpu::BindGroupLayoutDescriptor`]\n\n|Field|Status|\n|-|-|\n|label|Required|\n|entries|Required|\n"]
+# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
+pub fn bind_group_layout_descriptor<'a>(
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::BindGroupLayoutDescriptor::label`]"]
+    #[builder(start_fn, into)]
+    label: Label<'a>,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::BindGroupLayoutDescriptor::entries`]"]
+    entries: &'a [BindGroupLayoutEntry],
+) -> BindGroupLayoutDescriptor<'a> {
+    BindGroupLayoutDescriptor { label, entries }
+}
+
+/*
+Unhandled Some("BindGroupDescriptor") Id(269)
+
+*/
+
+#[doc = "\nReturns [`BindGroupDescriptorBuilder`] for building [`wgpu::BindGroupDescriptor`]\n\n|Field|Status|\n|-|-|\n|label|Required|\n|layout|Required|\n|entries|Required|\n"]
+# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
+pub fn bind_group_descriptor<'a>(
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::BindGroupDescriptor::label`]"]
+    #[builder(start_fn, into)]
+    label: Label<'a>,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::BindGroupDescriptor::layout`]"]
+    #[builder(into)]
+    layout: &'a BindGroupLayout,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::BindGroupDescriptor::entries`]"]
+    entries: &'a [BindGroupEntry<'a>],
+) -> BindGroupDescriptor<'a> {
+    BindGroupDescriptor {
+        label,
+        layout,
+        entries,
+    }
+}
+
+/*
+Derived default
+*/
+
+#[doc = "\nReturns [`PipelineLayoutDescriptorBuilder`] for building [`wgpu::PipelineLayoutDescriptor`]\n\n|Field|Status|\n|-|-|\n|label|Required|\n|bind_group_layouts|Defaults to `&'a[&'aBindGroupLayout]::default()`|\n|push_constant_ranges|Defaults to `&'a[PushConstantRange]::default()`|\n"]
+# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
+pub fn pipeline_layout_descriptor<'a>(
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::PipelineLayoutDescriptor::label`]"]
+    #[builder(start_fn, into)]
+    label: Label<'a>,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::PipelineLayoutDescriptor::bind_group_layouts`]"]
+    #[builder(default)]
+    bind_group_layouts: &'a [&'a BindGroupLayout],
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::PipelineLayoutDescriptor::push_constant_ranges`]"]
+    #[builder(default)]
+    push_constant_ranges: &'a [PushConstantRange],
+) -> PipelineLayoutDescriptor<'a> {
+    PipelineLayoutDescriptor {
+        label,
+        bind_group_layouts,
+        push_constant_ranges,
+    }
+}
+
+/*
+Unhandled Some("ComputePipelineDescriptor") Id(1222)
+
+*/
+
+#[doc = "\nReturns [`ComputePipelineDescriptorBuilder`] for building [`wgpu::ComputePipelineDescriptor`]\n\n|Field|Status|\n|-|-|\n|label|Required|\n|layout|Defaults to `Option::None`|\n|module|Required|\n|entry_point|Defaults to `Option::None`|\n|compilation_options|Defaults to `PipelineCompilationOptions<'a>::default()`|\n|cache|Defaults to `Option::None`|\n"]
+# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
+pub fn compute_pipeline_descriptor<'a>(
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::ComputePipelineDescriptor::label`]"]
+    #[builder(start_fn, into)]
+    label: Label<'a>,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::ComputePipelineDescriptor::layout`]"]
+    #[builder(into)]
+    layout: Option<&'a PipelineLayout>,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::ComputePipelineDescriptor::module`]"]
+    #[builder(into)]
+    module: &'a ShaderModule,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::ComputePipelineDescriptor::entry_point`]"]
+    #[builder(into)]
+    entry_point: Option<&'a str>,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::ComputePipelineDescriptor::compilation_options`]"]
+    #[builder(into, default)]
+    compilation_options: PipelineCompilationOptions<'a>,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::ComputePipelineDescriptor::cache`]"]
+    #[builder(into)]
+    cache: Option<&'a PipelineCache>,
+) -> ComputePipelineDescriptor<'a> {
+    ComputePipelineDescriptor {
+        label,
+        layout,
+        module,
+        entry_point,
+        compilation_options,
+        cache,
+    }
+}
+
+/*
+Unhandled Some("ShaderModuleDescriptor") Id(1253)
+
+*/
+
+#[doc = "\nReturns [`ShaderModuleDescriptorBuilder`] for building [`wgpu::ShaderModuleDescriptor`]\n\n|Field|Status|\n|-|-|\n|label|Required|\n|source|Required|\n"]
+# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
+pub fn shader_module_descriptor<'a>(
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::ShaderModuleDescriptor::label`]"]
+    #[builder(start_fn, into)]
+    label: Label<'a>,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::ShaderModuleDescriptor::source`]"]
+    #[builder(into)]
+    source: ShaderSource<'a>,
+) -> ShaderModuleDescriptor<'a> {
+    ShaderModuleDescriptor { label, source }
 }
 
 /*
 Unhandled Some("PipelineCacheDescriptor") Id(1042)
 
 */
-#[doc = "\n        Returns [`PipelineCacheDescriptorBuilder`] for building [`wgpu::PipelineCacheDescriptor`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
+
+#[doc = "\nReturns [`PipelineCacheDescriptorBuilder`] for building [`wgpu::PipelineCacheDescriptor`]\n\n|Field|Status|\n|-|-|\n|label|Required|\n|data|Defaults to `Option::None`|\n|fallback|Required|\n"]
 # [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
 pub fn pipeline_cache_descriptor<'a>(
     #[rustfmt::skip]
@@ -1187,28 +1353,302 @@ pub fn pipeline_cache_descriptor<'a>(
 }
 
 /*
-Unhandled Some("ShaderModuleDescriptor") Id(1253)
+Unhandled Some("VertexBufferLayout") Id(646)
 
 */
-#[doc = "\n        Returns [`ShaderModuleDescriptorBuilder`] for building [`wgpu::ShaderModuleDescriptor`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
+
+#[doc = "\nReturns [`VertexBufferLayoutBuilder`] for building [`wgpu::VertexBufferLayout`]\n\n|Field|Status|\n|-|-|\n|array_stride|Required|\n|step_mode|Defaults to `VertexStepMode::default()`|\n|attributes|Required|\n"]
 # [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn shader_module_descriptor<'a>(
+pub fn vertex_buffer_layout<'a>(
     #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::ShaderModuleDescriptor::label`]"]
+    #[doc = "Sets [`wgpu::VertexBufferLayout::array_stride`]"]
+    #[builder(into)]
+    array_stride: BufferAddress,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::VertexBufferLayout::step_mode`]"]
+    #[builder(into, default)]
+    step_mode: VertexStepMode,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::VertexBufferLayout::attributes`]"]
+    attributes: &'a [VertexAttribute],
+) -> VertexBufferLayout<'a> {
+    VertexBufferLayout {
+        array_stride,
+        step_mode,
+        attributes,
+    }
+}
+
+/*
+Unhandled Some("BufferInitDescriptor") Id(1341)
+
+*/
+
+#[doc = "\nReturns [`BufferInitDescriptorBuilder`] for building [`wgpu::util::BufferInitDescriptor`]\n\n|Field|Status|\n|-|-|\n|label|Required|\n|contents|Required|\n|usage|Required|\n"]
+# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
+pub fn buffer_init_descriptor<'a>(
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::util::BufferInitDescriptor::label`]"]
     #[builder(start_fn, into)]
     label: Label<'a>,
     #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::ShaderModuleDescriptor::source`]"]
+    #[doc = "Sets [`wgpu::util::BufferInitDescriptor::contents`]"]
+    contents: &'a [u8],
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::util::BufferInitDescriptor::usage`]"]
     #[builder(into)]
-    source: ShaderSource<'a>,
-) -> ShaderModuleDescriptor<'a> {
-    ShaderModuleDescriptor { label, source }
+    usage: BufferUsages,
+) -> BufferInitDescriptor<'a> {
+    BufferInitDescriptor {
+        label,
+        contents,
+        usage,
+    }
+}
+
+/*
+Unhandled Some("TaskState") Id(2388)
+
+*/
+
+#[doc = "\nReturns [`TaskStateBuilder`] for building [`wgpu::TaskState`]\n\n|Field|Status|\n|-|-|\n|module|Required|\n|entry_point|Defaults to `Option::None`|\n|compilation_options|Defaults to `PipelineCompilationOptions<'a>::default()`|\n"]
+# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
+pub fn task_state<'a>(
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::TaskState::module`]"]
+    #[builder(into)]
+    module: &'a ShaderModule,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::TaskState::entry_point`]"]
+    #[builder(into)]
+    entry_point: Option<&'a str>,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::TaskState::compilation_options`]"]
+    #[builder(into, default)]
+    compilation_options: PipelineCompilationOptions<'a>,
+) -> TaskState<'a> {
+    TaskState {
+        module,
+        entry_point,
+        compilation_options,
+    }
+}
+
+/*
+Unhandled Some("ComputePassTimestampWrites") Id(1123)
+
+*/
+
+#[doc = "\nReturns [`ComputePassTimestampWritesBuilder`] for building [`wgpu::ComputePassTimestampWrites`]\n\n|Field|Status|\n|-|-|\n|query_set|Required|\n|beginning_of_pass_write_index|Defaults to `Option::None`|\n|end_of_pass_write_index|Defaults to `Option::None`|\n"]
+# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
+pub fn compute_pass_timestamp_writes<'a>(
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::ComputePassTimestampWrites::query_set`]"]
+    #[builder(into)]
+    query_set: &'a QuerySet,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::ComputePassTimestampWrites::beginning_of_pass_write_index`]"]
+    #[builder(into)]
+    beginning_of_pass_write_index: Option<u32>,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::ComputePassTimestampWrites::end_of_pass_write_index`]"]
+    #[builder(into)]
+    end_of_pass_write_index: Option<u32>,
+) -> ComputePassTimestampWrites<'a> {
+    ComputePassTimestampWrites {
+        query_set,
+        beginning_of_pass_write_index,
+        end_of_pass_write_index,
+    }
+}
+
+/*
+Unhandled Some("MeshState") Id(2414)
+
+*/
+
+#[doc = "\nReturns [`MeshStateBuilder`] for building [`wgpu::MeshState`]\n\n|Field|Status|\n|-|-|\n|module|Required|\n|entry_point|Defaults to `Option::None`|\n|compilation_options|Defaults to `PipelineCompilationOptions<'a>::default()`|\n"]
+# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
+pub fn mesh_state<'a>(
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::MeshState::module`]"]
+    #[builder(into)]
+    module: &'a ShaderModule,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::MeshState::entry_point`]"]
+    #[builder(into)]
+    entry_point: Option<&'a str>,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::MeshState::compilation_options`]"]
+    #[builder(into, default)]
+    compilation_options: PipelineCompilationOptions<'a>,
+) -> MeshState<'a> {
+    MeshState {
+        module,
+        entry_point,
+        compilation_options,
+    }
+}
+
+/*
+Unhandled Some("RenderPipelineDescriptor") Id(1264)
+
+*/
+
+#[doc = "\nReturns [`RenderPipelineDescriptorBuilder`] for building [`wgpu::RenderPipelineDescriptor`]\n\n|Field|Status|\n|-|-|\n|label|Required|\n|layout|Defaults to `Option::None`|\n|vertex|Required|\n|primitive|Defaults to `PrimitiveState::default()`|\n|depth_stencil|Defaults to `Option::None`|\n|multisample|Defaults to `MultisampleState::default()`|\n|fragment|Defaults to `Option::None`|\n|multiview|Defaults to `Option::None`|\n|cache|Defaults to `Option::None`|\n"]
+# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
+pub fn render_pipeline_descriptor<'a>(
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::RenderPipelineDescriptor::label`]"]
+    #[builder(start_fn, into)]
+    label: Label<'a>,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::RenderPipelineDescriptor::layout`]"]
+    #[builder(into)]
+    layout: Option<&'a PipelineLayout>,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::RenderPipelineDescriptor::vertex`]"]
+    #[builder(into)]
+    vertex: VertexState<'a>,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::RenderPipelineDescriptor::primitive`]"]
+    #[builder(into, default)]
+    primitive: PrimitiveState,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::RenderPipelineDescriptor::depth_stencil`]"]
+    #[builder(into)]
+    depth_stencil: Option<DepthStencilState>,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::RenderPipelineDescriptor::multisample`]"]
+    #[builder(into, default)]
+    multisample: MultisampleState,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::RenderPipelineDescriptor::fragment`]"]
+    #[builder(into)]
+    fragment: Option<FragmentState<'a>>,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::RenderPipelineDescriptor::multiview`]"]
+    #[builder(into)]
+    multiview: Option<NonZeroU32>,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::RenderPipelineDescriptor::cache`]"]
+    #[builder(into)]
+    cache: Option<&'a PipelineCache>,
+) -> RenderPipelineDescriptor<'a> {
+    RenderPipelineDescriptor {
+        label,
+        layout,
+        vertex,
+        primitive,
+        depth_stencil,
+        multisample,
+        fragment,
+        multiview,
+        cache,
+    }
+}
+
+/*
+Unhandled Some("RenderPassColorAttachment") Id(2178)
+
+*/
+
+#[doc = "\nReturns [`RenderPassColorAttachmentBuilder`] for building [`wgpu::RenderPassColorAttachment`]\n\n|Field|Status|\n|-|-|\n|view|Required|\n|depth_slice|Defaults to `Option::None`|\n|resolve_target|Defaults to `Option::None`|\n|ops|Defaults to `Operations<Color>::default()`|\n"]
+# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
+pub fn render_pass_color_attachment<'tex>(
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::RenderPassColorAttachment::view`]"]
+    #[builder(into)]
+    view: &'tex TextureView,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::RenderPassColorAttachment::depth_slice`]"]
+    #[builder(into)]
+    depth_slice: Option<u32>,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::RenderPassColorAttachment::resolve_target`]"]
+    #[builder(into)]
+    resolve_target: Option<&'tex TextureView>,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::RenderPassColorAttachment::ops`]"]
+    #[builder(into, default)]
+    ops: Operations<Color>,
+) -> RenderPassColorAttachment<'tex> {
+    RenderPassColorAttachment {
+        view,
+        depth_slice,
+        resolve_target,
+        ops,
+    }
+}
+
+/*
+Default from: /Users/work/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wgpu-27.0.1/src/api/common_pipeline.rs:25
+impl Default for PipelineCompilationOptions<'_> {
+    fn default() -> Self {
+        Self {
+            constants: Default::default(),
+            zero_initialize_workgroup_memory: true,
+        }
+    }
+}
+
+*/
+
+#[doc = "\nReturns [`PipelineCompilationOptionsBuilder`] for building [`wgpu::PipelineCompilationOptions`]\n\n|Field|Status|\n|-|-|\n|constants|Defaults to `&'a[(&'astr,f64)]::default()`|\n|zero_initialize_workgroup_memory|Defaults to `true`|\n"]
+# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
+pub fn pipeline_compilation_options<'a>(
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::PipelineCompilationOptions::constants`]"]
+    #[builder(default)]
+    constants: &'a [(&'a str, f64)],
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::PipelineCompilationOptions::zero_initialize_workgroup_memory`]"]
+    #[builder(into, default = true)]
+    zero_initialize_workgroup_memory: bool,
+) -> PipelineCompilationOptions<'a> {
+    PipelineCompilationOptions {
+        constants,
+        zero_initialize_workgroup_memory,
+    }
+}
+
+/*
+Unhandled Some("VertexState") Id(2076)
+
+*/
+
+#[doc = "\nReturns [`VertexStateBuilder`] for building [`wgpu::VertexState`]\n\n|Field|Status|\n|-|-|\n|module|Required|\n|entry_point|Defaults to `Option::None`|\n|compilation_options|Defaults to `PipelineCompilationOptions<'a>::default()`|\n|buffers|Required|\n"]
+# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
+pub fn vertex_state<'a>(
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::VertexState::module`]"]
+    #[builder(into)]
+    module: &'a ShaderModule,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::VertexState::entry_point`]"]
+    #[builder(into)]
+    entry_point: Option<&'a str>,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::VertexState::compilation_options`]"]
+    #[builder(into, default)]
+    compilation_options: PipelineCompilationOptions<'a>,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::VertexState::buffers`]"]
+    buffers: &'a [VertexBufferLayout<'a>],
+) -> VertexState<'a> {
+    VertexState {
+        module,
+        entry_point,
+        compilation_options,
+        buffers,
+    }
 }
 
 /*
 Derived default
 */
-#[doc = "\n        Returns [`RenderBundleEncoderDescriptorBuilder`] for building [`wgpu::RenderBundleEncoderDescriptor`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
+
+#[doc = "\nReturns [`RenderBundleEncoderDescriptorBuilder`] for building [`wgpu::RenderBundleEncoderDescriptor`]\n\n|Field|Status|\n|-|-|\n|label|Required|\n|color_formats|Defaults to `&'a[Option<TextureFormat>]::default()`|\n|depth_stencil|Defaults to `Option::None`|\n|sample_count|Defaults to `u32::default()`|\n|multiview|Defaults to `Option::None`|\n"]
 # [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
 pub fn render_bundle_encoder_descriptor<'a>(
     #[rustfmt::skip]
@@ -1242,179 +1682,11 @@ pub fn render_bundle_encoder_descriptor<'a>(
 }
 
 /*
-Unhandled Some("ComputePassTimestampWrites") Id(1123)
-
-*/
-#[doc = "\n        Returns [`ComputePassTimestampWritesBuilder`] for building [`wgpu::ComputePassTimestampWrites`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
-# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn compute_pass_timestamp_writes<'a>(
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::ComputePassTimestampWrites::query_set`]"]
-    #[builder(into)]
-    query_set: &'a QuerySet,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::ComputePassTimestampWrites::beginning_of_pass_write_index`]"]
-    #[builder(into)]
-    beginning_of_pass_write_index: Option<u32>,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::ComputePassTimestampWrites::end_of_pass_write_index`]"]
-    #[builder(into)]
-    end_of_pass_write_index: Option<u32>,
-) -> ComputePassTimestampWrites<'a> {
-    ComputePassTimestampWrites {
-        query_set,
-        beginning_of_pass_write_index,
-        end_of_pass_write_index,
-    }
-}
-
-/*
-Unhandled Some("RenderPassTimestampWrites") Id(2151)
-
-*/
-#[doc = "\n        Returns [`RenderPassTimestampWritesBuilder`] for building [`wgpu::RenderPassTimestampWrites`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
-# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn render_pass_timestamp_writes<'a>(
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::RenderPassTimestampWrites::query_set`]"]
-    #[builder(into)]
-    query_set: &'a QuerySet,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::RenderPassTimestampWrites::beginning_of_pass_write_index`]"]
-    #[builder(into)]
-    beginning_of_pass_write_index: Option<u32>,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::RenderPassTimestampWrites::end_of_pass_write_index`]"]
-    #[builder(into)]
-    end_of_pass_write_index: Option<u32>,
-) -> RenderPassTimestampWrites<'a> {
-    RenderPassTimestampWrites {
-        query_set,
-        beginning_of_pass_write_index,
-        end_of_pass_write_index,
-    }
-}
-
-/*
-Derived default
-*/
-#[doc = "\n        Returns [`RenderPassDescriptorBuilder`] for building [`wgpu::RenderPassDescriptor`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
-# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn render_pass_descriptor<'a>(
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::RenderPassDescriptor::label`]"]
-    #[builder(start_fn, into)]
-    label: Label<'a>,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::RenderPassDescriptor::color_attachments`]"]
-    #[builder(default)]
-    color_attachments: &'a [Option<RenderPassColorAttachment<'a>>],
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::RenderPassDescriptor::depth_stencil_attachment`]"]
-    #[builder(into)]
-    depth_stencil_attachment: Option<RenderPassDepthStencilAttachment<'a>>,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::RenderPassDescriptor::timestamp_writes`]"]
-    #[builder(into)]
-    timestamp_writes: Option<RenderPassTimestampWrites<'a>>,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::RenderPassDescriptor::occlusion_query_set`]"]
-    #[builder(into)]
-    occlusion_query_set: Option<&'a QuerySet>,
-) -> RenderPassDescriptor<'a> {
-    RenderPassDescriptor {
-        label,
-        color_attachments,
-        depth_stencil_attachment,
-        timestamp_writes,
-        occlusion_query_set,
-    }
-}
-
-/*
-Derived default
-*/
-#[doc = "\n        Returns [`PipelineLayoutDescriptorBuilder`] for building [`wgpu::PipelineLayoutDescriptor`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
-# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn pipeline_layout_descriptor<'a>(
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::PipelineLayoutDescriptor::label`]"]
-    #[builder(start_fn, into)]
-    label: Label<'a>,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::PipelineLayoutDescriptor::bind_group_layouts`]"]
-    #[builder(default)]
-    bind_group_layouts: &'a [&'a BindGroupLayout],
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::PipelineLayoutDescriptor::push_constant_ranges`]"]
-    #[builder(default)]
-    push_constant_ranges: &'a [PushConstantRange],
-) -> PipelineLayoutDescriptor<'a> {
-    PipelineLayoutDescriptor {
-        label,
-        bind_group_layouts,
-        push_constant_ranges,
-    }
-}
-
-/*
-Unhandled Some("BufferBinding") Id(173)
-
-*/
-#[doc = "\n        Returns [`BufferBindingBuilder`] for building [`wgpu::BufferBinding`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
-# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn buffer_binding<'a>(
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::BufferBinding::buffer`]"]
-    #[builder(into)]
-    buffer: &'a Buffer,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::BufferBinding::offset`]"]
-    #[builder(into)]
-    offset: BufferAddress,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::BufferBinding::size`]"]
-    #[builder(into)]
-    size: Option<BufferSize>,
-) -> BufferBinding<'a> {
-    BufferBinding {
-        buffer,
-        offset,
-        size,
-    }
-}
-
-/*
-Unhandled Some("BufferInitDescriptor") Id(1341)
-
-*/
-#[doc = "\n        Returns [`BufferInitDescriptorBuilder`] for building [`wgpu::util::BufferInitDescriptor`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
-# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn buffer_init_descriptor<'a>(
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::util::BufferInitDescriptor::label`]"]
-    #[builder(start_fn, into)]
-    label: Label<'a>,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::util::BufferInitDescriptor::contents`]"]
-    contents: &'a [u8],
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::util::BufferInitDescriptor::usage`]"]
-    #[builder(into)]
-    usage: BufferUsages,
-) -> BufferInitDescriptor<'a> {
-    BufferInitDescriptor {
-        label,
-        contents,
-        usage,
-    }
-}
-
-/*
 Unhandled Some("MeshPipelineDescriptor") Id(1266)
 
 */
-#[doc = "\n        Returns [`MeshPipelineDescriptorBuilder`] for building [`wgpu::MeshPipelineDescriptor`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
+
+#[doc = "\nReturns [`MeshPipelineDescriptorBuilder`] for building [`wgpu::MeshPipelineDescriptor`]\n\n|Field|Status|\n|-|-|\n|label|Required|\n|layout|Defaults to `Option::None`|\n|task|Defaults to `Option::None`|\n|mesh|Required|\n|primitive|Defaults to `PrimitiveState::default()`|\n|depth_stencil|Defaults to `Option::None`|\n|multisample|Defaults to `MultisampleState::default()`|\n|fragment|Defaults to `Option::None`|\n|multiview|Defaults to `Option::None`|\n|cache|Defaults to `Option::None`|\n"]
 # [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
 pub fn mesh_pipeline_descriptor<'a>(
     #[rustfmt::skip]
@@ -1475,132 +1747,65 @@ pub fn mesh_pipeline_descriptor<'a>(
 /*
 Derived default
 */
-#[doc = "\n        Returns [`ComputePassDescriptorBuilder`] for building [`wgpu::ComputePassDescriptor`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
+
+#[doc = "\nReturns [`RenderPassDescriptorBuilder`] for building [`wgpu::RenderPassDescriptor`]\n\n|Field|Status|\n|-|-|\n|label|Required|\n|color_attachments|Defaults to `&'a[Option<RenderPassColorAttachment<'a>>]::default()`|\n|depth_stencil_attachment|Defaults to `Option::None`|\n|timestamp_writes|Defaults to `Option::None`|\n|occlusion_query_set|Defaults to `Option::None`|\n"]
 # [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn compute_pass_descriptor<'a>(
+pub fn render_pass_descriptor<'a>(
     #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::ComputePassDescriptor::label`]"]
+    #[doc = "Sets [`wgpu::RenderPassDescriptor::label`]"]
     #[builder(start_fn, into)]
     label: Label<'a>,
     #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::ComputePassDescriptor::timestamp_writes`]"]
+    #[doc = "Sets [`wgpu::RenderPassDescriptor::color_attachments`]"]
+    #[builder(default)]
+    color_attachments: &'a [Option<RenderPassColorAttachment<'a>>],
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::RenderPassDescriptor::depth_stencil_attachment`]"]
     #[builder(into)]
-    timestamp_writes: Option<ComputePassTimestampWrites<'a>>,
-) -> ComputePassDescriptor<'a> {
-    ComputePassDescriptor {
+    depth_stencil_attachment: Option<RenderPassDepthStencilAttachment<'a>>,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::RenderPassDescriptor::timestamp_writes`]"]
+    #[builder(into)]
+    timestamp_writes: Option<RenderPassTimestampWrites<'a>>,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::RenderPassDescriptor::occlusion_query_set`]"]
+    #[builder(into)]
+    occlusion_query_set: Option<&'a QuerySet>,
+) -> RenderPassDescriptor<'a> {
+    RenderPassDescriptor {
         label,
+        color_attachments,
+        depth_stencil_attachment,
         timestamp_writes,
+        occlusion_query_set,
     }
 }
 
 /*
-Unhandled Some("BindGroupDescriptor") Id(269)
+Unhandled Some("RenderPassTimestampWrites") Id(2151)
 
 */
-#[doc = "\n        Returns [`BindGroupDescriptorBuilder`] for building [`wgpu::BindGroupDescriptor`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
+
+#[doc = "\nReturns [`RenderPassTimestampWritesBuilder`] for building [`wgpu::RenderPassTimestampWrites`]\n\n|Field|Status|\n|-|-|\n|query_set|Required|\n|beginning_of_pass_write_index|Defaults to `Option::None`|\n|end_of_pass_write_index|Defaults to `Option::None`|\n"]
 # [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn bind_group_descriptor<'a>(
+pub fn render_pass_timestamp_writes<'a>(
     #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::BindGroupDescriptor::label`]"]
-    #[builder(start_fn, into)]
-    label: Label<'a>,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::BindGroupDescriptor::layout`]"]
+    #[doc = "Sets [`wgpu::RenderPassTimestampWrites::query_set`]"]
     #[builder(into)]
-    layout: &'a BindGroupLayout,
+    query_set: &'a QuerySet,
     #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::BindGroupDescriptor::entries`]"]
-    entries: &'a [BindGroupEntry<'a>],
-) -> BindGroupDescriptor<'a> {
-    BindGroupDescriptor {
-        label,
-        layout,
-        entries,
-    }
-}
-
-/*
-Unhandled Some("TaskState") Id(2388)
-
-*/
-#[doc = "\n        Returns [`TaskStateBuilder`] for building [`wgpu::TaskState`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
-# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn task_state<'a>(
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::TaskState::module`]"]
+    #[doc = "Sets [`wgpu::RenderPassTimestampWrites::beginning_of_pass_write_index`]"]
     #[builder(into)]
-    module: &'a ShaderModule,
+    beginning_of_pass_write_index: Option<u32>,
     #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::TaskState::entry_point`]"]
+    #[doc = "Sets [`wgpu::RenderPassTimestampWrites::end_of_pass_write_index`]"]
     #[builder(into)]
-    entry_point: Option<&'a str>,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::TaskState::compilation_options`]"]
-    #[builder(into, default)]
-    compilation_options: PipelineCompilationOptions<'a>,
-) -> TaskState<'a> {
-    TaskState {
-        module,
-        entry_point,
-        compilation_options,
-    }
-}
-
-/*
-Unhandled Some("VertexState") Id(2076)
-
-*/
-#[doc = "\n        Returns [`VertexStateBuilder`] for building [`wgpu::VertexState`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
-# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn vertex_state<'a>(
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::VertexState::module`]"]
-    #[builder(into)]
-    module: &'a ShaderModule,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::VertexState::entry_point`]"]
-    #[builder(into)]
-    entry_point: Option<&'a str>,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::VertexState::compilation_options`]"]
-    #[builder(into, default)]
-    compilation_options: PipelineCompilationOptions<'a>,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::VertexState::buffers`]"]
-    buffers: &'a [VertexBufferLayout<'a>],
-) -> VertexState<'a> {
-    VertexState {
-        module,
-        entry_point,
-        compilation_options,
-        buffers,
-    }
-}
-
-/*
-Unhandled Some("RenderPassDepthStencilAttachment") Id(2204)
-
-*/
-#[doc = "\n        Returns [`RenderPassDepthStencilAttachmentBuilder`] for building [`wgpu::RenderPassDepthStencilAttachment`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
-# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn render_pass_depth_stencil_attachment<'tex>(
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::RenderPassDepthStencilAttachment::view`]"]
-    #[builder(into)]
-    view: &'tex TextureView,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::RenderPassDepthStencilAttachment::depth_ops`]"]
-    #[builder(into)]
-    depth_ops: Option<Operations<f32>>,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::RenderPassDepthStencilAttachment::stencil_ops`]"]
-    #[builder(into)]
-    stencil_ops: Option<Operations<u32>>,
-) -> RenderPassDepthStencilAttachment<'tex> {
-    RenderPassDepthStencilAttachment {
-        view,
-        depth_ops,
-        stencil_ops,
+    end_of_pass_write_index: Option<u32>,
+) -> RenderPassTimestampWrites<'a> {
+    RenderPassTimestampWrites {
+        query_set,
+        beginning_of_pass_write_index,
+        end_of_pass_write_index,
     }
 }
 
@@ -1608,7 +1813,8 @@ pub fn render_pass_depth_stencil_attachment<'tex>(
 Unhandled Some("FragmentState") Id(2362)
 
 */
-#[doc = "\n        Returns [`FragmentStateBuilder`] for building [`wgpu::FragmentState`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
+
+#[doc = "\nReturns [`FragmentStateBuilder`] for building [`wgpu::FragmentState`]\n\n|Field|Status|\n|-|-|\n|module|Required|\n|entry_point|Defaults to `Option::None`|\n|compilation_options|Defaults to `PipelineCompilationOptions<'a>::default()`|\n|targets|Required|\n"]
 # [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
 pub fn fragment_state<'a>(
     #[rustfmt::skip]
@@ -1636,71 +1842,59 @@ pub fn fragment_state<'a>(
 }
 
 /*
-Unhandled Some("ComputePipelineDescriptor") Id(1222)
+Unhandled Some("RenderPassDepthStencilAttachment") Id(2204)
 
 */
-#[doc = "\n        Returns [`ComputePipelineDescriptorBuilder`] for building [`wgpu::ComputePipelineDescriptor`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
+
+#[doc = "\nReturns [`RenderPassDepthStencilAttachmentBuilder`] for building [`wgpu::RenderPassDepthStencilAttachment`]\n\n|Field|Status|\n|-|-|\n|view|Required|\n|depth_ops|Defaults to `Option::None`|\n|stencil_ops|Defaults to `Option::None`|\n"]
 # [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn compute_pipeline_descriptor<'a>(
+pub fn render_pass_depth_stencil_attachment<'tex>(
     #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::ComputePipelineDescriptor::label`]"]
-    #[builder(start_fn, into)]
-    label: Label<'a>,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::ComputePipelineDescriptor::layout`]"]
+    #[doc = "Sets [`wgpu::RenderPassDepthStencilAttachment::view`]"]
     #[builder(into)]
-    layout: Option<&'a PipelineLayout>,
+    view: &'tex TextureView,
     #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::ComputePipelineDescriptor::module`]"]
+    #[doc = "Sets [`wgpu::RenderPassDepthStencilAttachment::depth_ops`]"]
     #[builder(into)]
-    module: &'a ShaderModule,
+    depth_ops: Option<Operations<f32>>,
     #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::ComputePipelineDescriptor::entry_point`]"]
+    #[doc = "Sets [`wgpu::RenderPassDepthStencilAttachment::stencil_ops`]"]
     #[builder(into)]
-    entry_point: Option<&'a str>,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::ComputePipelineDescriptor::compilation_options`]"]
-    #[builder(into, default)]
-    compilation_options: PipelineCompilationOptions<'a>,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::ComputePipelineDescriptor::cache`]"]
-    #[builder(into)]
-    cache: Option<&'a PipelineCache>,
-) -> ComputePipelineDescriptor<'a> {
-    ComputePipelineDescriptor {
-        label,
-        layout,
-        module,
-        entry_point,
-        compilation_options,
-        cache,
+    stencil_ops: Option<Operations<u32>>,
+) -> RenderPassDepthStencilAttachment<'tex> {
+    RenderPassDepthStencilAttachment {
+        view,
+        depth_ops,
+        stencil_ops,
     }
 }
 
 /*
-Unhandled Some("BlasBuildEntry") Id(478)
+Unhandled Some("BindGroupEntry") Id(270)
 
 */
-#[doc = "\n        Returns [`BlasBuildEntryBuilder`] for building [`wgpu::BlasBuildEntry`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
+
+#[doc = "\nReturns [`BindGroupEntryBuilder`] for building [`wgpu::BindGroupEntry`]\n\n|Field|Status|\n|-|-|\n|binding|Required|\n|resource|Required|\n"]
 # [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn blas_build_entry<'a>(
+pub fn bind_group_entry<'a>(
     #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::BlasBuildEntry::blas`]"]
+    #[doc = "Sets [`wgpu::BindGroupEntry::binding`]"]
     #[builder(into)]
-    blas: &'a Blas,
+    binding: u32,
     #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::BlasBuildEntry::geometry`]"]
+    #[doc = "Sets [`wgpu::BindGroupEntry::resource`]"]
     #[builder(into)]
-    geometry: BlasGeometries<'a>,
-) -> BlasBuildEntry<'a> {
-    BlasBuildEntry { blas, geometry }
+    resource: BindingResource<'a>,
+) -> BindGroupEntry<'a> {
+    BindGroupEntry { binding, resource }
 }
 
 /*
 Unhandled Some("BlasTriangleGeometry") Id(437)
 
 */
-#[doc = "\n        Returns [`BlasTriangleGeometryBuilder`] for building [`wgpu::BlasTriangleGeometry`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
+
+#[doc = "\nReturns [`BlasTriangleGeometryBuilder`] for building [`wgpu::BlasTriangleGeometry`]\n\n|Field|Status|\n|-|-|\n|size|Required|\n|vertex_buffer|Required|\n|first_vertex|Required|\n|vertex_stride|Required|\n|index_buffer|Defaults to `Option::None`|\n|first_index|Defaults to `Option::None`|\n|transform_buffer|Defaults to `Option::None`|\n|transform_buffer_offset|Defaults to `Option::None`|\n"]
 # [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
 pub fn blas_triangle_geometry<'a>(
     #[rustfmt::skip]
@@ -1749,281 +1943,47 @@ pub fn blas_triangle_geometry<'a>(
 }
 
 /*
-Unhandled Some("RenderPipelineDescriptor") Id(1264)
+Unhandled Some("CompilationInfo") Id(2541)
 
 */
-#[doc = "\n        Returns [`RenderPipelineDescriptorBuilder`] for building [`wgpu::RenderPipelineDescriptor`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
+
+#[doc = "\nReturns [`CompilationInfoBuilder`] for building [`wgpu::CompilationInfo`]\n\n|Field|Status|\n|-|-|\n|messages|Required|\n"]
 # [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn render_pipeline_descriptor<'a>(
+pub fn compilation_info(
     #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::RenderPipelineDescriptor::label`]"]
-    #[builder(start_fn, into)]
-    label: Label<'a>,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::RenderPipelineDescriptor::layout`]"]
+    #[doc = "Sets [`wgpu::CompilationInfo::messages`]"]
     #[builder(into)]
-    layout: Option<&'a PipelineLayout>,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::RenderPipelineDescriptor::vertex`]"]
-    #[builder(into)]
-    vertex: VertexState<'a>,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::RenderPipelineDescriptor::primitive`]"]
-    #[builder(into, default)]
-    primitive: PrimitiveState,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::RenderPipelineDescriptor::depth_stencil`]"]
-    #[builder(into)]
-    depth_stencil: Option<DepthStencilState>,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::RenderPipelineDescriptor::multisample`]"]
-    #[builder(into, default)]
-    multisample: MultisampleState,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::RenderPipelineDescriptor::fragment`]"]
-    #[builder(into)]
-    fragment: Option<FragmentState<'a>>,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::RenderPipelineDescriptor::multiview`]"]
-    #[builder(into)]
-    multiview: Option<NonZeroU32>,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::RenderPipelineDescriptor::cache`]"]
-    #[builder(into)]
-    cache: Option<&'a PipelineCache>,
-) -> RenderPipelineDescriptor<'a> {
-    RenderPipelineDescriptor {
-        label,
-        layout,
-        vertex,
-        primitive,
-        depth_stencil,
-        multisample,
-        fragment,
-        multiview,
-        cache,
-    }
+    messages: Vec<CompilationMessage>,
+) -> CompilationInfo {
+    CompilationInfo { messages }
 }
 
 /*
-Unhandled Some("RenderPassColorAttachment") Id(2178)
+Unhandled Some("BlasBuildEntry") Id(478)
 
 */
-#[doc = "\n        Returns [`RenderPassColorAttachmentBuilder`] for building [`wgpu::RenderPassColorAttachment`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
+
+#[doc = "\nReturns [`BlasBuildEntryBuilder`] for building [`wgpu::BlasBuildEntry`]\n\n|Field|Status|\n|-|-|\n|blas|Required|\n|geometry|Required|\n"]
 # [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn render_pass_color_attachment<'tex>(
+pub fn blas_build_entry<'a>(
     #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::RenderPassColorAttachment::view`]"]
+    #[doc = "Sets [`wgpu::BlasBuildEntry::blas`]"]
     #[builder(into)]
-    view: &'tex TextureView,
+    blas: &'a Blas,
     #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::RenderPassColorAttachment::depth_slice`]"]
+    #[doc = "Sets [`wgpu::BlasBuildEntry::geometry`]"]
     #[builder(into)]
-    depth_slice: Option<u32>,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::RenderPassColorAttachment::resolve_target`]"]
-    #[builder(into)]
-    resolve_target: Option<&'tex TextureView>,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::RenderPassColorAttachment::ops`]"]
-    #[builder(into, default)]
-    ops: Operations<Color>,
-) -> RenderPassColorAttachment<'tex> {
-    RenderPassColorAttachment {
-        view,
-        depth_slice,
-        resolve_target,
-        ops,
-    }
-}
-
-/*
-Unhandled Some("BindGroupLayoutDescriptor") Id(266)
-
-*/
-#[doc = "\n        Returns [`BindGroupLayoutDescriptorBuilder`] for building [`wgpu::BindGroupLayoutDescriptor`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
-# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn bind_group_layout_descriptor<'a>(
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::BindGroupLayoutDescriptor::label`]"]
-    #[builder(start_fn, into)]
-    label: Label<'a>,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::BindGroupLayoutDescriptor::entries`]"]
-    entries: &'a [BindGroupLayoutEntry],
-) -> BindGroupLayoutDescriptor<'a> {
-    BindGroupLayoutDescriptor { label, entries }
-}
-
-/*
-Default from: /Users/work/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wgpu-27.0.1/src/api/common_pipeline.rs:25
-impl Default for PipelineCompilationOptions<'_> {
-    fn default() -> Self {
-        Self {
-            constants: Default::default(),
-            zero_initialize_workgroup_memory: true,
-        }
-    }
-}
-
-*/
-#[doc = "\n        Returns [`PipelineCompilationOptionsBuilder`] for building [`wgpu::PipelineCompilationOptions`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
-# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn pipeline_compilation_options<'a>(
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::PipelineCompilationOptions::constants`]"]
-    #[builder(default)]
-    constants: &'a [(&'a str, f64)],
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::PipelineCompilationOptions::zero_initialize_workgroup_memory`]"]
-    #[builder(into, default = true)]
-    zero_initialize_workgroup_memory: bool,
-) -> PipelineCompilationOptions<'a> {
-    PipelineCompilationOptions {
-        constants,
-        zero_initialize_workgroup_memory,
-    }
-}
-
-/*
-Unhandled Some("MeshState") Id(2414)
-
-*/
-#[doc = "\n        Returns [`MeshStateBuilder`] for building [`wgpu::MeshState`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
-# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn mesh_state<'a>(
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::MeshState::module`]"]
-    #[builder(into)]
-    module: &'a ShaderModule,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::MeshState::entry_point`]"]
-    #[builder(into)]
-    entry_point: Option<&'a str>,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::MeshState::compilation_options`]"]
-    #[builder(into, default)]
-    compilation_options: PipelineCompilationOptions<'a>,
-) -> MeshState<'a> {
-    MeshState {
-        module,
-        entry_point,
-        compilation_options,
-    }
-}
-
-/*
-Unhandled Some("CreateTlasDescriptor") Id(5845)
-
-*/
-#[doc = "\n        Returns [`CreateTlasDescriptorBuilder`] for building [`wgpu::CreateTlasDescriptor`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
-# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn create_tlas_descriptor<'a>(
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::CreateTlasDescriptor::label`]"]
-    #[builder(start_fn, into)]
-    label: Label<'a>,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::CreateTlasDescriptor::max_instances`]"]
-    #[builder(into)]
-    max_instances: u32,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::CreateTlasDescriptor::flags`]"]
-    #[builder(into)]
-    flags: AccelerationStructureFlags,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::CreateTlasDescriptor::update_mode`]"]
-    #[builder(into)]
-    update_mode: AccelerationStructureUpdateMode,
-) -> CreateTlasDescriptor<'a> {
-    CreateTlasDescriptor {
-        label,
-        max_instances,
-        flags,
-        update_mode,
-    }
-}
-
-/*
-Unhandled Some("BufferDescriptor") Id(3932)
-
-*/
-#[doc = "\n        Returns [`BufferDescriptorBuilder`] for building [`wgpu::BufferDescriptor`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
-# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn buffer_descriptor<'a>(
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::BufferDescriptor::label`]"]
-    #[builder(start_fn, into)]
-    label: Label<'a>,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::BufferDescriptor::size`]"]
-    #[builder(into)]
-    size: BufferAddress,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::BufferDescriptor::usage`]"]
-    #[builder(into)]
-    usage: BufferUsages,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::BufferDescriptor::mapped_at_creation`]"]
-    #[builder(into)]
-    mapped_at_creation: bool,
-) -> BufferDescriptor<'a> {
-    BufferDescriptor {
-        label,
-        size,
-        usage,
-        mapped_at_creation,
-    }
-}
-
-/*
-Default from: /Users/work/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wgpu-types-27.0.1/src/lib.rs:6787
-impl<T> Default for RenderBundleDescriptor<Option<T>> {
-    fn default() -> Self {
-        Self { label: None }
-    }
-}
-
-*/
-#[doc = "\n        Returns [`RenderBundleDescriptorBuilder`] for building [`wgpu::RenderBundleDescriptor`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
-# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn render_bundle_descriptor<'a>(
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::RenderBundleDescriptor::label`]"]
-    #[builder(start_fn, into)]
-    label: Label<'a>,
-) -> RenderBundleDescriptor<'a> {
-    RenderBundleDescriptor { label }
-}
-
-/*
-Unhandled Some("QuerySetDescriptor") Id(1383)
-
-*/
-#[doc = "\n        Returns [`QuerySetDescriptorBuilder`] for building [`wgpu::QuerySetDescriptor`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
-# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn query_set_descriptor<'a>(
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::QuerySetDescriptor::label`]"]
-    #[builder(start_fn, into)]
-    label: Label<'a>,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::QuerySetDescriptor::ty`]"]
-    #[builder(into)]
-    ty: QueryType,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::QuerySetDescriptor::count`]"]
-    #[builder(into)]
-    count: u32,
-) -> QuerySetDescriptor<'a> {
-    QuerySetDescriptor { label, ty, count }
+    geometry: BlasGeometries<'a>,
+) -> BlasBuildEntry<'a> {
+    BlasBuildEntry { blas, geometry }
 }
 
 /*
 Unhandled Some("BlasTriangleGeometrySizeDescriptor") Id(329)
 
 */
-#[doc = "\n        Returns [`BlasTriangleGeometrySizeDescriptorBuilder`] for building [`wgpu::BlasTriangleGeometrySizeDescriptor`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
+
+#[doc = "\nReturns [`BlasTriangleGeometrySizeDescriptorBuilder`] for building [`wgpu::BlasTriangleGeometrySizeDescriptor`]\n\n|Field|Status|\n|-|-|\n|vertex_format|Required|\n|vertex_count|Required|\n|index_format|Defaults to `Option::None`|\n|index_count|Defaults to `Option::None`|\n|flags|Required|\n"]
 # [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
 pub fn blas_triangle_geometry_size_descriptor(
     #[rustfmt::skip]
@@ -2057,9 +2017,369 @@ pub fn blas_triangle_geometry_size_descriptor(
 }
 
 /*
+Unhandled Some("TextureDescriptor") Id(4659)
+
+*/
+
+#[doc = "\nReturns [`TextureDescriptorBuilder`] for building [`wgpu::TextureDescriptor`]\n\n|Field|Status|\n|-|-|\n|label|Required|\n|size|Defaults to `Extent3d::default()`|\n|mip_level_count|Required|\n|sample_count|Required|\n|dimension|Required|\n|format|Required|\n|usage|Required|\n|view_formats|Required|\n"]
+# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
+pub fn texture_descriptor<'a>(
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::TextureDescriptor::label`]"]
+    #[builder(start_fn, into)]
+    label: Label<'a>,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::TextureDescriptor::size`]"]
+    #[builder(into, default)]
+    size: Extent3d,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::TextureDescriptor::mip_level_count`]"]
+    #[builder(into)]
+    mip_level_count: u32,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::TextureDescriptor::sample_count`]"]
+    #[builder(into)]
+    sample_count: u32,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::TextureDescriptor::dimension`]"]
+    #[builder(into)]
+    dimension: TextureDimension,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::TextureDescriptor::format`]"]
+    #[builder(into)]
+    format: TextureFormat,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::TextureDescriptor::usage`]"]
+    #[builder(into)]
+    usage: TextureUsages,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::TextureDescriptor::view_formats`]"]
+    #[builder(into)]
+    view_formats: &'a [TextureFormat],
+) -> TextureDescriptor<'a> {
+    TextureDescriptor {
+        label,
+        size,
+        mip_level_count,
+        sample_count,
+        dimension,
+        format,
+        usage,
+        view_formats,
+    }
+}
+
+/*
+Unhandled Some("QuerySetDescriptor") Id(1383)
+
+*/
+
+#[doc = "\nReturns [`QuerySetDescriptorBuilder`] for building [`wgpu::QuerySetDescriptor`]\n\n|Field|Status|\n|-|-|\n|label|Required|\n|ty|Required|\n|count|Required|\n"]
+# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
+pub fn query_set_descriptor<'a>(
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::QuerySetDescriptor::label`]"]
+    #[builder(start_fn, into)]
+    label: Label<'a>,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::QuerySetDescriptor::ty`]"]
+    #[builder(into)]
+    ty: QueryType,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::QuerySetDescriptor::count`]"]
+    #[builder(into)]
+    count: u32,
+) -> QuerySetDescriptor<'a> {
+    QuerySetDescriptor { label, ty, count }
+}
+
+/*
+Unhandled Some("TexelCopyTextureInfo") Id(4844)
+
+*/
+
+#[doc = "\nReturns [`TexelCopyTextureInfoBuilder`] for building [`wgpu::TexelCopyTextureInfo`]\n\n|Field|Status|\n|-|-|\n|texture|Required|\n|mip_level|Required|\n|origin|Defaults to `Origin3d::default()`|\n|aspect|Defaults to `TextureAspect::default()`|\n"]
+# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
+pub fn texel_copy_texture_info<'a>(
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::TexelCopyTextureInfo::texture`]"]
+    #[builder(into)]
+    texture: &'a Texture,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::TexelCopyTextureInfo::mip_level`]"]
+    #[builder(into)]
+    mip_level: u32,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::TexelCopyTextureInfo::origin`]"]
+    #[builder(into, default)]
+    origin: Origin3d,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::TexelCopyTextureInfo::aspect`]"]
+    #[builder(into, default)]
+    aspect: TextureAspect,
+) -> TexelCopyTextureInfo<'a> {
+    TexelCopyTextureInfo {
+        texture,
+        mip_level,
+        origin,
+        aspect,
+    }
+}
+
+/*
+Unhandled Some("BufferDescriptor") Id(3932)
+
+*/
+
+#[doc = "\nReturns [`BufferDescriptorBuilder`] for building [`wgpu::BufferDescriptor`]\n\n|Field|Status|\n|-|-|\n|label|Required|\n|size|Required|\n|usage|Required|\n|mapped_at_creation|Required|\n"]
+# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
+pub fn buffer_descriptor<'a>(
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::BufferDescriptor::label`]"]
+    #[builder(start_fn, into)]
+    label: Label<'a>,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::BufferDescriptor::size`]"]
+    #[builder(into)]
+    size: BufferAddress,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::BufferDescriptor::usage`]"]
+    #[builder(into)]
+    usage: BufferUsages,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::BufferDescriptor::mapped_at_creation`]"]
+    #[builder(into)]
+    mapped_at_creation: bool,
+) -> BufferDescriptor<'a> {
+    BufferDescriptor {
+        label,
+        size,
+        usage,
+        mapped_at_creation,
+    }
+}
+
+/*
+Default from: /Users/work/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wgpu-types-27.0.1/src/lib.rs:8162
+impl<'a, L: Default> Default for CreateShaderModuleDescriptorPassthrough<'a, L> {
+    fn default() -> Self {
+        Self {
+            entry_point: "".into(),
+            label: Default::default(),
+            num_workgroups: (0, 0, 0),
+            runtime_checks: ShaderRuntimeChecks::unchecked(),
+            spirv: None,
+            dxil: None,
+            msl: None,
+            hlsl: None,
+            glsl: None,
+            wgsl: None,
+        }
+    }
+}
+
+*/
+
+#[doc = "\nReturns [`ShaderModuleDescriptorPassthroughBuilder`] for building [`wgpu::ShaderModuleDescriptorPassthrough`]\n\n|Field|Status|\n|-|-|\n|label|Required|\n|entry_point|Defaults to `Into::<String>::into(\"\")`|\n|num_workgroups|Defaults to `(0,0,0)`|\n|runtime_checks|Defaults to `ShaderRuntimeChecks::unchecked()`|\n|spirv|Defaults to `Option::None`|\n|dxil|Defaults to `Option::None`|\n|msl|Defaults to `Option::None`|\n|hlsl|Defaults to `Option::None`|\n|glsl|Defaults to `Option::None`|\n|wgsl|Defaults to `Option::None`|\n"]
+# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
+pub fn shader_module_descriptor_passthrough<'a>(
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::ShaderModuleDescriptorPassthrough::label`]"]
+    #[builder(start_fn, into)]
+    label: Label<'a>,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::ShaderModuleDescriptorPassthrough::entry_point`]"]
+    # [builder (into , default = Into :: < String > :: into (""))]
+    entry_point: String,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::ShaderModuleDescriptorPassthrough::num_workgroups`]"]
+    # [builder (into , default = (0 , 0 , 0))]
+    num_workgroups: (u32, u32, u32),
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::ShaderModuleDescriptorPassthrough::runtime_checks`]"]
+    # [builder (into , default = ShaderRuntimeChecks :: unchecked ())]
+    runtime_checks: ShaderRuntimeChecks,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::ShaderModuleDescriptorPassthrough::spirv`]"]
+    #[builder(into)]
+    spirv: Option<Cow<'a, [u32]>>,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::ShaderModuleDescriptorPassthrough::dxil`]"]
+    #[builder(into)]
+    dxil: Option<Cow<'a, [u8]>>,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::ShaderModuleDescriptorPassthrough::msl`]"]
+    #[builder(into)]
+    msl: Option<Cow<'a, str>>,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::ShaderModuleDescriptorPassthrough::hlsl`]"]
+    #[builder(into)]
+    hlsl: Option<Cow<'a, str>>,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::ShaderModuleDescriptorPassthrough::glsl`]"]
+    #[builder(into)]
+    glsl: Option<Cow<'a, str>>,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::ShaderModuleDescriptorPassthrough::wgsl`]"]
+    #[builder(into)]
+    wgsl: Option<Cow<'a, str>>,
+) -> ShaderModuleDescriptorPassthrough<'a> {
+    ShaderModuleDescriptorPassthrough {
+        entry_point,
+        label,
+        num_workgroups,
+        runtime_checks,
+        spirv,
+        dxil,
+        msl,
+        hlsl,
+        glsl,
+        wgsl,
+    }
+}
+
+/*
+Default from: /Users/work/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wgpu-types-27.0.1/src/lib.rs:5449
+impl<T> Default for CommandEncoderDescriptor<Option<T>> {
+    fn default() -> Self {
+        Self { label: None }
+    }
+}
+
+*/
+
+#[doc = "\nReturns [`CommandEncoderDescriptorBuilder`] for building [`wgpu::CommandEncoderDescriptor`]\n\n|Field|Status|\n|-|-|\n|label|Required|\n"]
+# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
+pub fn command_encoder_descriptor<'a>(
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::CommandEncoderDescriptor::label`]"]
+    #[builder(start_fn, into)]
+    label: Label<'a>,
+) -> CommandEncoderDescriptor<'a> {
+    CommandEncoderDescriptor { label }
+}
+
+/*
+Unhandled Some("CreateTlasDescriptor") Id(5845)
+
+*/
+
+#[doc = "\nReturns [`CreateTlasDescriptorBuilder`] for building [`wgpu::CreateTlasDescriptor`]\n\n|Field|Status|\n|-|-|\n|label|Required|\n|max_instances|Required|\n|flags|Required|\n|update_mode|Required|\n"]
+# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
+pub fn create_tlas_descriptor<'a>(
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::CreateTlasDescriptor::label`]"]
+    #[builder(start_fn, into)]
+    label: Label<'a>,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::CreateTlasDescriptor::max_instances`]"]
+    #[builder(into)]
+    max_instances: u32,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::CreateTlasDescriptor::flags`]"]
+    #[builder(into)]
+    flags: AccelerationStructureFlags,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::CreateTlasDescriptor::update_mode`]"]
+    #[builder(into)]
+    update_mode: AccelerationStructureUpdateMode,
+) -> CreateTlasDescriptor<'a> {
+    CreateTlasDescriptor {
+        label,
+        max_instances,
+        flags,
+        update_mode,
+    }
+}
+
+/*
+Unhandled Some("TexelCopyBufferInfo") Id(5278)
+
+*/
+
+#[doc = "\nReturns [`TexelCopyBufferInfoBuilder`] for building [`wgpu::TexelCopyBufferInfo`]\n\n|Field|Status|\n|-|-|\n|buffer|Required|\n|layout|Defaults to `TexelCopyBufferLayout::default()`|\n"]
+# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
+pub fn texel_copy_buffer_info<'a>(
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::TexelCopyBufferInfo::buffer`]"]
+    #[builder(into)]
+    buffer: &'a Buffer,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::TexelCopyBufferInfo::layout`]"]
+    #[builder(into, default)]
+    layout: TexelCopyBufferLayout,
+) -> TexelCopyBufferInfo<'a> {
+    TexelCopyBufferInfo { buffer, layout }
+}
+
+/*
+Unhandled Some("ExternalTextureDescriptor") Id(4773)
+
+*/
+
+#[doc = "\nReturns [`ExternalTextureDescriptorBuilder`] for building [`wgpu::ExternalTextureDescriptor`]\n\n|Field|Status|\n|-|-|\n|label|Required|\n|width|Required|\n|height|Required|\n|format|Required|\n|yuv_conversion_matrix|Required|\n|gamut_conversion_matrix|Required|\n|src_transfer_function|Defaults to `ExternalTextureTransferFunction::default()`|\n|dst_transfer_function|Defaults to `ExternalTextureTransferFunction::default()`|\n|sample_transform|Required|\n|load_transform|Required|\n"]
+# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
+pub fn external_texture_descriptor<'a>(
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::ExternalTextureDescriptor::label`]"]
+    #[builder(start_fn, into)]
+    label: Label<'a>,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::ExternalTextureDescriptor::width`]"]
+    #[builder(into)]
+    width: u32,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::ExternalTextureDescriptor::height`]"]
+    #[builder(into)]
+    height: u32,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::ExternalTextureDescriptor::format`]"]
+    #[builder(into)]
+    format: ExternalTextureFormat,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::ExternalTextureDescriptor::yuv_conversion_matrix`]"]
+    #[builder(into)]
+    yuv_conversion_matrix: [f32; 16usize],
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::ExternalTextureDescriptor::gamut_conversion_matrix`]"]
+    #[builder(into)]
+    gamut_conversion_matrix: [f32; 9usize],
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::ExternalTextureDescriptor::src_transfer_function`]"]
+    #[builder(into, default)]
+    src_transfer_function: ExternalTextureTransferFunction,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::ExternalTextureDescriptor::dst_transfer_function`]"]
+    #[builder(into, default)]
+    dst_transfer_function: ExternalTextureTransferFunction,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::ExternalTextureDescriptor::sample_transform`]"]
+    #[builder(into)]
+    sample_transform: [f32; 6usize],
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::ExternalTextureDescriptor::load_transform`]"]
+    #[builder(into)]
+    load_transform: [f32; 6usize],
+) -> ExternalTextureDescriptor<'a> {
+    ExternalTextureDescriptor {
+        label,
+        width,
+        height,
+        format,
+        yuv_conversion_matrix,
+        gamut_conversion_matrix,
+        src_transfer_function,
+        dst_transfer_function,
+        sample_transform,
+        load_transform,
+    }
+}
+
+/*
 Derived default
 */
-#[doc = "\n        Returns [`DeviceDescriptorBuilder`] for building [`wgpu::DeviceDescriptor`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
+
+#[doc = "\nReturns [`DeviceDescriptorBuilder`] for building [`wgpu::DeviceDescriptor`]\n\n|Field|Status|\n|-|-|\n|label|Required|\n|required_features|Defaults to `Features::default()`|\n|required_limits|Defaults to `Limits::default()`|\n|experimental_features|Defaults to `ExperimentalFeatures::default()`|\n|memory_hints|Defaults to `MemoryHints::default()`|\n|trace|Defaults to `Trace::default()`|\n"]
 # [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
 pub fn device_descriptor<'a>(
     #[rustfmt::skip]
@@ -2098,120 +2418,39 @@ pub fn device_descriptor<'a>(
 }
 
 /*
-Unhandled Some("SurfaceConfiguration") Id(3998)
-
-*/
-#[doc = "\n        Returns [`SurfaceConfigurationBuilder`] for building [`wgpu::SurfaceConfiguration`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
-# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn surface_configuration(
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::SurfaceConfiguration::usage`]"]
-    #[builder(into)]
-    usage: TextureUsages,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::SurfaceConfiguration::format`]"]
-    #[builder(into)]
-    format: TextureFormat,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::SurfaceConfiguration::width`]"]
-    #[builder(into)]
-    width: u32,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::SurfaceConfiguration::height`]"]
-    #[builder(into)]
-    height: u32,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::SurfaceConfiguration::present_mode`]"]
-    #[builder(into, default)]
-    present_mode: PresentMode,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::SurfaceConfiguration::desired_maximum_frame_latency`]"]
-    #[builder(into)]
-    desired_maximum_frame_latency: u32,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::SurfaceConfiguration::alpha_mode`]"]
-    #[builder(into, default)]
-    alpha_mode: CompositeAlphaMode,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::SurfaceConfiguration::view_formats`]"]
-    #[builder(into)]
-    view_formats: Vec<TextureFormat>,
-) -> SurfaceConfiguration {
-    SurfaceConfiguration {
-        usage,
-        format,
-        width,
-        height,
-        present_mode,
-        desired_maximum_frame_latency,
-        alpha_mode,
-        view_formats,
-    }
-}
-
-/*
-Unhandled Some("TexelCopyBufferInfo") Id(5278)
-
-*/
-#[doc = "\n        Returns [`TexelCopyBufferInfoBuilder`] for building [`wgpu::TexelCopyBufferInfo`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
-# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn texel_copy_buffer_info<'a>(
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::TexelCopyBufferInfo::buffer`]"]
-    #[builder(into)]
-    buffer: &'a Buffer,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::TexelCopyBufferInfo::layout`]"]
-    #[builder(into, default)]
-    layout: TexelCopyBufferLayout,
-) -> TexelCopyBufferInfo<'a> {
-    TexelCopyBufferInfo { buffer, layout }
-}
-
-/*
-Default from: /Users/work/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wgpu-types-27.0.1/src/lib.rs:5449
-impl<T> Default for CommandEncoderDescriptor<Option<T>> {
+Default from: /Users/work/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wgpu-types-27.0.1/src/lib.rs:374
+impl<S> Default for RequestAdapterOptions<S> {
     fn default() -> Self {
-        Self { label: None }
+        Self {
+            power_preference: PowerPreference::default(),
+            force_fallback_adapter: false,
+            compatible_surface: None,
+        }
     }
 }
 
 */
-#[doc = "\n        Returns [`CommandEncoderDescriptorBuilder`] for building [`wgpu::CommandEncoderDescriptor`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
-# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn command_encoder_descriptor<'a>(
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::CommandEncoderDescriptor::label`]"]
-    #[builder(start_fn, into)]
-    label: Label<'a>,
-) -> CommandEncoderDescriptor<'a> {
-    CommandEncoderDescriptor { label }
-}
 
-/*
-Unhandled Some("CreateBlasDescriptor") Id(5813)
-
-*/
-#[doc = "\n        Returns [`CreateBlasDescriptorBuilder`] for building [`wgpu::CreateBlasDescriptor`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
+#[doc = "\nReturns [`RequestAdapterOptionsBuilder`] for building [`wgpu::RequestAdapterOptions`]\n\n|Field|Status|\n|-|-|\n|power_preference|Defaults to `PowerPreference::default()`|\n|force_fallback_adapter|Defaults to `false`|\n|compatible_surface|Defaults to `Option::None`|\n"]
 # [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn create_blas_descriptor<'a>(
+pub fn request_adapter_options<'a, 'b>(
     #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::CreateBlasDescriptor::label`]"]
-    #[builder(start_fn, into)]
-    label: Label<'a>,
+    #[doc = "Sets [`wgpu::RequestAdapterOptions::power_preference`]"]
+    # [builder (into , default = PowerPreference :: default ())]
+    power_preference: PowerPreference,
     #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::CreateBlasDescriptor::flags`]"]
+    #[doc = "Sets [`wgpu::RequestAdapterOptions::force_fallback_adapter`]"]
+    #[builder(into, default = false)]
+    force_fallback_adapter: bool,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::RequestAdapterOptions::compatible_surface`]"]
     #[builder(into)]
-    flags: AccelerationStructureFlags,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::CreateBlasDescriptor::update_mode`]"]
-    #[builder(into)]
-    update_mode: AccelerationStructureUpdateMode,
-) -> CreateBlasDescriptor<'a> {
-    CreateBlasDescriptor {
-        label,
-        flags,
-        update_mode,
+    compatible_surface: Option<&'a Surface<'b>>,
+) -> RequestAdapterOptions<'a, 'b> {
+    RequestAdapterOptions {
+        power_preference,
+        force_fallback_adapter,
+        compatible_surface,
     }
 }
 
@@ -2237,7 +2476,8 @@ impl<L: Default> Default for SamplerDescriptor<L> {
 }
 
 */
-#[doc = "\n        Returns [`SamplerDescriptorBuilder`] for building [`wgpu::SamplerDescriptor`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
+
+#[doc = "\nReturns [`SamplerDescriptorBuilder`] for building [`wgpu::SamplerDescriptor`]\n\n|Field|Status|\n|-|-|\n|label|Required|\n|address_mode_u|Defaults to `AddressMode::default()`|\n|address_mode_v|Defaults to `AddressMode::default()`|\n|address_mode_w|Defaults to `AddressMode::default()`|\n|mag_filter|Defaults to `FilterMode::default()`|\n|min_filter|Defaults to `FilterMode::default()`|\n|mipmap_filter|Defaults to `FilterMode::default()`|\n|lod_min_clamp|Defaults to `0.0`|\n|lod_max_clamp|Defaults to `32.0`|\n|compare|Defaults to `Option::None`|\n|anisotropy_clamp|Defaults to `1u16`|\n|border_color|Defaults to `Option::None`|\n"]
 # [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
 pub fn sampler_descriptor<'a>(
     #[rustfmt::skip]
@@ -2308,7 +2548,8 @@ pub fn sampler_descriptor<'a>(
 /*
 Derived default
 */
-#[doc = "\n        Returns [`TextureViewDescriptorBuilder`] for building [`wgpu::TextureViewDescriptor`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
+
+#[doc = "\nReturns [`TextureViewDescriptorBuilder`] for building [`wgpu::TextureViewDescriptor`]\n\n|Field|Status|\n|-|-|\n|label|Required|\n|format|Defaults to `Option::None`|\n|dimension|Defaults to `Option::None`|\n|usage|Defaults to `Option::None`|\n|aspect|Defaults to `TextureAspect::default()`|\n|base_mip_level|Defaults to `u32::default()`|\n|mip_level_count|Defaults to `Option::None`|\n|base_array_layer|Defaults to `u32::default()`|\n|array_layer_count|Defaults to `Option::None`|\n"]
 # [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
 pub fn texture_view_descriptor<'a>(
     #[rustfmt::skip]
@@ -2362,261 +2603,166 @@ pub fn texture_view_descriptor<'a>(
 }
 
 /*
-Default from: /Users/work/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wgpu-types-27.0.1/src/lib.rs:374
-impl<S> Default for RequestAdapterOptions<S> {
+Default from: /Users/work/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wgpu-types-27.0.1/src/lib.rs:6787
+impl<T> Default for RenderBundleDescriptor<Option<T>> {
     fn default() -> Self {
-        Self {
-            power_preference: PowerPreference::default(),
-            force_fallback_adapter: false,
-            compatible_surface: None,
-        }
+        Self { label: None }
     }
 }
 
 */
-#[doc = "\n        Returns [`RequestAdapterOptionsBuilder`] for building [`wgpu::RequestAdapterOptions`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
+
+#[doc = "\nReturns [`RenderBundleDescriptorBuilder`] for building [`wgpu::RenderBundleDescriptor`]\n\n|Field|Status|\n|-|-|\n|label|Required|\n"]
 # [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn request_adapter_options<'a, 'b>(
+pub fn render_bundle_descriptor<'a>(
     #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::RequestAdapterOptions::power_preference`]"]
-    # [builder (into , default = PowerPreference :: default ())]
-    power_preference: PowerPreference,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::RequestAdapterOptions::force_fallback_adapter`]"]
-    #[builder(into, default = false)]
-    force_fallback_adapter: bool,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::RequestAdapterOptions::compatible_surface`]"]
-    #[builder(into)]
-    compatible_surface: Option<&'a Surface<'b>>,
-) -> RequestAdapterOptions<'a, 'b> {
-    RequestAdapterOptions {
-        power_preference,
-        force_fallback_adapter,
-        compatible_surface,
-    }
+    #[doc = "Sets [`wgpu::RenderBundleDescriptor::label`]"]
+    #[builder(start_fn, into)]
+    label: Label<'a>,
+) -> RenderBundleDescriptor<'a> {
+    RenderBundleDescriptor { label }
 }
 
 /*
-Unhandled Some("ExternalTextureDescriptor") Id(4773)
+Unhandled Some("CreateBlasDescriptor") Id(5813)
 
 */
-#[doc = "\n        Returns [`ExternalTextureDescriptorBuilder`] for building [`wgpu::ExternalTextureDescriptor`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
+
+#[doc = "\nReturns [`CreateBlasDescriptorBuilder`] for building [`wgpu::CreateBlasDescriptor`]\n\n|Field|Status|\n|-|-|\n|label|Required|\n|flags|Required|\n|update_mode|Required|\n"]
 # [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn external_texture_descriptor<'a>(
+pub fn create_blas_descriptor<'a>(
     #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::ExternalTextureDescriptor::label`]"]
+    #[doc = "Sets [`wgpu::CreateBlasDescriptor::label`]"]
     #[builder(start_fn, into)]
     label: Label<'a>,
     #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::ExternalTextureDescriptor::width`]"]
+    #[doc = "Sets [`wgpu::CreateBlasDescriptor::flags`]"]
     #[builder(into)]
-    width: u32,
+    flags: AccelerationStructureFlags,
     #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::ExternalTextureDescriptor::height`]"]
+    #[doc = "Sets [`wgpu::CreateBlasDescriptor::update_mode`]"]
     #[builder(into)]
-    height: u32,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::ExternalTextureDescriptor::format`]"]
-    #[builder(into)]
-    format: ExternalTextureFormat,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::ExternalTextureDescriptor::yuv_conversion_matrix`]"]
-    #[builder(into)]
-    yuv_conversion_matrix: [f32; 16usize],
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::ExternalTextureDescriptor::gamut_conversion_matrix`]"]
-    #[builder(into)]
-    gamut_conversion_matrix: [f32; 9usize],
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::ExternalTextureDescriptor::src_transfer_function`]"]
-    #[builder(into, default)]
-    src_transfer_function: ExternalTextureTransferFunction,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::ExternalTextureDescriptor::dst_transfer_function`]"]
-    #[builder(into, default)]
-    dst_transfer_function: ExternalTextureTransferFunction,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::ExternalTextureDescriptor::sample_transform`]"]
-    #[builder(into)]
-    sample_transform: [f32; 6usize],
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::ExternalTextureDescriptor::load_transform`]"]
-    #[builder(into)]
-    load_transform: [f32; 6usize],
-) -> ExternalTextureDescriptor<'a> {
-    ExternalTextureDescriptor {
+    update_mode: AccelerationStructureUpdateMode,
+) -> CreateBlasDescriptor<'a> {
+    CreateBlasDescriptor {
         label,
-        width,
-        height,
-        format,
-        yuv_conversion_matrix,
-        gamut_conversion_matrix,
-        src_transfer_function,
-        dst_transfer_function,
-        sample_transform,
-        load_transform,
+        flags,
+        update_mode,
     }
 }
 
 /*
-Unhandled Some("TexelCopyTextureInfo") Id(4844)
+Unhandled Some("SurfaceConfiguration") Id(3998)
 
 */
-#[doc = "\n        Returns [`TexelCopyTextureInfoBuilder`] for building [`wgpu::TexelCopyTextureInfo`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
+
+#[doc = "\nReturns [`SurfaceConfigurationBuilder`] for building [`wgpu::SurfaceConfiguration`]\n\n|Field|Status|\n|-|-|\n|usage|Required|\n|format|Required|\n|width|Required|\n|height|Required|\n|present_mode|Defaults to `PresentMode::default()`|\n|desired_maximum_frame_latency|Required|\n|alpha_mode|Defaults to `CompositeAlphaMode::default()`|\n|view_formats|Required|\n"]
 # [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn texel_copy_texture_info<'a>(
+pub fn surface_configuration(
     #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::TexelCopyTextureInfo::texture`]"]
-    #[builder(into)]
-    texture: &'a Texture,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::TexelCopyTextureInfo::mip_level`]"]
-    #[builder(into)]
-    mip_level: u32,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::TexelCopyTextureInfo::origin`]"]
-    #[builder(into, default)]
-    origin: Origin3d,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::TexelCopyTextureInfo::aspect`]"]
-    #[builder(into, default)]
-    aspect: TextureAspect,
-) -> TexelCopyTextureInfo<'a> {
-    TexelCopyTextureInfo {
-        texture,
-        mip_level,
-        origin,
-        aspect,
-    }
-}
-
-/*
-Default from: /Users/work/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wgpu-types-27.0.1/src/lib.rs:8162
-impl<'a, L: Default> Default for CreateShaderModuleDescriptorPassthrough<'a, L> {
-    fn default() -> Self {
-        Self {
-            entry_point: "".into(),
-            label: Default::default(),
-            num_workgroups: (0, 0, 0),
-            runtime_checks: ShaderRuntimeChecks::unchecked(),
-            spirv: None,
-            dxil: None,
-            msl: None,
-            hlsl: None,
-            glsl: None,
-            wgsl: None,
-        }
-    }
-}
-
-*/
-#[doc = "\n        Returns [`ShaderModuleDescriptorPassthroughBuilder`] for building [`wgpu::CreateShaderModuleDescriptorPassthrough`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
-# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn shader_module_descriptor_passthrough<'a>(
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::CreateShaderModuleDescriptorPassthrough::label`]"]
-    #[builder(start_fn, into)]
-    label: Label<'a>,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::CreateShaderModuleDescriptorPassthrough::entry_point`]"]
-    # [builder (into , default = Into :: < String > :: into (""))]
-    entry_point: String,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::CreateShaderModuleDescriptorPassthrough::num_workgroups`]"]
-    # [builder (into , default = (0 , 0 , 0))]
-    num_workgroups: (u32, u32, u32),
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::CreateShaderModuleDescriptorPassthrough::runtime_checks`]"]
-    # [builder (into , default = ShaderRuntimeChecks :: unchecked ())]
-    runtime_checks: ShaderRuntimeChecks,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::CreateShaderModuleDescriptorPassthrough::spirv`]"]
-    #[builder(into)]
-    spirv: Option<Cow<'a, [u32]>>,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::CreateShaderModuleDescriptorPassthrough::dxil`]"]
-    #[builder(into)]
-    dxil: Option<Cow<'a, [u8]>>,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::CreateShaderModuleDescriptorPassthrough::msl`]"]
-    #[builder(into)]
-    msl: Option<Cow<'a, str>>,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::CreateShaderModuleDescriptorPassthrough::hlsl`]"]
-    #[builder(into)]
-    hlsl: Option<Cow<'a, str>>,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::CreateShaderModuleDescriptorPassthrough::glsl`]"]
-    #[builder(into)]
-    glsl: Option<Cow<'a, str>>,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::CreateShaderModuleDescriptorPassthrough::wgsl`]"]
-    #[builder(into)]
-    wgsl: Option<Cow<'a, str>>,
-) -> ShaderModuleDescriptorPassthrough<'a> {
-    ShaderModuleDescriptorPassthrough {
-        entry_point,
-        label,
-        num_workgroups,
-        runtime_checks,
-        spirv,
-        dxil,
-        msl,
-        hlsl,
-        glsl,
-        wgsl,
-    }
-}
-
-/*
-Unhandled Some("TextureDescriptor") Id(4659)
-
-*/
-#[doc = "\n        Returns [`TextureDescriptorBuilder`] for building [`wgpu::TextureDescriptor`]\n\n        |Setter|Status|\n        |-|-|\n        |width|Required|\n        |height|Required|\n        |fill|Optional - default 0u32|\n    "]
-# [bon :: builder (state_mod (vis = "pub(crate)") , finish_fn = build , derive (Into))]
-pub fn texture_descriptor<'a>(
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::TextureDescriptor::label`]"]
-    #[builder(start_fn, into)]
-    label: Label<'a>,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::TextureDescriptor::size`]"]
-    #[builder(into, default)]
-    size: Extent3d,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::TextureDescriptor::mip_level_count`]"]
-    #[builder(into)]
-    mip_level_count: u32,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::TextureDescriptor::sample_count`]"]
-    #[builder(into)]
-    sample_count: u32,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::TextureDescriptor::dimension`]"]
-    #[builder(into)]
-    dimension: TextureDimension,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::TextureDescriptor::format`]"]
-    #[builder(into)]
-    format: TextureFormat,
-    #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::TextureDescriptor::usage`]"]
+    #[doc = "Sets [`wgpu::SurfaceConfiguration::usage`]"]
     #[builder(into)]
     usage: TextureUsages,
     #[rustfmt::skip]
-    #[doc = "Sets [`wgpu::TextureDescriptor::view_formats`]"]
+    #[doc = "Sets [`wgpu::SurfaceConfiguration::format`]"]
     #[builder(into)]
-    view_formats: &'a [TextureFormat],
-) -> TextureDescriptor<'a> {
-    TextureDescriptor {
-        label,
-        size,
-        mip_level_count,
-        sample_count,
-        dimension,
-        format,
+    format: TextureFormat,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::SurfaceConfiguration::width`]"]
+    #[builder(into)]
+    width: u32,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::SurfaceConfiguration::height`]"]
+    #[builder(into)]
+    height: u32,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::SurfaceConfiguration::present_mode`]"]
+    #[builder(into, default)]
+    present_mode: PresentMode,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::SurfaceConfiguration::desired_maximum_frame_latency`]"]
+    #[builder(into)]
+    desired_maximum_frame_latency: u32,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::SurfaceConfiguration::alpha_mode`]"]
+    #[builder(into, default)]
+    alpha_mode: CompositeAlphaMode,
+    #[rustfmt::skip]
+    #[doc = "Sets [`wgpu::SurfaceConfiguration::view_formats`]"]
+    #[builder(into)]
+    view_formats: Vec<TextureFormat>,
+) -> SurfaceConfiguration {
+    SurfaceConfiguration {
         usage,
+        format,
+        width,
+        height,
+        present_mode,
+        desired_maximum_frame_latency,
+        alpha_mode,
         view_formats,
     }
+}
+
+pub mod initializers {
+    pub use super::{
+        backend_options, bind_group_descriptor, bind_group_entry, bind_group_layout_descriptor,
+        bind_group_layout_entry, blas_build_entry, blas_triangle_geometry,
+        blas_triangle_geometry_size_descriptor, blend_component, blend_state, buffer_binding,
+        buffer_descriptor, buffer_init_descriptor, buffer_transition, color, color_target_state,
+        command_buffer_descriptor, command_encoder_descriptor, compilation_info,
+        compute_pass_descriptor, compute_pass_timestamp_writes, compute_pipeline_descriptor,
+        copy_external_image_dest_info, core_counters, create_blas_descriptor,
+        create_tlas_descriptor, depth_bias_state, depth_stencil_state, device_descriptor,
+        dispatch_indirect_args, downlevel_limits, draw_indexed_indirect_args, draw_indirect_args,
+        dx_12_backend_options, extent3d, external_texture_descriptor,
+        external_texture_transfer_function, fragment_state, gl_backend_options,
+        image_subresource_range, instance_descriptor, memory_budget_thresholds,
+        mesh_pipeline_descriptor, mesh_state, multisample_state, noop_backend_options, operations,
+        origin2d, origin3d, pipeline_cache_descriptor, pipeline_compilation_options,
+        pipeline_layout_descriptor, primitive_state, push_constant_range, query_set_descriptor,
+        render_bundle_depth_stencil, render_bundle_descriptor, render_bundle_encoder_descriptor,
+        render_pass_color_attachment, render_pass_depth_stencil_attachment, render_pass_descriptor,
+        render_pass_timestamp_writes, render_pipeline_descriptor, request_adapter_options,
+        request_adapter_options_base, sampler_descriptor, shader_module_descriptor,
+        shader_module_descriptor_passthrough, shader_runtime_checks, stencil_face_state,
+        stencil_state, surface_configuration, task_state, texel_copy_buffer_info,
+        texel_copy_buffer_info_base, texel_copy_buffer_layout, texel_copy_texture_info,
+        texel_copy_texture_info_base, texture_descriptor, texture_transition,
+        texture_view_descriptor, vertex_attribute, vertex_buffer_layout, vertex_state,
+    };
+}
+pub mod builders {
+    pub use super::{
+        BackendOptionsBuilder, BindGroupDescriptorBuilder, BindGroupEntryBuilder,
+        BindGroupLayoutDescriptorBuilder, BindGroupLayoutEntryBuilder, BlasBuildEntryBuilder,
+        BlasTriangleGeometryBuilder, BlasTriangleGeometrySizeDescriptorBuilder,
+        BlendComponentBuilder, BlendStateBuilder, BufferBindingBuilder, BufferDescriptorBuilder,
+        BufferInitDescriptorBuilder, BufferTransitionBuilder, ColorBuilder,
+        ColorTargetStateBuilder, CommandBufferDescriptorBuilder, CommandEncoderDescriptorBuilder,
+        CompilationInfoBuilder, ComputePassDescriptorBuilder, ComputePassTimestampWritesBuilder,
+        ComputePipelineDescriptorBuilder, CopyExternalImageDestInfoBuilder, CoreCountersBuilder,
+        CreateBlasDescriptorBuilder, CreateTlasDescriptorBuilder, DepthBiasStateBuilder,
+        DepthStencilStateBuilder, DeviceDescriptorBuilder, DispatchIndirectArgsBuilder,
+        DownlevelLimitsBuilder, DrawIndexedIndirectArgsBuilder, DrawIndirectArgsBuilder,
+        Dx12BackendOptionsBuilder, Extent3dBuilder, ExternalTextureDescriptorBuilder,
+        ExternalTextureTransferFunctionBuilder, FragmentStateBuilder, GlBackendOptionsBuilder,
+        ImageSubresourceRangeBuilder, InstanceDescriptorBuilder, MemoryBudgetThresholdsBuilder,
+        MeshPipelineDescriptorBuilder, MeshStateBuilder, MultisampleStateBuilder,
+        NoopBackendOptionsBuilder, OperationsBuilder, Origin2dBuilder, Origin3dBuilder,
+        PipelineCacheDescriptorBuilder, PipelineCompilationOptionsBuilder,
+        PipelineLayoutDescriptorBuilder, PrimitiveStateBuilder, PushConstantRangeBuilder,
+        QuerySetDescriptorBuilder, RenderBundleDepthStencilBuilder, RenderBundleDescriptorBuilder,
+        RenderBundleEncoderDescriptorBuilder, RenderPassColorAttachmentBuilder,
+        RenderPassDepthStencilAttachmentBuilder, RenderPassDescriptorBuilder,
+        RenderPassTimestampWritesBuilder, RenderPipelineDescriptorBuilder,
+        RequestAdapterOptionsBaseBuilder, RequestAdapterOptionsBuilder, SamplerDescriptorBuilder,
+        ShaderModuleDescriptorBuilder, ShaderModuleDescriptorPassthroughBuilder,
+        ShaderRuntimeChecksBuilder, StencilFaceStateBuilder, StencilStateBuilder,
+        SurfaceConfigurationBuilder, TaskStateBuilder, TexelCopyBufferInfoBaseBuilder,
+        TexelCopyBufferInfoBuilder, TexelCopyBufferLayoutBuilder, TexelCopyTextureInfoBaseBuilder,
+        TexelCopyTextureInfoBuilder, TextureDescriptorBuilder, TextureTransitionBuilder,
+        TextureViewDescriptorBuilder, VertexAttributeBuilder, VertexBufferLayoutBuilder,
+        VertexStateBuilder,
+    };
 }

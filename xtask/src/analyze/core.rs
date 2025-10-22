@@ -96,14 +96,15 @@ impl StructAnalysis {
             return StructAnalysis::WrongPath(item.span.clone());
         };
 
-        let filename = span.filename.clone().into_os_string();
-        let Some(filename) = filename.to_str() else {
+        let Ok(filename) = span.filename.clone().into_os_string().into_string() else {
             return StructAnalysis::WrongPath(item.span.clone());
         };
 
-        let is_api = API_REGEX.is_match(filename);
-        let is_util = UTIL_REGEX.is_match(filename);
-        let is_types = TYPES_REGEX.is_match(filename);
+        let filename = type_alias_map.map_filename(&filename);
+
+        let is_api = API_REGEX.is_match(&filename);
+        let is_util = UTIL_REGEX.is_match(&filename);
+        let is_types = TYPES_REGEX.is_match(&filename);
 
         if !(is_api || is_util || is_types) {
             return StructAnalysis::WrongPath(item.span.clone());
