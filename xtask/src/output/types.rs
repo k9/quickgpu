@@ -1,15 +1,16 @@
 use proc_macro2::TokenStream;
 use quote::{ToTokens, quote as q};
 use rustdoc_types::{GenericArg, GenericArgs, GenericParamDef, GenericParamDefKind, Type};
-use syn::{Expr, Lifetime, parse_str};
+use syn::{Expr, Ident, Lifetime, parse_str};
 
 use crate::{
+    AResult,
     analyze::core::StructParts,
     type_alias_helpers::TypeAliasMap,
     utils::{final_path, ident},
 };
 
-pub fn generic_params(struct_item: &StructParts) -> anyhow::Result<TokenStream> {
+pub fn generic_params(struct_item: &StructParts, extra_types: &[Ident]) -> AResult<TokenStream> {
     let mut struct_generics = vec![];
 
     let generics = struct_item
@@ -35,6 +36,10 @@ pub fn generic_params(struct_item: &StructParts) -> anyhow::Result<TokenStream> 
         struct_generics.push(q!(#(#tokens)*));
     }
 
+    for extra_type in extra_types {
+        struct_generics.push(extra_type.to_token_stream());
+    }
+
     let struct_generics = if struct_generics.is_empty() {
         q!()
     } else {
@@ -47,7 +52,7 @@ pub fn generic_params(struct_item: &StructParts) -> anyhow::Result<TokenStream> 
 pub fn generic_args(
     args: Option<Box<GenericArgs>>,
     type_alias_map: &TypeAliasMap,
-) -> anyhow::Result<TokenStream> {
+) -> AResult<TokenStream> {
     let mut struct_generics = vec![];
 
     if let Some(args) = args
@@ -83,10 +88,7 @@ pub fn generic_args(
     Ok(struct_generics)
 }
 
-pub fn type_tokens(
-    field_type: &Type,
-    type_alias_map: &TypeAliasMap,
-) -> anyhow::Result<TokenStream> {
+pub fn type_tokens(field_type: &Type, type_alias_map: &TypeAliasMap) -> AResult<TokenStream> {
     match field_type {
         Type::ResolvedPath(path) => {
             let args = generic_args(path.args.clone(), type_alias_map)?;

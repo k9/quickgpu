@@ -1,12 +1,17 @@
 use anyhow::Context;
+use quote::quote as q;
 use rustdoc_types::{ItemEnum, Type};
 
 use crate::{
+    AResult,
     analyze::core::{StructAnalysis, report},
     data::{self, DataItem},
-    output::core::{UseInstance, output_struct},
+    output::{
+        core::{UseInstance, output_struct},
+        types::generic_params,
+    },
     type_alias_helpers::{TypeAliasMap, get_type_alias_map},
-    utils::{final_path, parse_docs, relative_path, rustfmt},
+    utils::{final_path, ident, parse_docs, relative_path, rustfmt},
 };
 
 const SKIP: &[&str] = &[
@@ -25,10 +30,15 @@ const SKIP: &[&str] = &[
     "TextureFormatFeatures",
 ];
 
-pub fn generate() -> anyhow::Result<()> {
+pub enum BuilderOutput {
+    Code(String),
+    Comment(String),
+}
+
+pub fn generate() -> AResult<()> {
     let doc_path = rustdoc_json::Builder::default()
         .toolchain("nightly")
-        .manifest_path(relative_path("doc_target/Cargo.toml"))
+        .manifest_path(relative_path("wgpu/wgpu/Cargo.toml"))
         .build()?;
 
     let doc_dir = doc_path.parent().context("Couldn't get doc dir")?;
@@ -99,7 +109,7 @@ pub fn generate() -> anyhow::Result<()> {
             });
 
             if let Some(target) = target {
-                let map = get_type_alias_map(item, target.item, ta, path);
+                let map = get_type_alias_map(item.name.clone().unwrap(), target.item, ta, path);
                 let analysis = StructAnalysis::analyze(target.item, target.krate, &data, map);
                 report(target.item, &analysis);
 
@@ -112,33 +122,79 @@ pub fn generate() -> anyhow::Result<()> {
 
     let structs = structs
         .into_iter()
-        .filter(|p| !SKIP.contains(&p.name.as_str()));
+        .filter(|p| !SKIP.contains(&p.name.as_str()))
+        .collect::<Vec<_>>();
 
-    let mut builders = vec![(
-        "".to_string(),
-        "
-use std::borrow::Cow;
-use std::ops::Range;
-use std::num::NonZeroU32;
+    let mut builders: Vec<BuilderOutput> =
+        vec![
+            BuilderOutput::Code(
+                q!(
+                    use std::borrow::Cow;
+                    use std::ops::Range;
+                    use std::num::NonZeroU32;
 
-use wgpu::*;
-use wgpu::util::*;
-use wgpu::wgt::{Dx12SwapchainKind, Dx12UseFrameLatencyWaitableObject, TextureSelector};
-"
-        .to_string(),
-    )];
+                    use wgpu::*;
+                    use wgpu::util::*;
+                    use wgpu::wgt::{
+                        Dx12SwapchainKind, Dx12UseFrameLatencyWaitableObject, TextureSelector,
+                    };
+
+                    use crate::Nested;
+                )
+                .to_string(),
+            ),
+        ];
+
+    let mut initializers = vec![];
+    let mut builder_structs = vec![];
+    let builder_types = structs
+        .iter()
+        .map(|s| {
+            let name = ident(&s.name);
+            let generics = generic_params(&s, &[]).unwrap();
+            [
+                q!(#name #generics).to_string(),
+                //q!(Option<#name #generics>).to_string(),
+            ]
+        })
+        .flatten()
+        .collect::<Vec<_>>();
 
     for struct_item in structs {
-        builders.push(output_struct(struct_item)?);
+        let output = output_struct(struct_item, &builder_types)?;
+        initializers.push(output.initializer);
+        builder_structs.push(output.builder_struct);
+        builders.push(BuilderOutput::Comment(output.comment));
+        builders.push(BuilderOutput::Code(output.code));
     }
+
+    builders.push(BuilderOutput::Code(
+        q!(
+            pub mod initializers {
+                pub use super::{
+                    #(#initializers),*
+                };
+            }
+
+            pub mod builders {
+                pub use super::{
+                    #(#builder_structs),*
+                };
+            }
+        )
+        .to_string(),
+    ));
 
     let combined = builders
         .iter()
-        .map(|(comment, code)| format!("{comment}\n{code}\n"))
+        .map(|item| match item {
+            BuilderOutput::Code(code) => format!("{code}\n"),
+            BuilderOutput::Comment(comment) => format!("{comment}\n"),
+        })
         .collect::<Vec<String>>()
         .join("\n");
 
-    let output_path = relative_path("quickgpu/src/builders.rs");
+    let output_path = relative_path("quickgpu/src/inner.rs");
     std::fs::write(output_path.clone(), combined)?;
 
     rustfmt(output_path)?;

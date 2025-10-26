@@ -4,5 +4,5 @@ version = "0.0.0"
 edition = "2024"
 
 [dependencies]
-bon = "3.8.1"
+bon = { version = "3.8.1", features = ["implied-bounds"] }
 wgpu = { version = "27.0.1" }

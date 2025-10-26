@@ -7,6 +7,7 @@ use crate::data::{Data, DataItem};
 #[allow(dead_code)]
 pub enum FieldDefault {
     None { msg: String },
+    Option,
     Default,
     Value { value: Expr },
     Generic,

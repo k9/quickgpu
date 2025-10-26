@@ -54,6 +54,13 @@ pub enum FieldAnalysis {
     NotPath(String),
 }
 
+static UTIL_TYPES: &[&str] = &[
+    "DrawIndexedIndirectArgs",
+    "DispatchIndirectArgs",
+    "DrawIndirectArgs",
+    "CreateShaderModuleDescriptorPassthrough",
+];
+
 static API_REGEX: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"wgpu-[0-9\.]*/src/api/").unwrap());
 static UTIL_REGEX: LazyLock<Regex> =
@@ -80,6 +87,8 @@ impl StructAnalysis {
             return StructAnalysis::NoName;
         };
 
+        let name = type_alias_map.map_name(name.as_str());
+
         let StructKind::Plain {
             fields: source_fields,
             has_stripped_fields,
@@ -100,8 +109,6 @@ impl StructAnalysis {
             return StructAnalysis::WrongPath(item.span.clone());
         };
 
-        let filename = type_alias_map.map_filename(&filename);
-
         let is_api = API_REGEX.is_match(&filename);
         let is_util = UTIL_REGEX.is_match(&filename);
         let is_types = TYPES_REGEX.is_match(&filename);
@@ -110,7 +117,11 @@ impl StructAnalysis {
             return StructAnalysis::WrongPath(item.span.clone());
         }
 
-        let path_prefix = if is_util { "wgpu::util" } else { "wgpu" };
+        let path_prefix = if is_util || UTIL_TYPES.contains(&name.as_str()) {
+            "wgpu::util"
+        } else {
+            "wgpu"
+        };
 
         let mut fields = vec![];
 
@@ -157,9 +168,9 @@ fn analyze_field(
     if let StructDefault::Fields { fields, .. } = struct_default {
         if let Some(value) = fields.get(&name) {
             let default_value = if let Type::ResolvedPath(path) = struct_field
-                && path.path == "Option"
+                && path.path.ends_with("Option")
             {
-                FieldDefault::make_none("Option doesn't need default")
+                FieldDefault::Option
             } else if q!(#value).to_string() == q!(Default::default()).to_string() {
                 FieldDefault::Default
             } else {
@@ -178,9 +189,9 @@ fn analyze_field(
 
     if let StructDefault::Derived = struct_default {
         let default_value = if let Type::ResolvedPath(path) = struct_field
-            && path.path == "Option"
+            && path.path.ends_with("Option")
         {
-            FieldDefault::make_none("Option doesn't need default")
+            FieldDefault::Option
         } else {
             FieldDefault::Default
         };
@@ -193,11 +204,19 @@ fn analyze_field(
     };
 
     match struct_field {
-        Type::ResolvedPath(path) => FieldAnalysis::Parts(FieldParts {
-            name,
-            default_value: get_field_default(path.id, krate, data),
-            ty: struct_field.clone(),
-        }),
+        Type::ResolvedPath(path) => {
+            let default_value = if path.path.ends_with("Option") {
+                FieldDefault::Option
+            } else {
+                get_field_default(path.id, krate, data)
+            };
+
+            FieldAnalysis::Parts(FieldParts {
+                name,
+                default_value,
+                ty: struct_field.clone(),
+            })
+        }
         Type::Generic(_) => FieldAnalysis::Parts(FieldParts {
             name,
             default_value: FieldDefault::Generic,

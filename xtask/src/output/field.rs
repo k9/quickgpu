@@ -4,6 +4,7 @@ use rustdoc_types::Type;
 use syn::Ident;
 
 use crate::{
+    AResult,
     analyze::{core::FieldParts, field_default::FieldDefault},
     output::types::type_tokens,
     type_alias_helpers::TypeAliasMap,
@@ -22,6 +23,7 @@ pub struct FieldDetails {
     pub start_fn: Option<TokenStream>,
     pub into: Option<TokenStream>,
     pub default: Option<TokenStream>,
+    pub default_string: Option<String>,
 }
 
 pub fn field_fn_param(
@@ -33,11 +35,11 @@ pub fn field_fn_param(
         default,
         path,
         ..
-    }: FieldDetails,
-) -> anyhow::Result<TokenStream> {
+    }: &FieldDetails,
+) -> AResult<TokenStream> {
     let attrs = [start_fn, into, default]
         .into_iter()
-        .filter_map(|item| item)
+        .filter_map(|item| item.clone())
         .collect::<Vec<_>>();
 
     let attrs = if attrs.is_empty() {
@@ -61,25 +63,30 @@ pub fn field_details(
     field: &FieldParts,
     path: &str,
     type_alias_map: &TypeAliasMap,
-) -> anyhow::Result<FieldDetails> {
+) -> AResult<FieldDetails> {
     let name = ident(&field.name);
     let ty = &field.ty;
     let ty = type_tokens(ty, type_alias_map)?;
     let mut start_fn = None;
     let mut into = None;
     let mut default = None;
+    let mut default_string = None;
+
+    if name == "depth_stencil" {
+        println!("{:?}", field.default_value);
+    }
 
     match &field.default_value {
         FieldDefault::None { msg: _ } => (),
+        FieldDefault::Option => {
+            default_string = Some("Option::None".to_string());
+        }
         FieldDefault::Default => {
-            if ty.to_string().starts_with("LoadOp <") {
-                println!("{:?}", ty);
-            }
-
             if field.name == "label" {
                 start_fn = q!(start_fn).into();
             } else {
                 default = q!(default).into();
+                default_string = Some(q!(#ty::default()).to_string());
             }
         }
         FieldDefault::Value { value } => {
@@ -104,6 +111,7 @@ pub fn field_details(
                     };
 
                     default = q!(default=#value).into();
+                    default_string = Some(q!(#value).to_string());
                 }
             }
         }
@@ -129,10 +137,11 @@ pub fn field_details(
         start_fn,
         into,
         default,
+        default_string,
     })
 }
 
-pub fn field_return_param(field: &FieldParts) -> anyhow::Result<TokenStream> {
+pub fn field_return_param(field: &FieldParts) -> AResult<TokenStream> {
     let field_name = ident(&field.name);
     Ok(q!(#field_name))
 }

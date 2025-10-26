@@ -1,5 +1,5 @@
 use bytemuck::{Pod, Zeroable};
-use quickgpu::builders::*;
+use quickgpu::*;
 use wgpu::{
     Buffer, Color, CommandBuffer, CompareFunction, Device, LoadOp, RenderPipeline, TextureFormat,
     VertexFormat, include_wgsl,
@@ -44,8 +44,8 @@ impl Scene {
     pub fn new(device: &Device, format: TextureFormat, sample_count: u32) -> Self {
         let shader = device.create_shader_module(include_wgsl!("../shaders/base.wgsl"));
 
-        let render_pipeline = render_pipeline_descriptor("Render Pipeline")
-            .vertex(
+        let render_pipeline = render_pipeline_descriptor(Some("Render Pipeline"))
+            .vertex_builder(
                 vertex_state()
                     .module(&shader)
                     .entry_point("vs_main")

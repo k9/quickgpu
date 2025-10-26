@@ -16,3 +16,4 @@ rustdoc-types = "0.56.0"
 serde_json = "1.0.145"
 syn = { version = "2.0.106", features = ["full", "extra-traits"] }
 log = "0.4.28"
+duct = "1.1.0"
