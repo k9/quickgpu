@@ -1,18 +1,10 @@
 use anyhow::Context;
-use quote::quote as q;
-use rustdoc_types::{ItemEnum, Type};
+use discover_exports::{Analysis, AnalysisEdge, ExportedItem, discover, parse_crate};
+use syn::{Fields, FieldsNamed, ItemStruct};
 
-use crate::{
-    AResult,
-    analyze::core::{StructAnalysis, report},
-    data::{self, DataItem},
-    output::{
-        core::{UseInstance, output_struct},
-        types::generic_params,
-    },
-    type_alias_helpers::{TypeAliasMap, get_type_alias_map},
-    utils::{final_path, ident, parse_docs, relative_path, rustfmt},
-};
+use crate::utils::relative_path;
+
+type AResult<T> = anyhow::Result<T>;
 
 const SKIP: &[&str] = &[
     "AdapterInfo",
@@ -30,174 +22,113 @@ const SKIP: &[&str] = &[
     "TextureFormatFeatures",
 ];
 
-pub enum BuilderOutput {
-    Code(String),
-    Comment(String),
-}
+pub fn generate() -> anyhow::Result<()> {
+    let mut analysis = Analysis::default();
 
-pub fn generate() -> AResult<()> {
-    let doc_path = rustdoc_json::Builder::default()
-        .toolchain("nightly")
-        .manifest_path(relative_path("wgpu/wgpu/Cargo.toml"))
-        .build()?;
+    let root_index = parse_crate(
+        &mut analysis,
+        relative_path("expanded/wgpu.rs"),
+        relative_path("wgpu/wgpu"),
+        "crate",
+    )
+    .unwrap();
 
-    let doc_dir = doc_path.parent().context("Couldn't get doc dir")?;
+    let root_types_index = parse_crate(
+        &mut analysis,
+        relative_path("expanded/wgpu_types.rs"),
+        relative_path("wgpu/wgpu-types"),
+        "wgt",
+    )
+    .unwrap();
 
-    let data = data::Data::new(
-        parse_docs(doc_dir.join("wgpu.json"))?,
-        parse_docs(doc_dir.join("wgpu_types.json"))?,
-    );
+    analysis
+        .graph
+        .update_edge(root_index, root_types_index, AnalysisEdge::Normal);
 
-    /*
-        wgpu_types: struct TexelCopyBufferInfo
-        wgpu: use wgt::TexelCopyBufferInfo as TexelCopyBufferInfoBase
-          exported as struct with "Base" and original generics
-        wgpu: type TexelCopyBufferInfo = TexelCopyBufferInfoBase
-          exported as type alias w/ new generics
-    */
+    let exports = discover(analysis, root_index).unwrap();
 
-    let mut use_items_wgt = vec![];
-    for DataItem { item, .. } in data.iter_base() {
-        if let rustdoc_types::ItemEnum::Use(u) = &item.inner
-            && !u.is_glob
-            && u.source.starts_with("wgt::")
-        {
-            use_items_wgt.push(UseInstance {
-                source: final_path(&u.source.clone())?,
-                name: u.name.clone(),
-            });
-        }
-    }
-
-    let mut structs = vec![];
-    for DataItem { item, .. } in data.iter_wgt() {
-        if let Some(name) = &item.name
-            && let Some(wgt) = use_items_wgt.iter().find(|wgt| &wgt.source == name)
-        {
-            let mut item = item.clone();
-            item.name = Some(wgt.name.clone());
-
-            let analysis = StructAnalysis::analyze(&item, &data.wgt, &data, TypeAliasMap::None);
-            report(&item, &analysis);
-
-            if let StructAnalysis::Parts(parts) = analysis {
-                structs.push(parts);
-            }
-        }
-    }
-
-    for DataItem { item, .. } in data.iter_base() {
-        let analysis = StructAnalysis::analyze(item, &data.base, &data, TypeAliasMap::None);
-        report(item, &analysis);
-        if let StructAnalysis::Parts(parts) = analysis {
-            structs.push(parts);
-        }
-    }
-
-    for DataItem { item, .. } in data.iter_base() {
-        if let ItemEnum::TypeAlias(ta) = &item.inner
-            && let Type::ResolvedPath(path) = &ta.type_
-        {
-            let mut ta_path = final_path(&path.path)?;
-            if let Some(use_item) = use_items_wgt.iter().find(|u| u.name == ta_path) {
-                ta_path = final_path(&use_item.source)?;
-            };
-
-            let target = data.iter_both().find(|DataItem { item, .. }| {
-                item.name.as_deref() == Some(&ta_path)
-                    && !matches!(item.inner, ItemEnum::TypeAlias(_))
-            });
-
-            if let Some(target) = target {
-                let map = get_type_alias_map(item.name.clone().unwrap(), target.item, ta, path);
-                let analysis = StructAnalysis::analyze(target.item, target.krate, &data, map);
-                report(target.item, &analysis);
-
-                if let StructAnalysis::Parts(parts) = analysis {
-                    structs.push(parts);
-                }
-            }
-        };
-    }
-
-    let structs = structs
+    let structs = exports
+        .structs
         .into_iter()
-        .filter(|p| !SKIP.contains(&p.name.as_str()))
-        .collect::<Vec<_>>();
-
-    let mut builders: Vec<BuilderOutput> =
-        vec![
-            BuilderOutput::Code(
-                q!(
-                    use std::borrow::Cow;
-                    use std::ops::Range;
-                    use std::num::NonZeroU32;
-
-                    use wgpu::*;
-                    use wgpu::util::*;
-                    use wgpu::wgt::{
-                        Dx12SwapchainKind, Dx12UseFrameLatencyWaitableObject, TextureSelector,
-                    };
-
-                    use crate::Nested;
-                )
-                .to_string(),
-            ),
-        ];
-
-    let mut initializers = vec![];
-    let mut builder_structs = vec![];
-    let builder_types = structs
-        .iter()
-        .map(|s| {
-            let name = ident(&s.name);
-            let generics = generic_params(&s, &[]).unwrap();
-            [
-                q!(#name #generics).to_string(),
-                //q!(Option<#name #generics>).to_string(),
-            ]
-        })
-        .flatten()
+        .map(|struct_item| parse_struct(struct_item))
+        .collect::<AResult<Vec<_>>>()?
+        .into_iter()
+        .filter_map(|x| x)
         .collect::<Vec<_>>();
 
     for struct_item in structs {
-        let output = output_struct(struct_item, &builder_types)?;
-        initializers.push(output.initializer);
-        builder_structs.push(output.builder_struct);
-        builders.push(BuilderOutput::Comment(output.comment));
-        builders.push(BuilderOutput::Code(output.code));
+        println!("{:?}", struct_item.item.ident);
     }
 
-    builders.push(BuilderOutput::Code(
-        q!(
-            pub mod initializers {
-                pub use super::{
-                    #(#initializers),*
-                };
-            }
+    /*
+    let structs = structs
+        .into_iter()
+        .filter(|p| !SKIP.contains(&p.name.as_str()));
 
-            pub mod builders {
-                pub use super::{
-                    #(#builder_structs),*
-                };
-            }
-        )
+    let mut builders = vec![(
+        "".to_string(),
+        "
+use std::borrow::Cow;
+use std::ops::Range;
+use std::num::NonZeroU32;
+
+use wgpu::*;
+use wgpu::util::*;
+use wgpu::wgt::{Dx12SwapchainKind, Dx12UseFrameLatencyWaitableObject, TextureSelector};
+"
         .to_string(),
-    ));
+    )];
+
+    for struct_item in structs {
+        builders.push(output_struct(struct_item)?);
+    }
 
     let combined = builders
         .iter()
-        .map(|item| match item {
-            BuilderOutput::Code(code) => format!("{code}\n"),
-            BuilderOutput::Comment(comment) => format!("{comment}\n"),
-        })
+        .map(|(comment, code)| format!("{comment}\n{code}\n"))
         .collect::<Vec<String>>()
         .join("\n");
 
-    let output_path = relative_path("quickgpu/src/inner.rs");
+    let output_path = relative_path("quickgpu/src/builders.rs");
     std::fs::write(output_path.clone(), combined)?;
-
-    rustfmt(output_path)?;
+    rustfmt(output_path)?;*/
 
     Ok(())
+}
+
+pub struct ParsedStruct {
+    pub path: Vec<String>,
+    pub item: ItemStruct,
+    pub fields: FieldsNamed,
+}
+
+pub fn parse_struct(exported: ExportedItem) -> AResult<Option<ParsedStruct>> {
+    let ExportedItem { path, span } = exported;
+
+    let source = span
+        .source_text()
+        .context(format!("Couldn't get source for {:?}", path))?;
+
+    let struct_item: ItemStruct = syn::parse_str(&source)?;
+
+    if SKIP.contains(&struct_item.ident.to_string().as_str()) {
+        log::debug!("Skipping {} since it's in skip list", struct_item.ident);
+
+        return Ok(None);
+    }
+
+    let Fields::Named(fields) = struct_item.fields.clone() else {
+        log::debug!(
+            "Skipping {} since it doesn't have named fields",
+            struct_item.ident
+        );
+
+        return Ok(None);
+    };
+
+    Ok(Some(ParsedStruct {
+        path,
+        item: struct_item,
+        fields,
+    }))
 }

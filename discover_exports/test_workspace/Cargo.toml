@@ -1,0 +1,6 @@
+[workspace]
+resolver = "3"
+members = [
+    "test_lib",
+    "test_lib_types",
+]
