@@ -1,11 +1,5 @@
-use anyhow::Context;
-use discover_exports::{
-    analysis::{Analysis, AnalysisEdge},
-    discover,
-    exports::ExportedItem,
-    parse_crate,
-};
-use syn::{Fields, ItemStruct};
+use discover_exports::{Analysis, AnalysisEdge, AnalysisStruct, Exported, discover, parse_crate};
+use syn::Fields;
 
 use crate::utils::relative_path;
 
@@ -96,37 +90,26 @@ use wgpu::wgt::{Dx12SwapchainKind, Dx12UseFrameLatencyWaitableObject, TextureSel
     Ok(())
 }
 
-pub struct ParsedStruct {
-    pub path: Vec<String>,
-    pub item: ItemStruct,
-}
-
-pub fn parse_struct(exported: ExportedItem) -> AResult<Option<ParsedStruct>> {
-    let ExportedItem { path, span } = exported;
-
-    let source = span
-        .source_text()
-        .context(format!("Couldn't get source for {:?}", path))?;
-
-    let struct_item: ItemStruct = syn::parse_str(&source)?;
-
-    if SKIP.contains(&struct_item.ident.to_string().as_str()) {
-        log::debug!("Skipping {} since it's in skip list", struct_item.ident);
+pub fn parse_struct(
+    exported: Exported<AnalysisStruct>,
+) -> AResult<Option<Exported<AnalysisStruct>>> {
+    if SKIP.contains(&exported.item.item.ident.to_string().as_str()) {
+        log::debug!(
+            "Skipping {} since it's in skip list",
+            exported.item.item.ident
+        );
 
         return Ok(None);
     }
 
-    if !matches!(struct_item.fields, Fields::Named(_)) {
+    if !matches!(exported.item.item.fields, Fields::Named(_)) {
         log::debug!(
             "Skipping {} since it doesn't have named fields",
-            struct_item.ident
+            exported.item.item.ident
         );
 
         return Ok(None);
     };
 
-    Ok(Some(ParsedStruct {
-        path,
-        item: struct_item,
-    }))
+    Ok(Some(exported))
 }

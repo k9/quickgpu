@@ -2,33 +2,25 @@ use std::collections::HashSet;
 
 use petgraph::graph::NodeIndex;
 
-use crate::analysis::Analysis;
-use crate::analysis::AnalysisRef;
-use crate::analyze::keep_only_pub;
-use crate::analyze::process_impls;
-use crate::exports::{ExportedItem, list_exports};
+pub use crate::analysis::{
+    Analysis, AnalysisEdge, AnalysisEnum, AnalysisStruct, AnalysisTypeAlias,
+};
+pub use crate::exports::list_exports;
+pub use crate::exports::{Exported, ExportedItems};
+pub use crate::process::parse_crate;
+use crate::process::{keep_only_pub, process_impls};
 use crate::use_statements::process_use_statements;
 
-pub mod analysis;
-mod analyze;
+mod analysis;
 mod crate_graph;
-pub mod exports;
-pub mod use_statements;
+mod exports;
+mod process;
+mod use_statements;
 mod utils;
-
-pub use analyze::parse_crate;
 
 type AResult<T> = anyhow::Result<T>;
 
-#[derive(Default, Debug)]
-pub struct Exports {
-    pub structs: Vec<ExportedItem>,
-    pub enums: Vec<ExportedItem>,
-    pub types: Vec<ExportedItem>,
-    pub impls: Vec<ExportedItem>,
-}
-
-pub fn discover(mut analysis: Analysis, root_index: NodeIndex) -> AResult<Exports> {
+pub fn discover(mut analysis: Analysis, root_index: NodeIndex) -> AResult<ExportedItems> {
     let mut skipped_mods = HashSet::new();
     let mut num_edges: usize = analysis.graph.edge_count();
     loop {
@@ -49,30 +41,14 @@ pub fn discover(mut analysis: Analysis, root_index: NodeIndex) -> AResult<Export
     );
 
     keep_only_pub(&mut analysis, root_index)?;
-
-    let mut exports = Exports::default();
-
-    for export in list_exports(&analysis, root_index, |analysis_ref| {
-        matches!(analysis_ref, AnalysisRef::Struct(_))
-    })? {
-        exports.structs.push(export);
-    }
-
-    println!("\ntype aliases");
-    for export in list_exports(&analysis, root_index, |analysis_ref| {
-        matches!(analysis_ref, AnalysisRef::Type(_))
-    })? {
-        exports.types.push(export);
-    }
-
-    Ok(exports)
+    list_exports(&analysis, root_index)
 }
 
 #[cfg(test)]
 mod test {
     use crate::{
         analysis::{Analysis, AnalysisEdge},
-        parse_crate,
+        process::parse_crate,
         utils::relative_path,
     };
 

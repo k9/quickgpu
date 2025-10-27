@@ -26,7 +26,7 @@ pub fn print_dot(analysis: &Analysis) {
                     }
                     AnalysisItem::Type(id) => {
                         let item = &analysis.types[*id];
-                        let name = &item.ident;
+                        let name = &item.item.ident;
 
                         format!("{name}")
                     }

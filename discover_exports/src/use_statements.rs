@@ -6,9 +6,7 @@ use syn::{Item, UseTree};
 
 use crate::{
     AResult, Analysis,
-    analysis::{AnalysisEdge, AnalysisItem, AnalysisRef},
-    analyze::find_neighbor,
-    utils::token_string,
+    analysis::{AnalysisEdge, AnalysisItem, AnalysisRef, find_neighbor},
 };
 
 pub fn process_use_statements(
@@ -107,9 +105,9 @@ fn process_path(
             &use_path.tree,
             skipped_mods,
         )?;
-    } else if let Some(krate) = analysis.crates.get(&token_string(&use_path.ident)) {
+    } else if let Some(krate) = analysis.crates.get(&use_path.ident.to_string()) {
         process_use_tree(analysis, from_module, *krate, &use_path.tree, skipped_mods)?;
-    } else if token_string(&use_path.ident) == "super" {
+    } else if &use_path.ident.to_string() == "super" {
         let parent = analysis
             .graph
             .neighbors_directed(to_module, petgraph::Direction::Incoming)

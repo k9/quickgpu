@@ -2,12 +2,14 @@ use std::path::PathBuf;
 
 use crate::{
     AResult,
-    analysis::{Analysis, AnalysisEdge, AnalysisItem, AnalysisRef, AnalysisStruct, VecPushIndex},
-    utils::{dummy_module, token_string, write_expanded},
+    analysis::{
+        Analysis, AnalysisEdge, AnalysisEnum, AnalysisItem, AnalysisRef, AnalysisRefMut,
+        AnalysisStruct, AnalysisTypeAlias, VecPushIndex,
+    },
+    utils::{dummy_module, write_expanded},
 };
 use anyhow::{Context, bail};
-use petgraph::{graph::NodeIndex, visit::Bfs};
-use quote::{ToTokens, quote as q};
+use petgraph::{Direction, graph::NodeIndex, visit::Bfs};
 use syn::{Item, Type, Visibility};
 
 pub fn parse_crate(
@@ -68,8 +70,22 @@ pub fn process_subtree(analysis: &mut Analysis, parent_mod: NodeIndex) -> AResul
                     .graph
                     .update_edge(parent_mod, child, AnalysisEdge::Normal);
             }
+            Item::Enum(enum_item) => {
+                let id = analysis.enums.push_index(AnalysisEnum {
+                    item: enum_item.clone(),
+                    impls: vec![],
+                });
+
+                let child = analysis.graph.add_node(AnalysisItem::Enum(id));
+                analysis
+                    .graph
+                    .update_edge(parent_mod, child, AnalysisEdge::Normal);
+            }
             Item::Type(type_item) => {
-                let id = analysis.types.push_index(type_item.clone());
+                let id = analysis.types.push_index(AnalysisTypeAlias {
+                    item: type_item.clone(),
+                    impls: vec![],
+                });
                 let child = analysis.graph.add_node(AnalysisItem::Type(id));
                 analysis
                     .graph
@@ -92,73 +108,72 @@ pub fn process_subtree(analysis: &mut Analysis, parent_mod: NodeIndex) -> AResul
 pub fn process_impls(analysis: &mut Analysis, parent_mod: NodeIndex) -> AResult<()> {
     let mut bfs = Bfs::new(&analysis.graph, parent_mod);
     while let Some(node_index) = bfs.next(&analysis.graph) {
-        if let AnalysisRef::Mod(module) = AnalysisItem::node_index_ref(analysis, node_index)? {
-            let module = module.clone();
-            if let Some((_, items)) = &module.content {
-                for item in items {
-                    if let Item::Impl(item) = item {
-                        if let Some((_, _, _)) = &item.trait_
-                            && let Type::Path(ty_path) = *item.self_ty.clone()
-                        {
-                            let impl_ty = &ty_path
-                                .path
-                                .segments
-                                .last()
-                                .context("Couldn't process path")?
-                                .ident
-                                .clone()
-                                .into_token_stream()
-                                .to_string();
+        if let AnalysisRef::Impl(item) = AnalysisItem::node_index_ref(analysis, node_index)? {
+            let item = item.clone();
+            if let Type::Path(path) = *item.self_ty.clone() {
+                let parent = analysis
+                    .graph
+                    .neighbors_directed(node_index, Direction::Incoming)
+                    .next()
+                    .context("Couldn't get parent")?;
 
-                            if let Some(struct_match) =
-                                analysis.structs.iter().find(|&struct_item| {
-                                    let ident = &struct_item.item.ident;
-                                    let generics = &struct_item.item.generics;
-                                    &q!(#ident #generics).to_string() == impl_ty
-                                })
-                            {
-                                println!("{:?}", struct_match.item.ident);
-                            } else {
-                                println!("none {:?}", impl_ty);
-                            };
-                        }
-                    }
+                let ty_path = path
+                    .path
+                    .segments
+                    .iter()
+                    .map(|seg| seg.ident.to_string())
+                    .collect::<Vec<_>>();
+
+                if ty_path.len() > 1 {
+                    println!(
+                        "Multi-segment impl paths not supported yet: {:?} for {:?}",
+                        item.trait_.map(|x| x
+                            .1
+                            .segments
+                            .iter()
+                            .map(|segment| segment.ident.to_string())
+                            .collect::<Vec<_>>()),
+                        ty_path
+                    );
+                    continue;
                 }
+
+                let ty_name = &ty_path[0];
+
+                let siblings = analysis
+                    .graph
+                    .neighbors_directed(parent, Direction::Outgoing)
+                    .collect::<Vec<_>>();
+
+                siblings.iter().any(|sibling| {
+                    let sibling = sibling.clone();
+                    let Ok(node_ref) = AnalysisItem::node_index_ref_mut(analysis, sibling) else {
+                        return false;
+                    };
+
+                    match node_ref {
+                        AnalysisRefMut::Struct(analysis_struct) => {
+                            if &analysis_struct.item.ident.to_string() == ty_name {
+                                analysis_struct.impls.push(item.clone());
+                                return true;
+                            }
+                        }
+                        AnalysisRefMut::Enum(analysis_enum) => {
+                            if &analysis_enum.item.ident.to_string() == ty_name {
+                                analysis_enum.impls.push(item.clone());
+                                return true;
+                            }
+                        }
+                        _ => (),
+                    };
+
+                    false
+                });
             }
         }
     }
 
     Ok(())
-}
-
-pub fn find_neighbor<'a>(
-    analysis: &'a Analysis,
-    item_tree_node: NodeIndex,
-    ident: &syn::Ident,
-) -> Option<(NodeIndex, AnalysisRef<'a>)> {
-    let neighbors = analysis.graph.neighbors(item_tree_node);
-    for neighbor in neighbors {
-        match AnalysisItem::node_index_ref(analysis, neighbor) {
-            Ok(AnalysisRef::Struct(struct_item)) => {
-                if token_string(&struct_item.item.ident) == token_string(&ident) {
-                    return Some((neighbor, AnalysisRef::Struct(struct_item)));
-                }
-            }
-            Ok(AnalysisRef::Type(type_item)) => {
-                if token_string(&type_item.ident) == token_string(&ident) {
-                    return Some((neighbor, AnalysisRef::Type(type_item)));
-                }
-            }
-            Ok(AnalysisRef::Mod(mod_item)) => {
-                if token_string(&mod_item.ident) == token_string(&ident) {
-                    return Some((neighbor, AnalysisRef::Mod(mod_item)));
-                }
-            }
-            _ => (),
-        }
-    }
-
-    None
 }
 
 pub fn keep_only_pub(analysis: &mut Analysis, node_index: NodeIndex) -> AResult<()> {
@@ -186,7 +201,7 @@ fn keep_only_gather(analysis: &mut Analysis, node_index: NodeIndex) -> AResult<V
                     }
                 }
                 Ok(AnalysisRef::Type(struct_item)) => {
-                    if matches!(struct_item.vis, Visibility::Public(_)) {
+                    if matches!(struct_item.item.vis, Visibility::Public(_)) {
                         to_keep.push(neighbor);
                     }
                 }

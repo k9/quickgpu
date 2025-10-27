@@ -9,7 +9,6 @@ use std::path::PathBuf;
 use anyhow::bail;
 use proc_macro2::Span;
 
-use quote::ToTokens;
 use syn::Ident;
 use syn::Item;
 use syn::ItemMod;
@@ -18,10 +17,6 @@ use syn::token::Brace;
 
 pub fn id<'a>(s: impl Into<&'a str>) -> Ident {
     Ident::new(s.into(), Span::call_site())
-}
-
-pub fn token_string<'a>(s: &impl ToTokens) -> String {
-    s.to_token_stream().to_string()
 }
 
 pub fn write_expanded(output_path: &PathBuf, crate_path: &PathBuf) -> Result<(), anyhow::Error> {
