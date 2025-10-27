@@ -1,6 +1,11 @@
 use anyhow::Context;
-use discover_exports::{Analysis, AnalysisEdge, ExportedItem, discover, parse_crate};
-use syn::{Fields, FieldsNamed, ItemStruct};
+use discover_exports::{
+    analysis::{Analysis, AnalysisEdge},
+    discover,
+    exports::ExportedItem,
+    parse_crate,
+};
+use syn::{Fields, ItemStruct};
 
 use crate::utils::relative_path;
 
@@ -46,7 +51,7 @@ pub fn generate() -> anyhow::Result<()> {
 
     let exports = discover(analysis, root_index).unwrap();
 
-    let structs = exports
+    let _structs = exports
         .structs
         .into_iter()
         .map(|struct_item| parse_struct(struct_item))
@@ -54,10 +59,6 @@ pub fn generate() -> anyhow::Result<()> {
         .into_iter()
         .filter_map(|x| x)
         .collect::<Vec<_>>();
-
-    for struct_item in structs {
-        println!("{:?}", struct_item.item.ident);
-    }
 
     /*
     let structs = structs
@@ -98,7 +99,6 @@ use wgpu::wgt::{Dx12SwapchainKind, Dx12UseFrameLatencyWaitableObject, TextureSel
 pub struct ParsedStruct {
     pub path: Vec<String>,
     pub item: ItemStruct,
-    pub fields: FieldsNamed,
 }
 
 pub fn parse_struct(exported: ExportedItem) -> AResult<Option<ParsedStruct>> {
@@ -116,7 +116,7 @@ pub fn parse_struct(exported: ExportedItem) -> AResult<Option<ParsedStruct>> {
         return Ok(None);
     }
 
-    let Fields::Named(fields) = struct_item.fields.clone() else {
+    if !matches!(struct_item.fields, Fields::Named(_)) {
         log::debug!(
             "Skipping {} since it doesn't have named fields",
             struct_item.ident
@@ -128,6 +128,5 @@ pub fn parse_struct(exported: ExportedItem) -> AResult<Option<ParsedStruct>> {
     Ok(Some(ParsedStruct {
         path,
         item: struct_item,
-        fields,
     }))
 }

@@ -1,103 +1,14 @@
-use std::{
-    collections::{HashMap, HashSet},
-    path::PathBuf,
-};
+use std::path::PathBuf;
 
 use crate::{
     AResult,
+    analysis::{Analysis, AnalysisEdge, AnalysisItem, AnalysisRef, AnalysisStruct, VecPushIndex},
     utils::{dummy_module, token_string, write_expanded},
 };
 use anyhow::{Context, bail};
-use petgraph::{algo::astar, graph::NodeIndex, prelude::StableGraph, visit::Bfs};
-use proc_macro2::Span;
-use quote::ToTokens;
-use syn::{
-    ImplItem, Item, ItemEnum, ItemImpl, ItemMod, ItemStruct, ItemType, Type, UseTree, Visibility,
-    spanned::Spanned,
-};
-
-pub struct AnalysisStruct {
-    pub item: ItemStruct,
-    pub impls: Vec<ItemImpl>,
-}
-
-#[derive(Default)]
-pub struct Analysis {
-    pub crates: HashMap<String, NodeIndex>,
-    pub graph: StableGraph<AnalysisItem, AnalysisEdge>,
-    pub structs: Vec<AnalysisStruct>,
-    pub types: Vec<ItemType>,
-    pub impls: Vec<ItemImpl>,
-    pub modules: Vec<ItemMod>,
-}
-
-#[derive(Debug)]
-pub enum AnalysisEdge {
-    Normal,
-    Rename(String),
-}
-
-pub trait VecPushIndex<T> {
-    fn push_index(&mut self, item: T) -> usize;
-}
-
-impl<T> VecPushIndex<T> for Vec<T> {
-    fn push_index(&mut self, item: T) -> usize {
-        self.push(item);
-        self.len() - 1
-    }
-}
-
-#[derive(Clone, Copy, Debug)]
-pub enum AnalysisItem {
-    Struct(usize),
-    Type(usize),
-    Mod(usize),
-    None,
-}
-
-#[derive(Clone, Copy)]
-pub enum AnalysisRef<'a> {
-    Struct(&'a AnalysisStruct),
-    Type(&'a ItemType),
-    Mod(&'a ItemMod),
-}
-
-impl AnalysisItem {
-    fn get_ref<'a>(&'a self, analysis: &'a Analysis) -> AResult<AnalysisRef<'a>> {
-        match self {
-            AnalysisItem::Struct(id) => {
-                if let Some(item) = analysis.structs.get(*id) {
-                    return Ok(AnalysisRef::Struct(item));
-                };
-            }
-            AnalysisItem::Type(id) => {
-                if let Some(item) = analysis.types.get(*id) {
-                    return Ok(AnalysisRef::Type(item));
-                };
-            }
-            AnalysisItem::Mod(id) => {
-                if let Some(item) = analysis.modules.get(*id) {
-                    return Ok(AnalysisRef::Mod(item));
-                };
-            }
-            _ => (),
-        };
-
-        bail!("Couldn't get AnalysisItem ref")
-    }
-
-    pub fn node_index_ref<'a>(
-        analysis: &'a Analysis,
-        node_index: NodeIndex,
-    ) -> AResult<AnalysisRef<'a>> {
-        analysis
-            .graph
-            .node_weight(node_index)
-            .context("Couldn't get node")?
-            .get_ref(analysis)
-    }
-}
+use petgraph::{graph::NodeIndex, visit::Bfs};
+use quote::{ToTokens, quote as q};
+use syn::{Item, Type, Visibility};
 
 pub fn parse_crate(
     analysis: &mut Analysis,
@@ -164,110 +75,16 @@ pub fn process_subtree(analysis: &mut Analysis, parent_mod: NodeIndex) -> AResul
                     .graph
                     .update_edge(parent_mod, child, AnalysisEdge::Normal);
             }
+            Item::Impl(type_impl) => {
+                let id = analysis.impls.push_index(type_impl.clone());
+                let child = analysis.graph.add_node(AnalysisItem::Impl(id));
+                analysis
+                    .graph
+                    .update_edge(parent_mod, child, AnalysisEdge::Normal);
+            }
             _ => (),
         };
     }
-
-    Ok(())
-}
-
-pub fn process_use_statements(
-    analysis: &mut Analysis,
-    parent_mod: NodeIndex,
-    skipped_mods: &mut HashSet<String>,
-) -> AResult<()> {
-    let mut bfs = Bfs::new(&analysis.graph, parent_mod);
-    while let Some(node_index) = bfs.next(&analysis.graph) {
-        if let AnalysisRef::Mod(module) = AnalysisItem::node_index_ref(analysis, node_index)? {
-            let module = module.clone();
-            if let Some((_, items)) = &module.content {
-                for item in items {
-                    if let Item::Use(use_statement) = item {
-                        let use_statement = use_statement.clone();
-                        process_use_tree(
-                            analysis,
-                            node_index,
-                            node_index,
-                            &use_statement.tree,
-                            skipped_mods,
-                        )?;
-                    }
-                }
-            }
-        }
-    }
-
-    Ok(())
-}
-
-fn process_use_tree(
-    analysis: &mut Analysis,
-    from_module: NodeIndex,
-    to_module: NodeIndex,
-    use_subtree: &UseTree,
-    skipped_mods: &mut HashSet<String>,
-) -> AResult<()> {
-    match &use_subtree {
-        syn::UseTree::Path(use_path) => {
-            if let Some((neighbor, AnalysisRef::Mod(_))) =
-                find_neighbor(&analysis, to_module, &use_path.ident)
-            {
-                process_use_tree(
-                    analysis,
-                    from_module,
-                    neighbor,
-                    &use_path.tree,
-                    skipped_mods,
-                )?;
-            } else if let Some(krate) = analysis.crates.get(&token_string(&use_path.ident)) {
-                process_use_tree(analysis, from_module, *krate, &use_path.tree, skipped_mods)?;
-            } else if token_string(&use_path.ident) == "super" {
-                let parent = analysis
-                    .graph
-                    .neighbors_directed(to_module, petgraph::Direction::Incoming)
-                    .next()
-                    .context("Couldn't get parent")?;
-
-                process_use_tree(analysis, from_module, parent, &use_path.tree, skipped_mods)?;
-            } else {
-                skipped_mods.insert(use_path.ident.to_string());
-            }
-        }
-        syn::UseTree::Group(use_group) => {
-            for item in &use_group.items {
-                process_use_tree(analysis, from_module, to_module, item, skipped_mods)?;
-            }
-        }
-        syn::UseTree::Name(use_name) => {
-            if let Some((neighbor, AnalysisRef::Struct(_))) =
-                find_neighbor(&analysis, to_module, &use_name.ident)
-            {
-                analysis
-                    .graph
-                    .update_edge(from_module, neighbor, AnalysisEdge::Normal);
-            }
-        }
-        syn::UseTree::Glob(_) => {
-            let neighbors = analysis.graph.neighbors(to_module).collect::<Vec<_>>();
-
-            for neighbor in neighbors {
-                analysis
-                    .graph
-                    .update_edge(from_module, neighbor, AnalysisEdge::Normal);
-            }
-        }
-        syn::UseTree::Rename(use_rename) => {
-            if let Some((neighbor, AnalysisRef::Struct(_))) =
-                find_neighbor(&analysis, to_module, &use_rename.ident)
-            {
-                analysis.graph.update_edge(
-                    from_module,
-                    neighbor,
-                    AnalysisEdge::Rename(use_rename.rename.to_string()),
-                );
-            }
-        }
-    };
 
     Ok(())
 }
@@ -280,17 +97,30 @@ pub fn process_impls(analysis: &mut Analysis, parent_mod: NodeIndex) -> AResult<
             if let Some((_, items)) = &module.content {
                 for item in items {
                     if let Item::Impl(item) = item {
-                        if let Some((_, trait_path, _)) = &item.trait_
+                        if let Some((_, _, _)) = &item.trait_
                             && let Type::Path(ty_path) = *item.self_ty.clone()
                         {
-                            let trait_path = trait_path.to_token_stream().to_string();
-                            if trait_path.ends_with("Default") {
-                                println!(
-                                    "{} {}",
-                                    trait_path,
-                                    ty_path.to_token_stream().to_string()
-                                );
-                            }
+                            let impl_ty = &ty_path
+                                .path
+                                .segments
+                                .last()
+                                .context("Couldn't process path")?
+                                .ident
+                                .clone()
+                                .into_token_stream()
+                                .to_string();
+
+                            if let Some(struct_match) =
+                                analysis.structs.iter().find(|&struct_item| {
+                                    let ident = &struct_item.item.ident;
+                                    let generics = &struct_item.item.generics;
+                                    &q!(#ident #generics).to_string() == impl_ty
+                                })
+                            {
+                                println!("{:?}", struct_match.item.ident);
+                            } else {
+                                println!("none {:?}", impl_ty);
+                            };
                         }
                     }
                 }
@@ -301,7 +131,7 @@ pub fn process_impls(analysis: &mut Analysis, parent_mod: NodeIndex) -> AResult<
     Ok(())
 }
 
-fn find_neighbor<'a>(
+pub fn find_neighbor<'a>(
     analysis: &'a Analysis,
     item_tree_node: NodeIndex,
     ident: &syn::Ident,
@@ -372,83 +202,4 @@ fn keep_only_gather(analysis: &mut Analysis, node_index: NodeIndex) -> AResult<V
     }
 
     Ok(to_keep)
-}
-
-#[derive(Debug, Clone)]
-pub struct ExportedItem {
-    pub path: Vec<String>,
-    pub span: Span,
-}
-
-pub fn list_exports<'a>(
-    analysis: &'a Analysis,
-    root_index: NodeIndex,
-    filter: impl Fn(AnalysisRef<'a>) -> bool,
-) -> AResult<Vec<ExportedItem>> {
-    let mut exports = vec![];
-    let mut bfs = Bfs::new(&analysis.graph, root_index);
-    while let Some(node_index) = bfs.next(&analysis.graph) {
-        if let Some(export_item) = list_export_item(analysis, root_index, node_index, &filter)? {
-            exports.push(export_item);
-        };
-    }
-
-    exports.sort_by(|a, b| a.path.join("").cmp(&b.path.join("")));
-    exports.sort_by(|a, b| a.path.len().cmp(&b.path.len()));
-
-    Ok(exports)
-}
-
-fn list_export_item<'a>(
-    analysis: &'a Analysis,
-    root_index: NodeIndex,
-    node_index: NodeIndex,
-    filter: &impl Fn(AnalysisRef<'a>) -> bool,
-) -> AResult<Option<ExportedItem>> {
-    if !filter(AnalysisItem::node_index_ref(analysis, node_index)?) {
-        return Ok(None);
-    };
-
-    let graph_path = astar(
-        &analysis.graph,
-        root_index,
-        |x| x == node_index,
-        |_| 1,
-        |_| 0,
-    )
-    .context("Couldn't get path")?;
-
-    let mut path = vec![];
-    let mut previous_segment = None;
-    let mut span = None;
-    for segment_index in graph_path.1 {
-        let mut name = match AnalysisItem::node_index_ref(analysis, segment_index)? {
-            AnalysisRef::Struct(struct_item) => {
-                span = Some(struct_item.item.span());
-                struct_item.item.ident.to_string()
-            }
-            AnalysisRef::Type(type_item) => {
-                span = Some(type_item.span());
-                type_item.ident.to_string()
-            }
-            AnalysisRef::Mod(mod_item) => mod_item.ident.to_string(),
-        };
-
-        if let Some(previous_segment) = previous_segment
-            && let Some(edge) = analysis.graph.find_edge(previous_segment, previous_segment)
-            && let Some(AnalysisEdge::Rename(edge)) = analysis.graph.edge_weight(edge)
-        {
-            name = edge.clone();
-        };
-
-        path.push(name);
-
-        previous_segment = Some(segment_index);
-    }
-
-    let Some(span) = span else {
-        bail!("No span for exported item");
-    };
-
-    Ok(Some(ExportedItem { path, span }))
 }

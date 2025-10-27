@@ -2,21 +2,30 @@ use std::collections::HashSet;
 
 use petgraph::graph::NodeIndex;
 
-use crate::analyze::{AnalysisRef, process_impls, process_use_statements};
-use crate::analyze::{keep_only_pub, list_exports};
+use crate::analysis::Analysis;
+use crate::analysis::AnalysisRef;
+use crate::analyze::keep_only_pub;
+use crate::analyze::process_impls;
+use crate::exports::{ExportedItem, list_exports};
+use crate::use_statements::process_use_statements;
 
+pub mod analysis;
 mod analyze;
 mod crate_graph;
+pub mod exports;
+pub mod use_statements;
 mod utils;
 
-pub use analyze::{Analysis, AnalysisEdge, ExportedItem, parse_crate};
+pub use analyze::parse_crate;
 
 type AResult<T> = anyhow::Result<T>;
 
 #[derive(Default, Debug)]
 pub struct Exports {
     pub structs: Vec<ExportedItem>,
+    pub enums: Vec<ExportedItem>,
     pub types: Vec<ExportedItem>,
+    pub impls: Vec<ExportedItem>,
 }
 
 pub fn discover(mut analysis: Analysis, root_index: NodeIndex) -> AResult<Exports> {
@@ -62,7 +71,8 @@ pub fn discover(mut analysis: Analysis, root_index: NodeIndex) -> AResult<Export
 #[cfg(test)]
 mod test {
     use crate::{
-        analyze::{Analysis, AnalysisEdge, parse_crate},
+        analysis::{Analysis, AnalysisEdge},
+        parse_crate,
         utils::relative_path,
     };
 

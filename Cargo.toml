@@ -1,6 +1,6 @@
 [workspace]
-members = ["xtask", "quickgpu", "example", "discover_exports"]
-exclude = ["doc_target", "discover_exports/test_workspace"]
+members = ["xtask", "quickgpu",  "discover_exports"]
+exclude = ["example", "discover_exports/test_workspace"]
 resolver = "2"
 
 [profile.dev]

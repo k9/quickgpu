@@ -1,7 +1,6 @@
 pub mod analyze;
 pub mod data;
 pub mod generate;
-pub mod output;
 pub mod type_alias_helpers;
 pub mod utils;
 
