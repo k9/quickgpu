@@ -5,28 +5,53 @@ use anyhow::{Context, bail};
 use petgraph::{graph::NodeIndex, prelude::StableGraph};
 use syn::{ItemEnum, ItemImpl, ItemMod, ItemStruct, ItemType};
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct AnalysisStruct {
     pub item: ItemStruct,
     pub impls: Vec<ItemImpl>,
+    pub path: Vec<String>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct AnalysisEnum {
     pub item: ItemEnum,
     pub impls: Vec<ItemImpl>,
+    pub path: Vec<String>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct AnalysisTypeAlias {
     pub item: ItemType,
     pub impls: Vec<ItemImpl>,
+    pub path: Vec<String>,
+}
+
+pub trait HasPath {
+    fn get_path(&self) -> &[String];
+}
+
+impl HasPath for AnalysisStruct {
+    fn get_path(&self) -> &[String] {
+        &self.path
+    }
+}
+
+impl HasPath for AnalysisEnum {
+    fn get_path(&self) -> &[String] {
+        &self.path
+    }
+}
+
+impl HasPath for AnalysisTypeAlias {
+    fn get_path(&self) -> &[String] {
+        &self.path
+    }
 }
 
 #[derive(Default)]
 pub struct Analysis {
     pub crates: HashMap<String, NodeIndex>,
-    pub graph: StableGraph<AnalysisItem, AnalysisEdge>,
+    pub graph: StableGraph<AnalysisEntry, AnalysisEdge>,
     pub structs: Vec<AnalysisStruct>,
     pub enums: Vec<AnalysisEnum>,
     pub types: Vec<AnalysisTypeAlias>,
@@ -35,9 +60,18 @@ pub struct Analysis {
 }
 
 #[derive(Debug)]
-pub enum AnalysisEdge {
-    Normal,
-    Rename(String),
+pub struct AnalysisEdge {
+    pub from_use_statement: bool,
+    pub rename: Option<String>,
+}
+
+impl AnalysisEdge {
+    pub fn new(from_use_statement: bool, rename: Option<String>) -> Self {
+        Self {
+            from_use_statement,
+            rename,
+        }
+    }
 }
 
 pub trait VecPushIndex<T> {
@@ -52,7 +86,7 @@ impl<T> VecPushIndex<T> for Vec<T> {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub enum AnalysisItem {
+pub enum AnalysisEntry {
     Struct(usize),
     Enum(usize),
     Type(usize),
@@ -78,35 +112,35 @@ pub enum AnalysisRefMut<'a> {
     Mod(&'a mut ItemMod),
 }
 
-impl AnalysisItem {
+impl AnalysisEntry {
     pub fn get_ref<'a, 'b>(&'b self, analysis: &'a Analysis) -> AResult<AnalysisRef<'a>> {
         match self {
-            AnalysisItem::Struct(id) => {
+            AnalysisEntry::Struct(id) => {
                 if let Some(item) = analysis.structs.get(*id) {
                     return Ok(AnalysisRef::Struct(item));
                 };
             }
-            AnalysisItem::Enum(id) => {
+            AnalysisEntry::Enum(id) => {
                 if let Some(item) = analysis.enums.get(*id) {
                     return Ok(AnalysisRef::Enum(item));
                 };
             }
-            AnalysisItem::Type(id) => {
+            AnalysisEntry::Type(id) => {
                 if let Some(item) = analysis.types.get(*id) {
                     return Ok(AnalysisRef::Type(item));
                 };
             }
-            AnalysisItem::Impl(id) => {
+            AnalysisEntry::Impl(id) => {
                 if let Some(item) = analysis.impls.get(*id) {
                     return Ok(AnalysisRef::Impl(item));
                 };
             }
-            AnalysisItem::Mod(id) => {
+            AnalysisEntry::Mod(id) => {
                 if let Some(item) = analysis.modules.get(*id) {
                     return Ok(AnalysisRef::Mod(item));
                 };
             }
-            AnalysisItem::None => (),
+            AnalysisEntry::None => (),
         };
 
         bail!("Couldn't get AnalysisItem ref")
@@ -128,32 +162,32 @@ impl AnalysisItem {
         analysis: &'a mut Analysis,
     ) -> AResult<AnalysisRefMut<'a>> {
         match self {
-            AnalysisItem::Struct(id) => {
+            AnalysisEntry::Struct(id) => {
                 if let Some(item) = analysis.structs.get_mut(*id) {
                     return Ok(AnalysisRefMut::Struct(item));
                 };
             }
-            AnalysisItem::Enum(id) => {
+            AnalysisEntry::Enum(id) => {
                 if let Some(item) = analysis.enums.get_mut(*id) {
                     return Ok(AnalysisRefMut::Enum(item));
                 };
             }
-            AnalysisItem::Type(id) => {
+            AnalysisEntry::Type(id) => {
                 if let Some(item) = analysis.types.get_mut(*id) {
                     return Ok(AnalysisRefMut::Type(item));
                 };
             }
-            AnalysisItem::Impl(id) => {
+            AnalysisEntry::Impl(id) => {
                 if let Some(item) = analysis.impls.get_mut(*id) {
                     return Ok(AnalysisRefMut::Impl(item));
                 };
             }
-            AnalysisItem::Mod(id) => {
+            AnalysisEntry::Mod(id) => {
                 if let Some(item) = analysis.modules.get_mut(*id) {
                     return Ok(AnalysisRefMut::Mod(item));
                 };
             }
-            AnalysisItem::None => (),
+            AnalysisEntry::None => (),
         };
 
         bail!("Couldn't get AnalysisItem ref")
@@ -163,43 +197,43 @@ impl AnalysisItem {
         analysis: &'a mut Analysis,
         node_index: NodeIndex,
     ) -> AResult<AnalysisRefMut<'a>> {
-        let item = analysis
+        let entry = analysis
             .graph
             .node_weight(node_index)
             .context("Couldn't get node")?;
 
-        let item = item.clone();
+        let entry = entry.clone();
 
-        item.get_ref_mut(analysis)
+        entry.get_ref_mut(analysis)
     }
 }
 
 pub fn find_neighbor<'a>(
     analysis: &'a Analysis,
-    item_tree_node: NodeIndex,
+    entry_tree_node: NodeIndex,
     ident: &syn::Ident,
-) -> Option<(NodeIndex, AnalysisRef<'a>)> {
-    let neighbors = analysis.graph.neighbors(item_tree_node);
+) -> Option<NodeIndex> {
+    let neighbors = analysis.graph.neighbors(entry_tree_node);
     for neighbor in neighbors {
-        match AnalysisItem::node_index_ref(analysis, neighbor) {
-            Ok(AnalysisRef::Struct(struct_item)) => {
-                if &struct_item.item.ident.to_string() == &ident.to_string() {
-                    return Some((neighbor, AnalysisRef::Struct(struct_item)));
+        match AnalysisEntry::node_index_ref(analysis, neighbor) {
+            Ok(AnalysisRef::Struct(struct_entry)) => {
+                if &struct_entry.item.ident.to_string() == &ident.to_string() {
+                    return Some(neighbor);
                 }
             }
-            Ok(AnalysisRef::Enum(enum_item)) => {
-                if &enum_item.item.ident.to_string() == &ident.to_string() {
-                    return Some((neighbor, AnalysisRef::Enum(enum_item)));
+            Ok(AnalysisRef::Enum(enum_entry)) => {
+                if &enum_entry.item.ident.to_string() == &ident.to_string() {
+                    return Some(neighbor);
                 }
             }
-            Ok(AnalysisRef::Type(type_item)) => {
-                if &type_item.item.ident.to_string() == &ident.to_string() {
-                    return Some((neighbor, AnalysisRef::Type(type_item)));
+            Ok(AnalysisRef::Type(type_entry)) => {
+                if &type_entry.item.ident.to_string() == &ident.to_string() {
+                    return Some(neighbor);
                 }
             }
-            Ok(AnalysisRef::Mod(mod_item)) => {
-                if &mod_item.ident.to_string() == &ident.to_string() {
-                    return Some((neighbor, AnalysisRef::Mod(mod_item)));
+            Ok(AnalysisRef::Mod(mod_entry)) => {
+                if &mod_entry.ident.to_string() == &ident.to_string() {
+                    return Some(neighbor);
                 }
             }
             _ => (),

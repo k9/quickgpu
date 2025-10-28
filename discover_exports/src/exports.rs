@@ -4,51 +4,42 @@ use petgraph::{algo::astar, graph::NodeIndex, visit::Bfs};
 use crate::{
     AResult, Analysis,
     analysis::{
-        AnalysisEdge, AnalysisEnum, AnalysisItem, AnalysisRef, AnalysisStruct, AnalysisTypeAlias,
+        AnalysisEntry, AnalysisEnum, AnalysisRef, AnalysisStruct, AnalysisTypeAlias, HasPath,
     },
 };
 
-#[derive(Debug, Clone)]
-pub struct Exported<T> {
-    pub path: Vec<String>,
-    pub item: T,
+fn sort_shortest_first(exported_list: &mut Vec<impl HasPath>) {
+    exported_list.sort_by(|a, b| a.get_path().join("").cmp(&b.get_path().join("")));
+    exported_list.sort_by(|a, b| a.get_path().len().cmp(&b.get_path().len()));
 }
 
-fn sort_shortest_first<T>(exported_list: &mut Vec<Exported<T>>) {
-    exported_list.sort_by(|a, b| a.path.join("").cmp(&b.path.join("")));
-    exported_list.sort_by(|a, b| a.path.len().cmp(&b.path.len()));
+#[derive(Default)]
+pub struct ExportedEntries {
+    pub structs: Vec<AnalysisStruct>,
+    pub enums: Vec<AnalysisEnum>,
+    pub types: Vec<AnalysisTypeAlias>,
 }
 
-#[derive(Debug, Default)]
-pub struct ExportedItems {
-    pub structs: Vec<Exported<AnalysisStruct>>,
-    pub enums: Vec<Exported<AnalysisEnum>>,
-    pub types: Vec<Exported<AnalysisTypeAlias>>,
-}
-
-pub fn list_exports<'a>(analysis: &'a Analysis, root_index: NodeIndex) -> AResult<ExportedItems> {
-    let mut exports = ExportedItems::default();
+pub fn list_exports<'a>(analysis: &'a Analysis, root_index: NodeIndex) -> AResult<ExportedEntries> {
+    let mut exports = ExportedEntries::default();
     let mut bfs = Bfs::new(&analysis.graph, root_index);
     while let Some(node_index) = bfs.next(&analysis.graph) {
         if let Some(path) = item_path(analysis, root_index, node_index)? {
-            match AnalysisItem::node_index_ref(analysis, node_index)? {
+            match AnalysisEntry::node_index_ref(analysis, node_index)? {
                 AnalysisRef::Struct(node) => {
-                    exports.structs.push(Exported {
-                        path,
-                        item: node.clone(),
-                    });
+                    let mut node = node.clone();
+                    node.path = path;
+                    exports.structs.push(node);
                 }
                 AnalysisRef::Enum(node) => {
-                    exports.enums.push(Exported {
-                        path,
-                        item: node.clone(),
-                    });
+                    let mut node = node.clone();
+                    node.path = path;
+                    exports.enums.push(node);
                 }
                 AnalysisRef::Type(node) => {
-                    exports.types.push(Exported {
-                        path,
-                        item: node.clone(),
-                    });
+                    let mut node = node.clone();
+                    node.path = path;
+                    exports.types.push(node);
                 }
                 _ => (),
             };
@@ -79,18 +70,18 @@ pub fn item_path<'a>(
     let mut path = vec![];
     let mut previous_segment = None;
     for segment_index in graph_path.1 {
-        let name = match AnalysisItem::node_index_ref(analysis, segment_index)? {
-            AnalysisRef::Struct(struct_item) => Some(struct_item.item.ident.to_string()),
-            AnalysisRef::Enum(enum_item) => Some(enum_item.item.ident.to_string()),
-            AnalysisRef::Type(type_item) => Some(type_item.item.ident.to_string()),
+        let name = match AnalysisEntry::node_index_ref(analysis, segment_index)? {
+            AnalysisRef::Struct(struct_entry) => Some(struct_entry.item.ident.to_string()),
+            AnalysisRef::Enum(enum_entry) => Some(enum_entry.item.ident.to_string()),
+            AnalysisRef::Type(type_entry) => Some(type_entry.item.ident.to_string()),
             AnalysisRef::Impl(_) => None,
-            AnalysisRef::Mod(mod_item) => Some(mod_item.ident.to_string()),
+            AnalysisRef::Mod(mod_entry) => Some(mod_entry.ident.to_string()),
         };
 
         if let Some(mut name) = name {
             if let Some(previous_segment) = previous_segment
                 && let Some(edge) = analysis.graph.find_edge(previous_segment, previous_segment)
-                && let Some(AnalysisEdge::Rename(edge)) = analysis.graph.edge_weight(edge)
+                && let Some(Some(edge)) = analysis.graph.edge_weight(edge).map(|e| &e.rename)
             {
                 name = edge.clone();
             };

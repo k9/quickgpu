@@ -1,12 +1,11 @@
-use std::collections::HashSet;
-
-use anyhow::Context;
 use petgraph::{graph::NodeIndex, visit::Bfs};
+use std::collections::HashSet;
 use syn::{Item, UseTree};
 
 use crate::{
     AResult, Analysis,
-    analysis::{AnalysisEdge, AnalysisItem, AnalysisRef, find_neighbor},
+    analysis::{AnalysisEdge, AnalysisEntry, AnalysisRef, find_neighbor},
+    process::get_super,
 };
 
 pub fn process_use_statements(
@@ -16,7 +15,7 @@ pub fn process_use_statements(
 ) -> AResult<()> {
     let mut bfs = Bfs::new(&analysis.graph, parent_mod);
     while let Some(node_index) = bfs.next(&analysis.graph) {
-        if let AnalysisRef::Mod(module) = AnalysisItem::node_index_ref(analysis, node_index)? {
+        if let AnalysisRef::Mod(module) = AnalysisEntry::node_index_ref(analysis, node_index)? {
             let module = module.clone();
             if let Some((_, items)) = &module.content {
                 for item in items {
@@ -47,7 +46,7 @@ fn process_use_tree(
 ) -> AResult<()> {
     match &use_subtree {
         syn::UseTree::Path(use_path) => {
-            process_path(analysis, from_module, to_module, skipped_mods, use_path)?;
+            process_use_path(analysis, from_module, to_module, skipped_mods, use_path)?;
         }
         syn::UseTree::Group(use_group) => {
             for item in &use_group.items {
@@ -55,12 +54,10 @@ fn process_use_tree(
             }
         }
         syn::UseTree::Name(use_name) => {
-            if let Some((neighbor, AnalysisRef::Struct(_))) =
-                find_neighbor(&analysis, to_module, &use_name.ident)
-            {
+            if let Some(neighbor) = find_neighbor(&analysis, to_module, &use_name.ident) {
                 analysis
                     .graph
-                    .update_edge(from_module, neighbor, AnalysisEdge::Normal);
+                    .update_edge(from_module, neighbor, AnalysisEdge::new(true, None));
             }
         }
         syn::UseTree::Glob(_) => {
@@ -69,17 +66,15 @@ fn process_use_tree(
             for neighbor in neighbors {
                 analysis
                     .graph
-                    .update_edge(from_module, neighbor, AnalysisEdge::Normal);
+                    .update_edge(from_module, neighbor, AnalysisEdge::new(true, None));
             }
         }
         syn::UseTree::Rename(use_rename) => {
-            if let Some((neighbor, AnalysisRef::Struct(_))) =
-                find_neighbor(&analysis, to_module, &use_rename.ident)
-            {
+            if let Some(neighbor) = find_neighbor(&analysis, to_module, &use_rename.ident) {
                 analysis.graph.update_edge(
                     from_module,
                     neighbor,
-                    AnalysisEdge::Rename(use_rename.rename.to_string()),
+                    AnalysisEdge::new(true, Some(use_rename.rename.to_string())),
                 );
             }
         }
@@ -88,16 +83,14 @@ fn process_use_tree(
     Ok(())
 }
 
-fn process_path(
+fn process_use_path(
     analysis: &mut Analysis,
     from_module: NodeIndex,
     to_module: NodeIndex,
     skipped_mods: &mut HashSet<String>,
     use_path: &syn::UsePath,
 ) -> AResult<()> {
-    if let Some((neighbor, AnalysisRef::Mod(_))) =
-        find_neighbor(&analysis, to_module, &use_path.ident)
-    {
+    if let Some(neighbor) = find_neighbor(&analysis, to_module, &use_path.ident) {
         process_use_tree(
             analysis,
             from_module,
@@ -108,12 +101,7 @@ fn process_path(
     } else if let Some(krate) = analysis.crates.get(&use_path.ident.to_string()) {
         process_use_tree(analysis, from_module, *krate, &use_path.tree, skipped_mods)?;
     } else if &use_path.ident.to_string() == "super" {
-        let parent = analysis
-            .graph
-            .neighbors_directed(to_module, petgraph::Direction::Incoming)
-            .next()
-            .context("Couldn't get parent")?;
-
+        let parent = get_super(analysis, to_module)?;
         process_use_tree(analysis, from_module, parent, &use_path.tree, skipped_mods)?;
     } else {
         skipped_mods.insert(use_path.ident.to_string());

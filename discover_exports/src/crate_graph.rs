@@ -1,6 +1,7 @@
 use petgraph::dot::{Config, Dot};
+use quote::ToTokens;
 
-use crate::analysis::{Analysis, AnalysisItem};
+use crate::analysis::{Analysis, AnalysisEntry};
 
 #[allow(dead_code)]
 pub fn print_dot(analysis: &Analysis) {
@@ -12,37 +13,42 @@ pub fn print_dot(analysis: &Analysis) {
             &|_, _| "".to_string(),
             &|_, (_, s)| {
                 let label = match s {
-                    AnalysisItem::Struct(id) => {
-                        let item = &analysis.structs[*id];
-                        let name = &item.item.ident;
+                    AnalysisEntry::Struct(id) => {
+                        let entry = &analysis.structs[*id];
+                        let name = &entry.item.ident;
 
                         format!("struct {name}")
                     }
-                    AnalysisItem::Enum(id) => {
-                        let item = &analysis.enums[*id];
-                        let name = &item.item.ident;
+                    AnalysisEntry::Enum(id) => {
+                        let entry = &analysis.enums[*id];
+                        let name = &entry.item.ident;
 
                         format!("enum {name}")
                     }
-                    AnalysisItem::Type(id) => {
-                        let item = &analysis.types[*id];
-                        let name = &item.item.ident;
+                    AnalysisEntry::Type(id) => {
+                        let entry = &analysis.types[*id];
+                        let name = &entry.item.ident;
 
                         format!("{name}")
                     }
-                    AnalysisItem::Impl(id) => {
-                        let item = &analysis.impls[*id];
-                        let name = &item.trait_;
+                    AnalysisEntry::Impl(id) => {
+                        let entry = &analysis.impls[*id];
+                        let name = entry.trait_.as_ref().map(|t| {
+                            t.1.segments
+                                .iter()
+                                .map(|s| s.into_token_stream().to_string())
+                                .collect::<Vec<_>>()
+                        });
 
                         format!("{name:?}")
                     }
-                    AnalysisItem::Mod(id) => {
-                        let item = &analysis.modules[*id];
-                        let name = &item.ident;
+                    AnalysisEntry::Mod(id) => {
+                        let entry = &analysis.modules[*id];
+                        let name = &entry.ident;
 
                         format!("{name}")
                     }
-                    AnalysisItem::None => "none".to_string(),
+                    AnalysisEntry::None => "none".to_string(),
                 };
 
                 format!("label = \"{}\"", label)

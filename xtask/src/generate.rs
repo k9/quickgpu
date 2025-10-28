@@ -1,5 +1,7 @@
-use discover_exports::{Analysis, AnalysisEdge, AnalysisStruct, Exported, discover, parse_crate};
-use syn::Fields;
+use anyhow::bail;
+use discover_exports::{Analysis, AnalysisEdge, AnalysisStruct, discover, parse_crate};
+use quote::quote as q;
+use syn::{Fields, FieldsNamed, Visibility};
 
 use crate::utils::relative_path;
 
@@ -41,9 +43,9 @@ pub fn generate() -> anyhow::Result<()> {
 
     analysis
         .graph
-        .update_edge(root_index, root_types_index, AnalysisEdge::Normal);
+        .update_edge(root_index, root_types_index, AnalysisEdge::new(false, None));
 
-    let exports = discover(analysis, root_index).unwrap();
+    let exports = discover(&mut analysis, root_index).unwrap();
 
     let _structs = exports
         .structs
@@ -90,26 +92,48 @@ use wgpu::wgt::{Dx12SwapchainKind, Dx12UseFrameLatencyWaitableObject, TextureSel
     Ok(())
 }
 
-pub fn parse_struct(
-    exported: Exported<AnalysisStruct>,
-) -> AResult<Option<Exported<AnalysisStruct>>> {
-    if SKIP.contains(&exported.item.item.ident.to_string().as_str()) {
-        log::debug!(
-            "Skipping {} since it's in skip list",
-            exported.item.item.ident
-        );
+pub fn parse_struct(exported: AnalysisStruct) -> AResult<Option<AnalysisStruct>> {
+    if SKIP.contains(&exported.item.ident.to_string().as_str()) {
+        log::debug!("Skipping {} since it's in skip list", exported.item.ident);
 
         return Ok(None);
     }
 
-    if !matches!(exported.item.item.fields, Fields::Named(_)) {
+    let Ok(fields) = &struct_fields(&exported) else {
         log::debug!(
             "Skipping {} since it doesn't have named fields",
-            exported.item.item.ident
+            exported.item.ident
         );
 
         return Ok(None);
     };
 
+    if fields
+        .named
+        .iter()
+        .any(|f| !matches!(f.vis, Visibility::Public(_)))
+    {
+        log::debug!(
+            "Skipping {} since it has non-public fields",
+            exported.item.ident
+        );
+
+        return Ok(None);
+    };
+
+    println!("{:?}", exported.path);
+    for f in &fields.named {
+        let ty = &f.ty;
+        println!("    {}", q!(#ty));
+    }
+
     Ok(Some(exported))
+}
+
+pub fn struct_fields(entry: &AnalysisStruct) -> AResult<&FieldsNamed> {
+    let Fields::Named(named) = &entry.item.fields else {
+        bail!("Struct doesn't have named fields {}", entry.item.ident);
+    };
+
+    Ok(named)
 }
