@@ -1,7 +1,10 @@
 use petgraph::dot::{Config, Dot};
 use quote::ToTokens;
 
-use crate::analysis::{Analysis, AnalysisEntry};
+use crate::{
+    analysis::{Analysis, AnalysisEntry},
+    utils::IsPublic,
+};
 
 #[allow(dead_code)]
 pub fn print_dot(analysis: &Analysis) {
@@ -16,20 +19,30 @@ pub fn print_dot(analysis: &Analysis) {
                     AnalysisEntry::Struct(id) => {
                         let entry = &analysis.structs[*id];
                         let name = &entry.item.ident;
+                        let vis = &entry.item.vis.is_public();
 
-                        format!("struct {name}")
+                        format!("{vis} struct {name}")
                     }
                     AnalysisEntry::Enum(id) => {
                         let entry = &analysis.enums[*id];
                         let name = &entry.item.ident;
+                        let vis = &entry.item.vis.is_public();
 
-                        format!("enum {name}")
+                        format!("{vis} enum {name}")
                     }
                     AnalysisEntry::Type(id) => {
                         let entry = &analysis.types[*id];
                         let name = &entry.item.ident;
+                        let vis = &entry.item.vis.is_public();
 
-                        format!("{name}")
+                        format!("{vis} type {name}")
+                    }
+                    AnalysisEntry::Trait(id) => {
+                        let entry = &analysis.traits[*id];
+                        let name = &entry.item.ident;
+                        let vis = &entry.item.vis.is_public();
+
+                        format!("{vis} trait {name}")
                     }
                     AnalysisEntry::Impl(id) => {
                         let entry = &analysis.impls[*id];
@@ -44,9 +57,10 @@ pub fn print_dot(analysis: &Analysis) {
                     }
                     AnalysisEntry::Mod(id) => {
                         let entry = &analysis.modules[*id];
-                        let name = &entry.ident;
+                        let name = &entry.item.ident;
+                        let vis = &entry.item.vis.is_public();
 
-                        format!("{name}")
+                        format!("{vis} {name}")
                     }
                     AnalysisEntry::None => "none".to_string(),
                 };

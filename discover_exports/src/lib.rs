@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 use petgraph::graph::NodeIndex;
 
 pub use crate::analysis::{
@@ -8,37 +6,33 @@ pub use crate::analysis::{
 use crate::exports::ExportedEntries;
 pub use crate::exports::list_exports;
 pub use crate::process::parse_crate;
-use crate::process::{keep_only_pub, process_impls};
+use crate::process::{process_fields, process_impls};
 use crate::use_statements::process_use_statements;
 
 mod analysis;
 mod crate_graph;
 mod exports;
 mod process;
+pub mod types;
 mod use_statements;
-mod utils;
+pub mod utils;
 
 type AResult<T> = anyhow::Result<T>;
 
 pub fn discover(analysis: &mut Analysis, root_index: NodeIndex) -> AResult<ExportedEntries> {
-    let skipped_mods = discover_paths(analysis, root_index)?;
+    discover_paths(analysis, root_index)?;
 
     process_impls(analysis, root_index)?;
 
-    println!(
-        "skipped mod names: {}",
-        skipped_mods.into_iter().collect::<Vec<_>>().join(", ")
-    );
+    process_fields(analysis, root_index)?;
 
-    keep_only_pub(analysis, root_index)?;
     list_exports(&analysis, root_index)
 }
 
-fn discover_paths(analysis: &mut Analysis, root_index: NodeIndex) -> AResult<HashSet<String>> {
-    let mut skipped_mods = HashSet::new();
+fn discover_paths(analysis: &mut Analysis, root_index: NodeIndex) -> AResult<()> {
     let mut num_edges: usize = analysis.graph.edge_count();
     loop {
-        process_use_statements(analysis, root_index, &mut skipped_mods)?;
+        process_use_statements(analysis, root_index)?;
         let new_num_edges = analysis.graph.edge_count();
         if num_edges == new_num_edges {
             break;
@@ -47,15 +41,16 @@ fn discover_paths(analysis: &mut Analysis, root_index: NodeIndex) -> AResult<Has
         }
     }
 
-    Ok(skipped_mods)
+    Ok(())
 }
 
 #[cfg(test)]
 mod test {
     use crate::{
-        analysis::{Analysis, AnalysisEdge},
+        analysis::Analysis,
+        crate_graph::print_dot,
         process::parse_crate,
-        utils::{id, relative_path},
+        utils::{id, path_string, relative_path},
     };
 
     fn fixture() -> (Analysis, petgraph::prelude::NodeIndex) {
@@ -65,34 +60,28 @@ mod test {
             &mut analysis,
             relative_path("../expanded/wgpu.rs"),
             relative_path("test_workspace/test_lib"),
-            "crate",
+            "test_lib",
         )
         .unwrap();
 
-        let root_types_index = parse_crate(
+        parse_crate(
             &mut analysis,
             relative_path("../expanded/wgpu_types.rs"),
             relative_path("test_workspace/test_lib_types"),
-            "tlt",
+            "test_lib_types",
         )
         .unwrap();
 
-        analysis.graph.update_edge(
-            root_index,
-            root_types_index,
-            AnalysisEdge {
-                from_use_statement: true,
-                rename: None,
-            },
-        );
         (analysis, root_index)
     }
 
     #[test]
     fn discover() {
         let (mut analysis, root_index) = fixture();
+        print_dot(&analysis);
 
         let exports = super::discover(&mut analysis, root_index).unwrap();
+
         assert_eq!(exports.structs.len(), 8);
         assert_eq!(exports.types.len(), 1);
     }
@@ -110,7 +99,7 @@ mod test {
         )
         .unwrap();
 
-        assert_eq!(resolution.1, ["crate", "abc", "ZZ"]);
+        assert_eq!(path_string(&resolution.1), "test_lib::abc::ZZ");
 
         let resolution = super::process::resolve_path(
             &mut analysis,
@@ -120,18 +109,40 @@ mod test {
         )
         .unwrap();
 
-        assert_eq!(resolution.1, ["crate", "abc", "ZZ"]);
+        assert_eq!(path_string(&resolution.1), "test_lib::abc::ZZ");
 
         let resolution =
             super::process::resolve_path(&mut analysis, root_index, resolution.0, &[&id("super")])
                 .unwrap();
 
-        assert_eq!(resolution.1, ["crate", "abc"]);
+        assert_eq!(path_string(&resolution.1), "test_lib::abc");
 
-        let resolution =
-            super::process::resolve_path(&mut analysis, root_index, resolution.0, &[&id("super")])
-                .unwrap();
+        assert_eq!(
+            path_string(
+                &super::process::resolve_path(
+                    &mut analysis,
+                    root_index,
+                    resolution.0,
+                    &[&id("super")]
+                )
+                .unwrap()
+                .1
+            ),
+            "test_lib"
+        );
 
-        assert_eq!(resolution.1, ["crate"]);
+        assert_eq!(
+            path_string(
+                &super::process::resolve_path(
+                    &mut analysis,
+                    root_index,
+                    resolution.0,
+                    &[&id("super"), &id("tlt"), &id("counters"), &id("CounterA")]
+                )
+                .unwrap()
+                .1
+            ),
+            "test_lib::tlt::CounterA"
+        );
     }
 }

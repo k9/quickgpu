@@ -3,15 +3,17 @@ use std::path::PathBuf;
 use crate::{
     AResult,
     analysis::{
-        Analysis, AnalysisEdge, AnalysisEntry, AnalysisEnum, AnalysisRef, AnalysisRefMut,
-        AnalysisStruct, AnalysisTypeAlias, VecPushIndex, find_neighbor,
+        Analysis, AnalysisEdge, AnalysisEntry, AnalysisEnum, AnalysisMod, AnalysisRef,
+        AnalysisRefMut, AnalysisStruct, AnalysisTrait, AnalysisTypeAlias, VecPushIndex,
+        find_neighbor, update_edge,
     },
     exports::item_path,
-    utils::{dummy_module, write_expanded},
+    types::resolve_type_paths,
+    utils::{krate, path_segments, write_expanded},
 };
 use anyhow::{Context, bail};
 use petgraph::{Direction, graph::NodeIndex, visit::Bfs};
-use syn::{Ident, Item, Type, Visibility};
+use syn::{Fields, Ident, Item, Type};
 
 pub fn parse_crate(
     analysis: &mut Analysis,
@@ -27,11 +29,9 @@ pub fn parse_crate(
 
     let file = syn::parse_file(&contents)?;
 
-    let crate_root = dummy_module(crate_name, file.items);
+    let crate_root = krate(crate_name, true, file.items);
     let id = analysis.modules.push_index(crate_root);
     let root_index = analysis.graph.add_node(AnalysisEntry::Mod(id));
-
-    analysis.crates.insert(crate_name.to_string(), root_index);
 
     process_subtree(analysis, root_index)?;
 
@@ -43,7 +43,7 @@ pub fn process_subtree(analysis: &mut Analysis, parent_mod: NodeIndex) -> AResul
         bail!("Couldn't get node")
     };
 
-    let Some((_, content)) = &module.content else {
+    let Some((_, content)) = &module.item.content else {
         bail!("Couldn't get node")
     };
 
@@ -52,11 +52,22 @@ pub fn process_subtree(analysis: &mut Analysis, parent_mod: NodeIndex) -> AResul
     for item in content.into_iter() {
         match item {
             Item::Mod(mod_item) => {
-                let id = analysis.modules.push_index(mod_item);
+                let id = analysis.modules.push_index(AnalysisMod {
+                    item: mod_item,
+                    crate_root: None,
+                });
+
                 let child_mod = analysis.graph.add_node(AnalysisEntry::Mod(id));
-                analysis
-                    .graph
-                    .update_edge(parent_mod, child_mod, AnalysisEdge::new(false, None));
+                update_edge(
+                    analysis,
+                    parent_mod,
+                    child_mod,
+                    AnalysisEdge {
+                        from_use_statement: false,
+                        from_extern_crate: false,
+                        rename: None,
+                    },
+                );
 
                 process_subtree(analysis, child_mod)?;
             }
@@ -68,9 +79,17 @@ pub fn process_subtree(analysis: &mut Analysis, parent_mod: NodeIndex) -> AResul
                 });
 
                 let child = analysis.graph.add_node(AnalysisEntry::Struct(id));
-                analysis
-                    .graph
-                    .update_edge(parent_mod, child, AnalysisEdge::new(false, None));
+
+                update_edge(
+                    analysis,
+                    parent_mod,
+                    child,
+                    AnalysisEdge {
+                        from_use_statement: false,
+                        from_extern_crate: false,
+                        rename: None,
+                    },
+                );
             }
             Item::Enum(enum_item) => {
                 let id = analysis.enums.push_index(AnalysisEnum {
@@ -80,9 +99,17 @@ pub fn process_subtree(analysis: &mut Analysis, parent_mod: NodeIndex) -> AResul
                 });
 
                 let child = analysis.graph.add_node(AnalysisEntry::Enum(id));
-                analysis
-                    .graph
-                    .update_edge(parent_mod, child, AnalysisEdge::new(false, None));
+
+                update_edge(
+                    analysis,
+                    parent_mod,
+                    child,
+                    AnalysisEdge {
+                        from_use_statement: false,
+                        from_extern_crate: false,
+                        rename: None,
+                    },
+                );
             }
             Item::Type(type_item) => {
                 let id = analysis.types.push_index(AnalysisTypeAlias {
@@ -91,16 +118,47 @@ pub fn process_subtree(analysis: &mut Analysis, parent_mod: NodeIndex) -> AResul
                     path: vec![],
                 });
                 let child = analysis.graph.add_node(AnalysisEntry::Type(id));
-                analysis
-                    .graph
-                    .update_edge(parent_mod, child, AnalysisEdge::new(false, None));
+                update_edge(
+                    analysis,
+                    parent_mod,
+                    child,
+                    AnalysisEdge {
+                        from_use_statement: false,
+                        from_extern_crate: false,
+                        rename: None,
+                    },
+                );
+            }
+            Item::Trait(item) => {
+                let id = analysis.traits.push_index(AnalysisTrait {
+                    item: item.clone(),
+                    path: vec![],
+                });
+                let child = analysis.graph.add_node(AnalysisEntry::Trait(id));
+                update_edge(
+                    analysis,
+                    parent_mod,
+                    child,
+                    AnalysisEdge {
+                        from_use_statement: false,
+                        from_extern_crate: false,
+                        rename: None,
+                    },
+                );
             }
             Item::Impl(type_impl) => {
                 let id = analysis.impls.push_index(type_impl.clone());
                 let child = analysis.graph.add_node(AnalysisEntry::Impl(id));
-                analysis
-                    .graph
-                    .update_edge(parent_mod, child, AnalysisEdge::new(false, None));
+                update_edge(
+                    analysis,
+                    parent_mod,
+                    child,
+                    AnalysisEdge {
+                        from_use_statement: false,
+                        from_extern_crate: false,
+                        rename: None,
+                    },
+                );
             }
             _ => (),
         };
@@ -115,12 +173,7 @@ pub fn process_impls(analysis: &mut Analysis, root_index: NodeIndex) -> AResult<
         if let AnalysisRef::Impl(entry) = AnalysisEntry::node_index_ref(analysis, node_index)? {
             let entry = entry.clone();
             if let Type::Path(path) = *entry.self_ty.clone() {
-                let ty_path = path
-                    .path
-                    .segments
-                    .iter()
-                    .map(|seg| &seg.ident)
-                    .collect::<Vec<_>>();
+                let ty_path = path_segments(&path.path);
 
                 if let Ok((resolved, _)) = resolve_path(analysis, root_index, node_index, &ty_path)
                 {
@@ -141,12 +194,41 @@ pub fn process_impls(analysis: &mut Analysis, root_index: NodeIndex) -> AResult<
     Ok(())
 }
 
+pub fn process_fields(analysis: &mut Analysis, root_index: NodeIndex) -> AResult<()> {
+    let mut bfs = Bfs::new(&analysis.graph, root_index);
+    while let Some(node_index) = bfs.next(&analysis.graph) {
+        if let AnalysisRef::Struct(entry) = AnalysisEntry::node_index_ref(analysis, node_index)? {
+            let entry = entry.clone();
+            if let Fields::Named(fields) = &entry.item.fields {
+                for (field_index, field) in fields.named.iter().enumerate() {
+                    let ty = field.ty.clone();
+                    let ty = resolve_type_paths(ty, analysis, root_index, node_index);
+
+                    if let AnalysisRefMut::Struct(entry) =
+                        AnalysisEntry::node_index_ref_mut(analysis, node_index)?
+                    {
+                        if let Fields::Named(fields) = &mut entry.item.fields {
+                            fields
+                                .named
+                                .get_mut(field_index)
+                                .context("Error updating field")?
+                                .ty = ty;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(())
+}
+
 pub fn resolve_path(
-    analysis: &mut Analysis,
+    analysis: &Analysis,
     root_index: NodeIndex,
     item_index: NodeIndex,
     relative_path: &[&Ident],
-) -> AResult<(NodeIndex, Vec<String>)> {
+) -> AResult<(NodeIndex, Vec<Ident>)> {
     let entry = analysis
         .graph
         .node_weight(item_index)
@@ -159,16 +241,16 @@ pub fn resolve_path(
     };
 
     if let Ok(resolved) = resolve_path_recurse(analysis, module_index, relative_path, 0)
-        && let Some(path) = item_path(analysis, root_index, resolved)?
+        && let Ok(path) = item_path(analysis, root_index, resolved, true)
     {
         Ok((resolved, path))
     } else {
-        bail!("Couldn't resolve path {:?}", relative_path);
+        bail!("Couldn't resolve path {:?} {:?}", item_index, relative_path);
     }
 }
 
 pub fn resolve_path_recurse(
-    analysis: &mut Analysis,
+    analysis: &Analysis,
     current: NodeIndex,
     relative_path: &[&Ident],
     path_segment_index: usize,
@@ -177,21 +259,37 @@ pub fn resolve_path_recurse(
         return Ok(current);
     };
 
-    if let Some(krate) = analysis.crates.get(&path_segment.to_string()) {
-        resolve_path_recurse(analysis, *krate, relative_path, path_segment_index + 1)
+    let next_index = resolve_next_segment(analysis, current, path_segment)?;
+    resolve_path_recurse(analysis, next_index, relative_path, path_segment_index + 1)
+}
+
+pub fn resolve_next_segment(
+    analysis: &Analysis,
+    current: NodeIndex,
+    path_segment: &Ident,
+) -> AResult<NodeIndex> {
+    if &path_segment.to_string() == "self" {
+        Ok(current)
+    } else if &path_segment.to_string() == "crate" {
+        get_krate(analysis, current)
     } else if &path_segment.to_string() == "super" {
-        let parent = get_super(analysis, current)?;
-        resolve_path_recurse(analysis, parent, relative_path, path_segment_index + 1)
+        get_super(analysis, current)
+    } else if let Some(child_index) = find_neighbor(analysis, current, &path_segment) {
+        Ok(child_index)
     } else {
-        if let Some(child_index) = find_neighbor(analysis, current, &path_segment) {
-            resolve_path_recurse(analysis, child_index, relative_path, path_segment_index + 1)
+        let krate_index = get_krate(analysis, current)?;
+        if let AnalysisRef::Mod(krate) = AnalysisEntry::node_index_ref(analysis, krate_index)?
+            && let Some(krate_root) = &krate.crate_root
+            && let Some(extern_crate) = krate_root.extern_prelude.get(&path_segment.to_string())
+        {
+            Ok(*extern_crate)
         } else {
-            bail!("Can't resove path {:?}", relative_path);
+            bail!("Couldn't resolve path segment {:?}", path_segment);
         }
     }
 }
 
-pub fn get_super(analysis: &mut Analysis, node_index: NodeIndex) -> AResult<NodeIndex> {
+pub fn get_super(analysis: &Analysis, node_index: NodeIndex) -> AResult<NodeIndex> {
     let mut parents = analysis
         .graph
         .neighbors_directed(node_index, Direction::Incoming)
@@ -202,6 +300,7 @@ pub fn get_super(analysis: &mut Analysis, node_index: NodeIndex) -> AResult<Node
     {
         if let Some(edge) = analysis.graph.edge_weight(edge_index)
             && edge.from_use_statement == false
+            && edge.from_extern_crate == false
         {
             return Ok(node_index);
         }
@@ -210,45 +309,17 @@ pub fn get_super(analysis: &mut Analysis, node_index: NodeIndex) -> AResult<Node
     bail!("Couldn't get parent");
 }
 
-pub fn keep_only_pub(analysis: &mut Analysis, node_index: NodeIndex) -> AResult<()> {
-    let to_keep = keep_only_gather(analysis, node_index)?;
-    let node_indices = analysis.graph.node_indices().collect::<Vec<_>>();
-    for node_index in node_indices {
-        if !to_keep.contains(&node_index) {
-            analysis.graph.remove_node(node_index);
+pub fn get_krate(analysis: &Analysis, node_index: NodeIndex) -> AResult<NodeIndex> {
+    let mut node_index = node_index;
+    loop {
+        if let AnalysisRef::Mod(entry) = AnalysisEntry::node_index_ref(analysis, node_index)? {
+            if entry.crate_root.is_some() {
+                break;
+            };
         }
+
+        node_index = get_super(analysis, node_index)?;
     }
 
-    Ok(())
-}
-
-fn keep_only_gather(analysis: &mut Analysis, node_index: NodeIndex) -> AResult<Vec<NodeIndex>> {
-    let mut to_keep = vec![node_index];
-    let neighbors = analysis.graph.neighbors(node_index).collect::<Vec<_>>();
-
-    for neighbor in neighbors {
-        if let Some(entry) = analysis.graph.node_weight(neighbor) {
-            match entry.get_ref(analysis) {
-                Ok(AnalysisRef::Struct(struct_entry)) => {
-                    if matches!(struct_entry.item.vis, Visibility::Public(_)) {
-                        to_keep.push(neighbor);
-                    }
-                }
-                Ok(AnalysisRef::Type(struct_entry)) => {
-                    if matches!(struct_entry.item.vis, Visibility::Public(_)) {
-                        to_keep.push(neighbor);
-                    }
-                }
-                Ok(AnalysisRef::Mod(mod_entry)) => {
-                    if matches!(mod_entry.vis, Visibility::Public(_)) {
-                        let mut descendants = keep_only_gather(analysis, neighbor)?;
-                        to_keep.append(&mut descendants);
-                    }
-                }
-                _ => (),
-            }
-        }
-    }
-
-    Ok(to_keep)
+    Ok(node_index)
 }

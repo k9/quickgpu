@@ -8,11 +8,13 @@ impl Default for BigType {
     }
 }
 
-mod counters {
+pub mod counters {
     pub struct CounterA {}
     pub struct CounterB {}
     pub struct CounterC {}
-    pub struct CounterD {}
+    pub struct CounterD {
+        pub d: CounterC,
+    }
 
     mod inner {
         mod inner2 {

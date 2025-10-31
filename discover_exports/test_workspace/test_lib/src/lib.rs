@@ -1,7 +1,7 @@
-pub extern crate test_lib_types as tlt;
+extern crate test_lib_types as tlt;
 pub type BigTypeAlias = tlt::BigType;
 
-impl Default for BigTypeAlias {}
+//impl Default for BigTypeAlias {}
 
 pub mod abc;
 

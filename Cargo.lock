@@ -386,6 +386,7 @@ name = "discover_exports"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "log",
  "petgraph",
  "proc-macro2",
  "quote",

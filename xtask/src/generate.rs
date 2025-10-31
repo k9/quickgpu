@@ -1,7 +1,10 @@
 use anyhow::bail;
-use discover_exports::{Analysis, AnalysisEdge, AnalysisStruct, discover, parse_crate};
+use discover_exports::{
+    Analysis, AnalysisStruct, discover, parse_crate,
+    utils::{path_refs_string, path_segments, path_string},
+};
 use quote::quote as q;
-use syn::{Fields, FieldsNamed, Visibility};
+use syn::{Fields, FieldsNamed, Path, Visibility};
 
 use crate::utils::relative_path;
 
@@ -30,20 +33,40 @@ pub fn generate() -> anyhow::Result<()> {
         &mut analysis,
         relative_path("expanded/wgpu.rs"),
         relative_path("wgpu/wgpu"),
-        "crate",
+        "wgpu",
     )?;
 
-    let root_types_index = parse_crate(
+    parse_crate(
         &mut analysis,
         relative_path("expanded/wgpu_types.rs"),
         relative_path("wgpu/wgpu-types"),
-        "wgt",
+        "wgpu_types",
     )
     .unwrap();
 
-    analysis
-        .graph
-        .update_edge(root_index, root_types_index, AnalysisEdge::new(false, None));
+    parse_crate(
+        &mut analysis,
+        relative_path("expanded/wgpu_core.rs"),
+        relative_path("wgpu/wgpu-core"),
+        "wgpu_core",
+    )
+    .unwrap();
+
+    parse_crate(
+        &mut analysis,
+        relative_path("expanded/wgpu_hal.rs"),
+        relative_path("wgpu/wgpu-hal"),
+        "wgpu_hal",
+    )
+    .unwrap();
+
+    parse_crate(
+        &mut analysis,
+        relative_path("expanded/naga.rs"),
+        relative_path("wgpu/naga"),
+        "naga",
+    )
+    .unwrap();
 
     let exports = discover(&mut analysis, root_index).unwrap();
 
@@ -121,10 +144,24 @@ pub fn parse_struct(exported: AnalysisStruct) -> AResult<Option<AnalysisStruct>>
         return Ok(None);
     };
 
-    println!("{:?}", exported.path);
+    log::debug!(
+        "{} {}",
+        path_string(&exported.path),
+        exported
+            .impls
+            .iter()
+            .map(|i| i
+                .trait_
+                .as_ref()
+                .map_or("".to_string(), |t| { path_refs_string(&t.1) }))
+            .collect::<Vec<String>>()
+            .join("\n")
+    );
+
     for f in &fields.named {
+        let ident = &f.ident;
         let ty = &f.ty;
-        println!("    {}", q!(#ty));
+        log::debug!("    {}", q!(#ident: #ty));
     }
 
     Ok(Some(exported))
