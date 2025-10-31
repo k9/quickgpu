@@ -27,6 +27,14 @@ pub fn parse_crate(
         bail!("Failed to read {:?}", &output_path);
     };
 
+    process_crate(analysis, crate_name, contents)
+}
+
+pub fn process_crate(
+    analysis: &mut Analysis,
+    crate_name: &str,
+    contents: String,
+) -> Result<NodeIndex, anyhow::Error> {
     let file = syn::parse_file(&contents)?;
 
     let crate_root = krate(crate_name, true, file.items);
@@ -117,7 +125,9 @@ pub fn process_subtree(analysis: &mut Analysis, parent_mod: NodeIndex) -> AResul
                     impls: vec![],
                     path: vec![],
                 });
+
                 let child = analysis.graph.add_node(AnalysisEntry::Type(id));
+
                 update_edge(
                     analysis,
                     parent_mod,

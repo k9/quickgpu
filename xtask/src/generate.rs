@@ -1,12 +1,13 @@
 use anyhow::bail;
+use convert_case::{Case, Casing};
 use discover_exports::{
     Analysis, AnalysisStruct, discover, parse_crate,
-    utils::{path_refs_string, path_segments, path_string},
+    utils::{id, path_refs_string, path_string},
 };
 use quote::quote as q;
-use syn::{Fields, FieldsNamed, Path, Visibility};
+use syn::{Fields, FieldsNamed, Visibility};
 
-use crate::utils::relative_path;
+use crate::utils::{relative_path, rustfmt};
 
 type AResult<T> = anyhow::Result<T>;
 
@@ -70,30 +71,20 @@ pub fn generate() -> anyhow::Result<()> {
 
     let exports = discover(&mut analysis, root_index).unwrap();
 
-    let _structs = exports
+    let structs = exports
         .structs
         .into_iter()
-        .map(|struct_item| parse_struct(struct_item))
+        .map(|struct_item| filter_struct(struct_item))
         .collect::<AResult<Vec<_>>>()?
         .into_iter()
         .filter_map(|x| x)
         .collect::<Vec<_>>();
 
-    /*
-    let structs = structs
-        .into_iter()
-        .filter(|p| !SKIP.contains(&p.name.as_str()));
-
     let mut builders = vec![(
         "".to_string(),
         "
-use std::borrow::Cow;
 use std::ops::Range;
 use std::num::NonZeroU32;
-
-use wgpu::*;
-use wgpu::util::*;
-use wgpu::wgt::{Dx12SwapchainKind, Dx12UseFrameLatencyWaitableObject, TextureSelector};
 "
         .to_string(),
     )];
@@ -108,14 +99,46 @@ use wgpu::wgt::{Dx12SwapchainKind, Dx12UseFrameLatencyWaitableObject, TextureSel
         .collect::<Vec<String>>()
         .join("\n");
 
-    let output_path = relative_path("quickgpu/src/builders.rs");
+    let output_path = relative_path("quickgpu/src/inner.rs");
     std::fs::write(output_path.clone(), combined)?;
-    rustfmt(output_path)?;*/
+    rustfmt(output_path)?;
 
     Ok(())
 }
 
-pub fn parse_struct(exported: AnalysisStruct) -> AResult<Option<AnalysisStruct>> {
+fn output_struct(entry: AnalysisStruct) -> AResult<(String, String)> {
+    let comment = "".to_string();
+    let item = &entry.item;
+    let ident = &item.ident;
+    let fn_ident = id(ident.to_string().to_case(Case::Snake).as_str());
+    let path = &entry.path;
+    let generics = &item.generics;
+
+    let fn_params = struct_fields(&entry)?.named.iter().map(|f| {
+        let ident = &f.ident;
+        let ty = &f.ty;
+        q!(#ident: #ty)
+    });
+
+    let struct_values = struct_fields(&entry)?.named.iter().map(|f| {
+        let ident = &f.ident;
+        q!(#ident)
+    });
+
+    let code = q! {
+        pub fn #fn_ident #generics(
+            #(#fn_params),*
+        ) -> #(#path)::* #generics {
+            #(#path)::* {
+                #(#struct_values),*
+            }
+        }
+    };
+
+    Ok((comment, code.to_string()))
+}
+
+pub fn filter_struct(exported: AnalysisStruct) -> AResult<Option<AnalysisStruct>> {
     if SKIP.contains(&exported.item.ident.to_string().as_str()) {
         log::debug!("Skipping {} since it's in skip list", exported.item.ident);
 

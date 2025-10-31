@@ -1,4 +1,4 @@
-use anyhow::bail;
+use anyhow::{Context, bail};
 use petgraph::{graph::NodeIndex, visit::Bfs};
 use syn::{Item, UseTree};
 
@@ -57,15 +57,22 @@ fn process_use_tree(
                     AnalysisEdge {
                         from_use_statement: true,
                         from_extern_crate: false,
-                        rename: None,
+                        rename: Some(use_name.ident.clone()),
                     },
                 );
             };
         }
         syn::UseTree::Glob(_) => {
-            let neighbors = analysis.graph.neighbors(to_module).collect::<Vec<_>>();
+            let mut neighbors = analysis.graph.neighbors(to_module).detach();
 
-            for neighbor in neighbors {
+            while let Some((edge, neighbor)) = neighbors.next(&analysis.graph) {
+                let rename = analysis
+                    .graph
+                    .edge_weight(edge)
+                    .context("Coulnd't get edge weight")?
+                    .rename
+                    .clone();
+
                 update_edge(
                     analysis,
                     from_module,
@@ -73,7 +80,7 @@ fn process_use_tree(
                     AnalysisEdge {
                         from_use_statement: true,
                         from_extern_crate: false,
-                        rename: None,
+                        rename,
                     },
                 );
             }

@@ -49,11 +49,14 @@ mod test {
     use crate::{
         analysis::Analysis,
         crate_graph::print_dot,
-        process::parse_crate,
+        list_exports,
+        process::{parse_crate, process_crate},
         utils::{id, path_string, relative_path},
     };
 
-    fn fixture() -> (Analysis, petgraph::prelude::NodeIndex) {
+    use quote::quote as q;
+
+    fn test_workspace() -> (Analysis, petgraph::prelude::NodeIndex) {
         let mut analysis = Analysis::default();
 
         let root_index = parse_crate(
@@ -77,10 +80,10 @@ mod test {
 
     #[test]
     fn discover() {
-        let (mut analysis, root_index) = fixture();
-        print_dot(&analysis);
+        let (mut analysis, root_index) = test_workspace();
 
         let exports = super::discover(&mut analysis, root_index).unwrap();
+        print_dot(&analysis);
 
         assert_eq!(exports.structs.len(), 8);
         assert_eq!(exports.types.len(), 1);
@@ -88,7 +91,7 @@ mod test {
 
     #[test]
     fn resolve_path() {
-        let (mut analysis, root_index) = fixture();
+        let (mut analysis, root_index) = test_workspace();
         super::discover_paths(&mut analysis, root_index).unwrap();
 
         let resolution = super::process::resolve_path(
@@ -144,5 +147,47 @@ mod test {
             ),
             "test_lib::tlt::CounterA"
         );
+    }
+
+    #[test]
+    fn type_alias() {
+        let mut analysis = Analysis::default();
+
+        let root_index = process_crate(
+            &mut analysis,
+            "base",
+            q!(
+                extern crate extra as ext;
+                pub mod api {
+                    pub use ext::A as ABase;
+                    pub type A = ABase;
+                }
+                pub use api::*;
+            )
+            .to_string(),
+        )
+        .unwrap();
+
+        process_crate(
+            &mut analysis,
+            "extra",
+            q!(
+                pub struct A {}
+            )
+            .to_string(),
+        )
+        .unwrap();
+
+        super::discover_paths(&mut analysis, root_index).unwrap();
+
+        print_dot(&analysis);
+
+        let exports = list_exports(&analysis, root_index).unwrap();
+        assert_eq!(
+            exports.structs.first().unwrap().item.ident.to_string(),
+            "ABase"
+        );
+
+        assert_eq!(exports.types.first().unwrap().item.ident.to_string(), "A");
     }
 }

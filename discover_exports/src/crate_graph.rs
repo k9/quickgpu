@@ -1,10 +1,7 @@
 use petgraph::dot::{Config, Dot};
-use quote::ToTokens;
+use quote::{ToTokens, quote as q};
 
-use crate::{
-    analysis::{Analysis, AnalysisEntry},
-    utils::IsPublic,
-};
+use crate::analysis::{Analysis, AnalysisEntry};
 
 #[allow(dead_code)]
 pub fn print_dot(analysis: &Analysis) {
@@ -13,36 +10,44 @@ pub fn print_dot(analysis: &Analysis) {
         Dot::with_attr_getters(
             &analysis.graph,
             &[Config::EdgeNoLabel, Config::NodeNoLabel],
-            &|_, _| "".to_string(),
-            &|_, (_, s)| {
-                let label = match s {
+            &|_, edge| {
+                let label = edge
+                    .weight()
+                    .rename
+                    .as_ref()
+                    .map_or("".to_string(), |x| x.to_string());
+
+                format!("label = \"{}\"", label)
+            },
+            &|_, (_, entry)| {
+                let label = match entry {
                     AnalysisEntry::Struct(id) => {
                         let entry = &analysis.structs[*id];
                         let name = &entry.item.ident;
-                        let vis = &entry.item.vis.is_public();
+                        let vis = &entry.item.vis;
 
-                        format!("{vis} struct {name}")
+                        q!(#vis struct #name).to_string()
                     }
                     AnalysisEntry::Enum(id) => {
                         let entry = &analysis.enums[*id];
                         let name = &entry.item.ident;
-                        let vis = &entry.item.vis.is_public();
+                        let vis = &entry.item.vis;
 
-                        format!("{vis} enum {name}")
+                        q!(#vis enum #name).to_string()
                     }
                     AnalysisEntry::Type(id) => {
                         let entry = &analysis.types[*id];
                         let name = &entry.item.ident;
-                        let vis = &entry.item.vis.is_public();
+                        let vis = &entry.item.vis;
 
-                        format!("{vis} type {name}")
+                        q!(#vis type #name).to_string()
                     }
                     AnalysisEntry::Trait(id) => {
                         let entry = &analysis.traits[*id];
                         let name = &entry.item.ident;
-                        let vis = &entry.item.vis.is_public();
+                        let vis = &entry.item.vis;
 
-                        format!("{vis} trait {name}")
+                        q!(#vis trait #name).to_string()
                     }
                     AnalysisEntry::Impl(id) => {
                         let entry = &analysis.impls[*id];
@@ -53,14 +58,14 @@ pub fn print_dot(analysis: &Analysis) {
                                 .collect::<Vec<_>>()
                         });
 
-                        format!("{name:?}")
+                        format!("{name:?}").replace("\"", "\\\"")
                     }
                     AnalysisEntry::Mod(id) => {
                         let entry = &analysis.modules[*id];
                         let name = &entry.item.ident;
-                        let vis = &entry.item.vis.is_public();
+                        let vis = &entry.item.vis;
 
-                        format!("{vis} {name}")
+                        q!(#vis mod #name).to_string()
                     }
                     AnalysisEntry::None => "none".to_string(),
                 };

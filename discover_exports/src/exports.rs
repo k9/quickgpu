@@ -1,4 +1,4 @@
-use anyhow::Context;
+use anyhow::{Context, bail};
 use petgraph::{
     algo::astar,
     graph::NodeIndex,
@@ -12,7 +12,7 @@ use crate::{
         AnalysisEntry, AnalysisEnum, AnalysisRef, AnalysisStruct, AnalysisTrait, AnalysisTypeAlias,
         HasPath,
     },
-    utils::IsPublic,
+    utils::{IsPublic, id},
 };
 
 fn sort_shortest_first(exported_list: &mut Vec<impl HasPath>) {
@@ -33,7 +33,7 @@ fn sort_shortest_first(exported_list: &mut Vec<impl HasPath>) {
     exported_list.sort_by(|a, b| a.get_path().len().cmp(&b.get_path().len()));
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct ExportedEntries {
     pub structs: Vec<AnalysisStruct>,
     pub enums: Vec<AnalysisEnum>,
@@ -49,21 +49,25 @@ pub fn list_exports<'a>(analysis: &'a Analysis, root_index: NodeIndex) -> AResul
             match AnalysisEntry::node_index_ref(analysis, node_index)? {
                 AnalysisRef::Struct(node) => {
                     let mut node = node.clone();
+                    node.item.ident = path.last().context("Can't get ident override")?.clone();
                     node.path = path;
                     exports.structs.push(node);
                 }
                 AnalysisRef::Enum(node) => {
                     let mut node = node.clone();
+                    node.item.ident = path.last().context("Can't get ident override")?.clone();
                     node.path = path;
                     exports.enums.push(node);
                 }
                 AnalysisRef::Type(node) => {
                     let mut node = node.clone();
+                    node.item.ident = path.last().context("Can't get ident override")?.clone();
                     node.path = path;
                     exports.types.push(node);
                 }
                 AnalysisRef::Trait(node) => {
                     let mut node = node.clone();
+                    node.item.ident = path.last().context("Can't get ident override")?.clone();
                     node.path = path;
                     exports.traits.push(node);
                 }
@@ -80,6 +84,7 @@ pub fn list_exports<'a>(analysis: &'a Analysis, root_index: NodeIndex) -> AResul
     Ok(exports)
 }
 
+// Returns the shortest path from root to a node
 pub fn item_path<'a>(
     analysis: &'a Analysis,
     root_index: NodeIndex,
@@ -103,27 +108,40 @@ pub fn item_path<'a>(
 
     let mut path = vec![];
     let mut previous_segment = None;
-    for segment_index in graph_path.1 {
-        let name = match AnalysisEntry::node_index_ref(analysis, segment_index)? {
+    for (i, node_index) in graph_path.1.iter().enumerate() {
+        let name = match AnalysisEntry::node_index_ref(analysis, *node_index)? {
             AnalysisRef::Struct(entry) => Some(&entry.item.ident),
             AnalysisRef::Enum(entry) => Some(&entry.item.ident),
             AnalysisRef::Type(entry) => Some(&entry.item.ident),
             AnalysisRef::Trait(entry) => Some(&entry.item.ident),
             AnalysisRef::Impl(_) => None,
-            AnalysisRef::Mod(entry) => Some(&entry.item.ident),
+            AnalysisRef::Mod(entry) => {
+                if !allow_non_public && entry.crate_root.is_some() && i > 0 {
+                    bail!("Not listing extern crate items");
+                }
+
+                Some(&entry.item.ident)
+            }
         };
 
         if let Some(mut name) = name {
-            if let Some(previous_segment) = previous_segment
-                && let Some(edge) = analysis.graph.find_edge(previous_segment, segment_index)
-                && let Some(Some(edge)) = analysis.graph.edge_weight(edge).map(|e| &e.rename)
-            {
-                name = edge;
+            if let Some(previous_segment) = previous_segment {
+                for edge in analysis
+                    .graph
+                    .edges_connecting(previous_segment, *node_index)
+                {
+                    if !allow_non_public && name.to_string().contains("RequestAdapterO") {
+                        println!("edge {:?}", edge);
+                    }
+                    if let Some(edge) = &edge.weight().rename {
+                        name = edge;
+                    }
+                }
             };
 
             path.push(name.clone());
 
-            previous_segment = Some(segment_index);
+            previous_segment = Some(*node_index);
         }
     }
 

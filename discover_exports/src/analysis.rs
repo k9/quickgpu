@@ -289,6 +289,7 @@ pub fn update_edge<'a>(
     let mut connecting = analysis.graph.edges_connecting(from, to);
     while let Some(existing_index) = connecting.next() {
         let existing = existing_index.weight();
+
         if edge.from_use_statement == existing.from_use_statement
             && edge.from_extern_crate == existing.from_extern_crate
         {
