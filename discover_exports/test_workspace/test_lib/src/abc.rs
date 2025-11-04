@@ -2,6 +2,10 @@ pub struct Abc {
     pub z: String,
 }
 
+impl Abc {
+    const XYZ: i8 = 4;
+}
+
 mod z {
     pub struct ZZ {}
 }

@@ -2,12 +2,11 @@ use std::collections::HashMap;
 
 use crate::AResult;
 use anyhow::{Context, bail};
-use petgraph::{
-    graph::{EdgeIndex, NodeIndex},
-    prelude::StableGraph,
-    visit::EdgeRef,
+use petgraph::{graph::NodeIndex, prelude::StableGraph};
+use syn::{
+    Attribute, Fields, Generics, Ident, ImplRestriction, Item, ItemEnum, ItemImpl, ItemMod,
+    ItemStruct, ItemTrait, ItemType, TraitItem, Type, TypeParamBound, Variant, Visibility,
 };
-use syn::{Ident, ItemEnum, ItemImpl, ItemMod, ItemStruct, ItemTrait, ItemType};
 
 #[derive(Clone, Debug, Default)]
 pub struct CrateRoot {
@@ -16,62 +15,148 @@ pub struct CrateRoot {
 
 #[derive(Clone, Debug)]
 pub struct AnalysisMod {
-    pub item: ItemMod,
+    pub attrs: Vec<Attribute>,
+    pub vis: Visibility,
+    pub content: Vec<Item>,
     pub crate_root: Option<CrateRoot>,
+}
+
+impl AnalysisMod {
+    pub fn new(
+        ItemMod {
+            attrs,
+            vis,
+            content,
+            ..
+        }: ItemMod,
+        crate_root: Option<CrateRoot>,
+    ) -> Self {
+        Self {
+            attrs,
+            vis,
+            content: content.map_or(vec![], |c| c.1),
+            crate_root,
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
 pub struct AnalysisStruct {
-    pub item: ItemStruct,
+    pub attrs: Vec<Attribute>,
+    pub vis: Visibility,
+    pub generics: Generics,
+    pub fields: Fields,
     pub impls: Vec<ItemImpl>,
-    pub path: Vec<Ident>,
+}
+
+impl AnalysisStruct {
+    pub fn new(
+        ItemStruct {
+            attrs,
+            vis,
+            generics,
+            fields,
+            ..
+        }: ItemStruct,
+        impls: Vec<ItemImpl>,
+    ) -> Self {
+        Self {
+            attrs,
+            vis,
+            generics,
+            fields,
+            impls,
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
 pub struct AnalysisEnum {
-    pub item: ItemEnum,
+    pub attrs: Vec<Attribute>,
+    pub vis: Visibility,
+    pub generics: Generics,
+    pub variants: Vec<Variant>,
     pub impls: Vec<ItemImpl>,
-    pub path: Vec<Ident>,
+}
+
+impl AnalysisEnum {
+    pub fn new(
+        ItemEnum {
+            attrs,
+            vis,
+            generics,
+            variants,
+            ..
+        }: ItemEnum,
+        impls: Vec<ItemImpl>,
+    ) -> Self {
+        Self {
+            attrs,
+            vis,
+            generics,
+            variants: variants.into_iter().collect(),
+            impls,
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
 pub struct AnalysisTypeAlias {
-    pub item: ItemType,
-    pub impls: Vec<ItemImpl>,
-    pub path: Vec<Ident>,
+    pub attrs: Vec<Attribute>,
+    pub vis: Visibility,
+    pub generics: Generics,
+    pub ty: Box<Type>,
+}
+
+impl AnalysisTypeAlias {
+    pub fn new(
+        ItemType {
+            attrs,
+            vis,
+            generics,
+            ty,
+            ..
+        }: ItemType,
+    ) -> Self {
+        Self {
+            attrs,
+            vis,
+            generics,
+            ty,
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
 pub struct AnalysisTrait {
-    pub item: ItemTrait,
-    pub path: Vec<Ident>,
+    pub attrs: Vec<Attribute>,
+    pub vis: Visibility,
+    pub restriction: Option<ImplRestriction>,
+    pub generics: Generics,
+    pub supertraits: Vec<TypeParamBound>,
+    pub items: Vec<TraitItem>,
 }
 
-pub trait HasPath {
-    fn get_path(&self) -> &[Ident];
-}
-
-impl HasPath for AnalysisStruct {
-    fn get_path(&self) -> &[Ident] {
-        &self.path
-    }
-}
-
-impl HasPath for AnalysisEnum {
-    fn get_path(&self) -> &[Ident] {
-        &self.path
-    }
-}
-
-impl HasPath for AnalysisTypeAlias {
-    fn get_path(&self) -> &[Ident] {
-        &self.path
-    }
-}
-
-impl HasPath for AnalysisTrait {
-    fn get_path(&self) -> &[Ident] {
-        &self.path
+impl AnalysisTrait {
+    pub fn new(
+        ItemTrait {
+            attrs,
+            vis,
+            restriction,
+            generics,
+            supertraits,
+            items,
+            ..
+        }: ItemTrait,
+    ) -> Self {
+        Self {
+            attrs,
+            vis,
+            restriction,
+            generics,
+            supertraits: supertraits.into_iter().collect(),
+            items,
+        }
     }
 }
 
@@ -82,15 +167,22 @@ pub struct Analysis {
     pub enums: Vec<AnalysisEnum>,
     pub types: Vec<AnalysisTypeAlias>,
     pub traits: Vec<AnalysisTrait>,
-    pub impls: Vec<ItemImpl>,
     pub modules: Vec<AnalysisMod>,
 }
 
 #[derive(Debug, Clone)]
 pub struct AnalysisEdge {
-    pub from_use_statement: bool,
-    pub from_extern_crate: bool,
-    pub rename: Option<Ident>,
+    pub from_hierarchy: bool,
+    pub name: Option<Ident>,
+}
+
+impl AnalysisEdge {
+    pub fn new(from_hierarchy: bool, rename: Option<Ident>) -> Self {
+        Self {
+            from_hierarchy,
+            name: rename,
+        }
+    }
 }
 
 pub trait VecPushIndex<T> {
@@ -110,8 +202,8 @@ pub enum AnalysisEntry {
     Enum(usize),
     Type(usize),
     Trait(usize),
-    Impl(usize),
     Mod(usize),
+    Origin,
     None,
 }
 
@@ -121,21 +213,8 @@ pub enum AnalysisRef<'a> {
     Enum(&'a AnalysisEnum),
     Type(&'a AnalysisTypeAlias),
     Trait(&'a AnalysisTrait),
-    Impl(&'a ItemImpl),
     Mod(&'a AnalysisMod),
-}
-
-impl<'a> AnalysisRef<'a> {
-    pub fn ident(&self) -> Option<&Ident> {
-        match self {
-            AnalysisRef::Struct(entry) => Some(&entry.item.ident),
-            AnalysisRef::Enum(entry) => Some(&entry.item.ident),
-            AnalysisRef::Type(entry) => Some(&entry.item.ident),
-            AnalysisRef::Trait(entry) => Some(&entry.item.ident),
-            AnalysisRef::Mod(entry) => Some(&entry.item.ident),
-            _ => None,
-        }
-    }
+    Origin,
 }
 
 pub enum AnalysisRefMut<'a> {
@@ -143,8 +222,8 @@ pub enum AnalysisRefMut<'a> {
     Enum(&'a mut AnalysisEnum),
     Type(&'a mut AnalysisTypeAlias),
     Trait(&'a mut AnalysisTrait),
-    Impl(&'a mut ItemImpl),
     Mod(&'a mut AnalysisMod),
+    Origin,
 }
 
 impl AnalysisEntry {
@@ -170,16 +249,12 @@ impl AnalysisEntry {
                     return Ok(AnalysisRef::Trait(item));
                 };
             }
-            AnalysisEntry::Impl(id) => {
-                if let Some(item) = analysis.impls.get(*id) {
-                    return Ok(AnalysisRef::Impl(item));
-                };
-            }
             AnalysisEntry::Mod(id) => {
                 if let Some(item) = analysis.modules.get(*id) {
                     return Ok(AnalysisRef::Mod(item));
                 };
             }
+            AnalysisEntry::Origin => return Ok(AnalysisRef::Origin),
             AnalysisEntry::None => (),
         };
 
@@ -222,16 +297,12 @@ impl AnalysisEntry {
                     return Ok(AnalysisRefMut::Trait(item));
                 };
             }
-            AnalysisEntry::Impl(id) => {
-                if let Some(item) = analysis.impls.get_mut(*id) {
-                    return Ok(AnalysisRefMut::Impl(item));
-                };
-            }
             AnalysisEntry::Mod(id) => {
                 if let Some(item) = analysis.modules.get_mut(*id) {
                     return Ok(AnalysisRefMut::Mod(item));
                 };
             }
+            AnalysisEntry::Origin => (),
             AnalysisEntry::None => (),
         };
 
@@ -251,52 +322,4 @@ impl AnalysisEntry {
 
         entry.get_ref_mut(analysis)
     }
-}
-
-pub fn find_neighbor<'a>(
-    analysis: &'a Analysis,
-    entry_tree_node: NodeIndex,
-    ident: &syn::Ident,
-) -> Option<NodeIndex> {
-    let mut neighbors = analysis.graph.neighbors(entry_tree_node).detach();
-    while let Some((edge_index, neighbor)) = neighbors.next(&analysis.graph) {
-        if let Some(neighbor_ident) = match AnalysisEntry::node_index_ref(analysis, neighbor) {
-            Ok(AnalysisRef::Struct(entry)) => Some(&entry.item.ident),
-            Ok(AnalysisRef::Enum(entry)) => Some(&entry.item.ident),
-            Ok(AnalysisRef::Type(entry)) => Some(&entry.item.ident),
-            Ok(AnalysisRef::Trait(entry)) => Some(&entry.item.ident),
-            Ok(AnalysisRef::Mod(entry)) => Some(&entry.item.ident),
-            _ => None,
-        } {
-            let edge = analysis.graph.edge_weight(edge_index)?;
-
-            let neighbor_ident = edge.rename.as_ref().unwrap_or(neighbor_ident);
-            if neighbor_ident.to_string() == ident.to_string() {
-                return Some(neighbor);
-            }
-        }
-    }
-
-    None
-}
-
-pub fn update_edge<'a>(
-    analysis: &'a mut Analysis,
-    from: NodeIndex,
-    to: NodeIndex,
-    edge: AnalysisEdge,
-) -> EdgeIndex {
-    let mut connecting = analysis.graph.edges_connecting(from, to);
-    while let Some(existing_index) = connecting.next() {
-        let existing = existing_index.weight();
-
-        if edge.from_use_statement == existing.from_use_statement
-            && edge.from_extern_crate == existing.from_extern_crate
-        {
-            log::warn!("already-existing edge type {:?} to {:?}", existing, edge);
-            return existing_index.id();
-        }
-    }
-
-    analysis.graph.add_edge(from, to, edge)
 }

@@ -4,9 +4,8 @@ use syn::{Item, UseTree};
 
 use crate::{
     AResult, Analysis,
-    analysis::{
-        AnalysisEdge, AnalysisEntry, AnalysisRef, AnalysisRefMut, find_neighbor, update_edge,
-    },
+    analysis::{AnalysisEdge, AnalysisEntry, AnalysisRef, AnalysisRefMut},
+    crate_graph::{find_neighbor, update_edge},
     process::resolve_next_segment,
 };
 
@@ -16,15 +15,13 @@ pub fn process_use_statements(analysis: &mut Analysis, parent_mod: NodeIndex) ->
         if let AnalysisRef::Mod(module) = AnalysisEntry::node_index_ref(analysis, node_index)? {
             let module = module.clone();
 
-            if let Some((_, items)) = &module.item.content {
-                for item in items {
-                    if let Item::Use(use_statement) = item {
-                        let use_statement = use_statement.clone();
-                        process_use_tree(analysis, node_index, node_index, &use_statement.tree)?;
-                    } else if let Item::ExternCrate(extern_crate) = item {
-                        let extern_crate = extern_crate.clone();
-                        process_extern_crate(analysis, node_index, &extern_crate)?;
-                    }
+            for item in module.content {
+                if let Item::Use(use_statement) = item {
+                    let use_statement = use_statement.clone();
+                    process_use_tree(analysis, node_index, node_index, &use_statement.tree)?;
+                } else if let Item::ExternCrate(extern_crate) = item {
+                    let extern_crate = extern_crate.clone();
+                    process_extern_crate(analysis, node_index, &extern_crate)?;
                 }
             }
         }
@@ -54,11 +51,7 @@ fn process_use_tree(
                     analysis,
                     from_module,
                     next_index,
-                    AnalysisEdge {
-                        from_use_statement: true,
-                        from_extern_crate: false,
-                        rename: Some(use_name.ident.clone()),
-                    },
+                    AnalysisEdge::new(false, Some(use_name.ident.clone())),
                 );
             };
         }
@@ -70,18 +63,14 @@ fn process_use_tree(
                     .graph
                     .edge_weight(edge)
                     .context("Coulnd't get edge weight")?
-                    .rename
+                    .name
                     .clone();
 
                 update_edge(
                     analysis,
                     from_module,
                     neighbor,
-                    AnalysisEdge {
-                        from_use_statement: true,
-                        from_extern_crate: false,
-                        rename,
-                    },
+                    AnalysisEdge::new(false, rename),
                 );
             }
         }
@@ -91,11 +80,7 @@ fn process_use_tree(
                     analysis,
                     from_module,
                     neighbor,
-                    AnalysisEdge {
-                        from_use_statement: true,
-                        from_extern_crate: false,
-                        rename: Some(use_rename.rename.clone()),
-                    },
+                    AnalysisEdge::new(false, Some(use_rename.rename.clone())),
                 );
             }
         }
@@ -122,26 +107,28 @@ fn process_extern_crate(
     parent_index: NodeIndex,
     extern_crate: &syn::ItemExternCrate,
 ) -> AResult<()> {
-    for node_index in analysis.graph.node_indices().collect::<Vec<_>>() {
-        if let AnalysisRef::Mod(module) = AnalysisEntry::node_index_ref(analysis, node_index)?
-            && module.crate_root.is_some()
-            && module.item.ident.to_string() == extern_crate.ident.to_string()
-        {
-            let rename = extern_crate
+    for edge_index in analysis.graph.edge_indices().collect::<Vec<_>>() {
+        let edge = analysis
+            .graph
+            .edge_weight(edge_index)
+            .context("Couldn't get edge weight")?;
+
+        if edge.name.as_ref().map(|name| name.to_string()) == Some(extern_crate.ident.to_string()) {
+            let name = extern_crate
                 .rename
                 .as_ref()
                 .map_or(extern_crate.ident.clone(), |(_, rename)| rename.clone())
                 .clone();
 
+            let Some((_, node_index)) = analysis.graph.edge_endpoints(edge_index) else {
+                bail!("Couldn't get edge endpoints");
+            };
+
             update_edge(
                 analysis,
                 parent_index,
                 node_index,
-                AnalysisEdge {
-                    from_use_statement: false,
-                    from_extern_crate: true,
-                    rename: Some(rename.clone()),
-                },
+                AnalysisEdge::new(false, Some(name.clone())),
             );
 
             let Ok(AnalysisRefMut::Mod(parent)) =
@@ -153,7 +140,7 @@ fn process_extern_crate(
             if let Some(crate_root) = parent.crate_root.as_mut() {
                 crate_root
                     .extern_prelude
-                    .insert(rename.to_string(), node_index);
+                    .insert(name.to_string(), node_index);
             }
         }
     }

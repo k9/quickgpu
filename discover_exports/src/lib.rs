@@ -3,14 +3,12 @@ use petgraph::graph::NodeIndex;
 pub use crate::analysis::{
     Analysis, AnalysisEdge, AnalysisEnum, AnalysisStruct, AnalysisTypeAlias,
 };
-use crate::exports::ExportedEntries;
-pub use crate::exports::list_exports;
 pub use crate::process::parse_crate;
 use crate::process::{process_fields, process_impls};
 use crate::use_statements::process_use_statements;
 
-mod analysis;
-mod crate_graph;
+pub mod analysis;
+pub mod crate_graph;
 mod exports;
 mod process;
 pub mod types;
@@ -19,14 +17,11 @@ pub mod utils;
 
 type AResult<T> = anyhow::Result<T>;
 
-pub fn discover(analysis: &mut Analysis, root_index: NodeIndex) -> AResult<ExportedEntries> {
+pub fn discover(analysis: &mut Analysis, root_index: NodeIndex) -> AResult<()> {
     discover_paths(analysis, root_index)?;
-
     process_impls(analysis, root_index)?;
-
     process_fields(analysis, root_index)?;
-
-    list_exports(&analysis, root_index)
+    Ok(())
 }
 
 fn discover_paths(analysis: &mut Analysis, root_index: NodeIndex) -> AResult<()> {
@@ -46,15 +41,19 @@ fn discover_paths(analysis: &mut Analysis, root_index: NodeIndex) -> AResult<()>
 
 #[cfg(test)]
 mod test {
+    use std::collections::HashMap;
+
     use crate::{
-        analysis::Analysis,
-        crate_graph::print_dot,
-        list_exports,
+        analysis::{Analysis, AnalysisEntry, AnalysisRef},
+        crate_graph::{filter_map_nodes, for_each_node, keep_only_public, node_ident, print_dot},
         process::{parse_crate, process_crate},
         utils::{id, path_string, relative_path},
     };
 
     use quote::quote as q;
+    use syn::{ImplItem, ImplItemConst};
+
+    use super::discover;
 
     fn test_workspace() -> (Analysis, petgraph::prelude::NodeIndex) {
         let mut analysis = Analysis::default();
@@ -79,14 +78,64 @@ mod test {
     }
 
     #[test]
-    fn discover() {
+    fn test_discover() {
         let (mut analysis, root_index) = test_workspace();
 
-        let exports = super::discover(&mut analysis, root_index).unwrap();
+        discover(&mut analysis, root_index).unwrap();
+        keep_only_public(&mut analysis, root_index).unwrap();
         print_dot(&analysis);
 
-        assert_eq!(exports.structs.len(), 8);
-        assert_eq!(exports.types.len(), 1);
+        assert_eq!(
+            filter_map_nodes(&analysis, root_index, |index| matches!(
+                AnalysisEntry::node_index_ref(&analysis, index).unwrap(),
+                AnalysisRef::Struct(_)
+            )
+            .then_some(index))
+            .count(),
+            5
+        );
+
+        let mut consts: HashMap<String, Vec<String>> = HashMap::new();
+        for_each_node(&analysis, root_index, |index| {
+            if let AnalysisRef::Struct(entry) =
+                AnalysisEntry::node_index_ref(&analysis, index).unwrap()
+            {
+                println!("{:?}", node_ident(&analysis, root_index, index));
+
+                consts.insert(
+                    node_ident(&analysis, root_index, index)
+                        .unwrap()
+                        .to_string(),
+                    struct_consts(entry)
+                        .iter()
+                        .map(|c| c.ident.to_string())
+                        .collect::<Vec<_>>(),
+                );
+            }
+        });
+
+        assert_eq!(consts.len(), 5);
+
+        let abc_consts = consts.get("A").unwrap();
+        assert_eq!(abc_consts.len(), 0);
+
+        let abc_consts = consts.get("Abc").unwrap();
+        assert_eq!(abc_consts.len(), 2);
+        assert!(abc_consts.contains(&"XYZ".to_string()));
+        assert!(abc_consts.contains(&"ZZZZ".to_string()));
+    }
+
+    fn struct_consts(entry: &crate::AnalysisStruct) -> Vec<&ImplItemConst> {
+        let mut consts = vec![];
+        for impl_item in &entry.impls {
+            for item in &impl_item.items {
+                if let ImplItem::Const(c) = item {
+                    consts.push(c);
+                };
+            }
+        }
+
+        consts
     }
 
     #[test]
@@ -180,14 +229,43 @@ mod test {
 
         super::discover_paths(&mut analysis, root_index).unwrap();
 
+        keep_only_public(&mut analysis, root_index).unwrap();
         print_dot(&analysis);
 
-        let exports = list_exports(&analysis, root_index).unwrap();
+        let mut structs = filter_map_nodes(&analysis, root_index, |node_index| {
+            if let Ok(AnalysisRef::Struct(_)) = AnalysisEntry::node_index_ref(&analysis, node_index)
+            {
+                Some(node_index)
+            } else {
+                None
+            }
+        });
+
         assert_eq!(
-            exports.structs.first().unwrap().item.ident.to_string(),
+            node_ident(&analysis, root_index, structs.next().unwrap())
+                .unwrap()
+                .to_string(),
             "ABase"
         );
 
-        assert_eq!(exports.types.first().unwrap().item.ident.to_string(), "A");
+        assert!(structs.next().is_none());
+
+        /*let mut types = filter_nodes(&analysis, root_index, |node_index| {
+            if let Ok(AnalysisRef::Type(_)) = AnalysisEntry::node_index_ref(&analysis, node_index) {
+                Some(node_index)
+            } else {
+                None
+            }
+        });
+
+
+        assert_eq!(
+            node_ident(&analysis, root_index, types.next().unwrap())
+                .unwrap()
+                .to_string(),
+            "A"
+        );
+
+        assert!(structs.next().is_none());*/
     }
 }

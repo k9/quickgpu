@@ -5,9 +5,8 @@ use crate::{
     analysis::{
         Analysis, AnalysisEdge, AnalysisEntry, AnalysisEnum, AnalysisMod, AnalysisRef,
         AnalysisRefMut, AnalysisStruct, AnalysisTrait, AnalysisTypeAlias, VecPushIndex,
-        find_neighbor, update_edge,
     },
-    exports::item_path,
+    crate_graph::{find_neighbor, item_path, update_edge},
     types::resolve_type_paths,
     utils::{krate, path_segments, write_expanded},
 };
@@ -37,9 +36,7 @@ pub fn process_crate(
 ) -> Result<NodeIndex, anyhow::Error> {
     let file = syn::parse_file(&contents)?;
 
-    let crate_root = krate(crate_name, true, file.items);
-    let id = analysis.modules.push_index(crate_root);
-    let root_index = analysis.graph.add_node(AnalysisEntry::Mod(id));
+    let root_index = krate(analysis, crate_name, true, file.items);
 
     process_subtree(analysis, root_index)?;
 
@@ -51,40 +48,31 @@ pub fn process_subtree(analysis: &mut Analysis, parent_mod: NodeIndex) -> AResul
         bail!("Couldn't get node")
     };
 
-    let Some((_, content)) = &module.item.content else {
-        bail!("Couldn't get node")
-    };
-
-    let content = content.clone();
+    let content = module.content.clone();
 
     for item in content.into_iter() {
         match item {
             Item::Mod(mod_item) => {
-                let id = analysis.modules.push_index(AnalysisMod {
-                    item: mod_item,
-                    crate_root: None,
-                });
+                let ident = mod_item.ident.clone();
+                let id = analysis
+                    .modules
+                    .push_index(AnalysisMod::new(mod_item, None));
 
                 let child_mod = analysis.graph.add_node(AnalysisEntry::Mod(id));
                 update_edge(
                     analysis,
                     parent_mod,
                     child_mod,
-                    AnalysisEdge {
-                        from_use_statement: false,
-                        from_extern_crate: false,
-                        rename: None,
-                    },
+                    AnalysisEdge::new(true, Some(ident)),
                 );
 
                 process_subtree(analysis, child_mod)?;
             }
-            Item::Struct(struct_item) => {
-                let id = analysis.structs.push_index(AnalysisStruct {
-                    item: struct_item.clone(),
-                    impls: vec![],
-                    path: vec![],
-                });
+            Item::Struct(item) => {
+                let ident = item.ident.clone();
+                let id = analysis
+                    .structs
+                    .push_index(AnalysisStruct::new(item.clone(), vec![]));
 
                 let child = analysis.graph.add_node(AnalysisEntry::Struct(id));
 
@@ -92,19 +80,14 @@ pub fn process_subtree(analysis: &mut Analysis, parent_mod: NodeIndex) -> AResul
                     analysis,
                     parent_mod,
                     child,
-                    AnalysisEdge {
-                        from_use_statement: false,
-                        from_extern_crate: false,
-                        rename: None,
-                    },
+                    AnalysisEdge::new(true, Some(ident)),
                 );
             }
-            Item::Enum(enum_item) => {
-                let id = analysis.enums.push_index(AnalysisEnum {
-                    item: enum_item.clone(),
-                    impls: vec![],
-                    path: vec![],
-                });
+            Item::Enum(item) => {
+                let ident = item.ident.clone();
+                let id = analysis
+                    .enums
+                    .push_index(AnalysisEnum::new(item.clone(), vec![]));
 
                 let child = analysis.graph.add_node(AnalysisEntry::Enum(id));
 
@@ -112,19 +95,14 @@ pub fn process_subtree(analysis: &mut Analysis, parent_mod: NodeIndex) -> AResul
                     analysis,
                     parent_mod,
                     child,
-                    AnalysisEdge {
-                        from_use_statement: false,
-                        from_extern_crate: false,
-                        rename: None,
-                    },
+                    AnalysisEdge::new(true, Some(ident)),
                 );
             }
-            Item::Type(type_item) => {
-                let id = analysis.types.push_index(AnalysisTypeAlias {
-                    item: type_item.clone(),
-                    impls: vec![],
-                    path: vec![],
-                });
+            Item::Type(item) => {
+                let ident = item.ident.clone();
+                let id = analysis
+                    .types
+                    .push_index(AnalysisTypeAlias::new(item.clone()));
 
                 let child = analysis.graph.add_node(AnalysisEntry::Type(id));
 
@@ -132,42 +110,18 @@ pub fn process_subtree(analysis: &mut Analysis, parent_mod: NodeIndex) -> AResul
                     analysis,
                     parent_mod,
                     child,
-                    AnalysisEdge {
-                        from_use_statement: false,
-                        from_extern_crate: false,
-                        rename: None,
-                    },
+                    AnalysisEdge::new(true, Some(ident)),
                 );
             }
             Item::Trait(item) => {
-                let id = analysis.traits.push_index(AnalysisTrait {
-                    item: item.clone(),
-                    path: vec![],
-                });
+                let ident = item.ident.clone();
+                let id = analysis.traits.push_index(AnalysisTrait::new(item.clone()));
                 let child = analysis.graph.add_node(AnalysisEntry::Trait(id));
                 update_edge(
                     analysis,
                     parent_mod,
                     child,
-                    AnalysisEdge {
-                        from_use_statement: false,
-                        from_extern_crate: false,
-                        rename: None,
-                    },
-                );
-            }
-            Item::Impl(type_impl) => {
-                let id = analysis.impls.push_index(type_impl.clone());
-                let child = analysis.graph.add_node(AnalysisEntry::Impl(id));
-                update_edge(
-                    analysis,
-                    parent_mod,
-                    child,
-                    AnalysisEdge {
-                        from_use_statement: false,
-                        from_extern_crate: false,
-                        rename: None,
-                    },
+                    AnalysisEdge::new(true, Some(ident)),
                 );
             }
             _ => (),
@@ -180,23 +134,29 @@ pub fn process_subtree(analysis: &mut Analysis, parent_mod: NodeIndex) -> AResul
 pub fn process_impls(analysis: &mut Analysis, root_index: NodeIndex) -> AResult<()> {
     let mut bfs = Bfs::new(&analysis.graph, root_index);
     while let Some(node_index) = bfs.next(&analysis.graph) {
-        if let AnalysisRef::Impl(entry) = AnalysisEntry::node_index_ref(analysis, node_index)? {
-            let entry = entry.clone();
-            if let Type::Path(path) = *entry.self_ty.clone() {
-                let ty_path = path_segments(&path.path);
-
-                if let Ok((resolved, _)) = resolve_path(analysis, root_index, node_index, &ty_path)
-                {
-                    match AnalysisEntry::node_index_ref_mut(analysis, resolved)? {
-                        AnalysisRefMut::Struct(analysis_struct) => {
-                            analysis_struct.impls.push(entry.clone());
+        if let AnalysisRef::Mod(module) = AnalysisEntry::node_index_ref(analysis, node_index)? {
+            let content = module.content.clone();
+            for item in content {
+                if let Item::Impl(item_impl) = &item {
+                    let mut impl_item = item_impl.clone();
+                    let ty = (*impl_item.self_ty).clone();
+                    let ty = resolve_type_paths(ty, analysis, root_index, node_index);
+                    if let Type::Path(path) = &ty {
+                        if let Ok((resolved_index, _)) = resolve_path(
+                            analysis,
+                            root_index,
+                            root_index,
+                            &path_segments(&path.path),
+                        ) {
+                            impl_item.self_ty = Box::new(ty);
+                            match AnalysisEntry::node_index_ref_mut(analysis, resolved_index) {
+                                Ok(AnalysisRefMut::Struct(entry)) => entry.impls.push(impl_item),
+                                Ok(AnalysisRefMut::Enum(entry)) => entry.impls.push(impl_item),
+                                _ => (),
+                            }
                         }
-                        AnalysisRefMut::Enum(analysis_enum) => {
-                            analysis_enum.impls.push(entry.clone());
-                        }
-                        _ => (),
-                    };
-                };
+                    }
+                }
             }
         }
     }
@@ -209,7 +169,7 @@ pub fn process_fields(analysis: &mut Analysis, root_index: NodeIndex) -> AResult
     while let Some(node_index) = bfs.next(&analysis.graph) {
         if let AnalysisRef::Struct(entry) = AnalysisEntry::node_index_ref(analysis, node_index)? {
             let entry = entry.clone();
-            if let Fields::Named(fields) = &entry.item.fields {
+            if let Fields::Named(fields) = &entry.fields {
                 for (field_index, field) in fields.named.iter().enumerate() {
                     let ty = field.ty.clone();
                     let ty = resolve_type_paths(ty, analysis, root_index, node_index);
@@ -217,7 +177,7 @@ pub fn process_fields(analysis: &mut Analysis, root_index: NodeIndex) -> AResult
                     if let AnalysisRefMut::Struct(entry) =
                         AnalysisEntry::node_index_ref_mut(analysis, node_index)?
                     {
-                        if let Fields::Named(fields) = &mut entry.item.fields {
+                        if let Fields::Named(fields) = &mut entry.fields {
                             fields
                                 .named
                                 .get_mut(field_index)
@@ -251,7 +211,7 @@ pub fn resolve_path(
     };
 
     if let Ok(resolved) = resolve_path_recurse(analysis, module_index, relative_path, 0)
-        && let Ok(path) = item_path(analysis, root_index, resolved, true)
+        && let Ok(path) = item_path(analysis, root_index, resolved)
     {
         Ok((resolved, path))
     } else {
@@ -309,8 +269,7 @@ pub fn get_super(analysis: &Analysis, node_index: NodeIndex) -> AResult<NodeInde
         parents.next(&analysis.graph).context("Couldn't get parent")
     {
         if let Some(edge) = analysis.graph.edge_weight(edge_index)
-            && edge.from_use_statement == false
-            && edge.from_extern_crate == false
+            && edge.from_hierarchy
         {
             return Ok(node_index);
         }
