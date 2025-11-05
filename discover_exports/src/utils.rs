@@ -14,12 +14,13 @@ use syn::Path;
 use syn::Token;
 use syn::Visibility;
 
+use crate::AResult;
 use crate::Analysis;
 use crate::AnalysisEdge;
 use crate::analysis::AnalysisEntry;
 use crate::analysis::AnalysisMod;
 use crate::analysis::CrateRoot;
-use crate::analysis::VecPushIndex;
+use crate::crate_graph::get_entry_mut;
 use crate::crate_graph::update_edge;
 
 pub fn id<'a>(s: impl Into<&'a str>) -> Ident {
@@ -53,7 +54,7 @@ pub fn krate(
     name: &str,
     crate_root: bool,
     content: Vec<Item>,
-) -> NodeIndex {
+) -> AResult<NodeIndex> {
     let krate = AnalysisMod {
         attrs: vec![],
         vis: syn::Visibility::Public(Token![pub](Span::call_site())),
@@ -65,9 +66,8 @@ pub fn krate(
         },
     };
 
-    let krate_id = analysis.modules.push_index(krate);
     let origin_index = analysis.graph.add_node(AnalysisEntry::Origin);
-    let root_index = analysis.graph.add_node(AnalysisEntry::Mod(krate_id));
+    let root_index = analysis.graph.add_node(AnalysisEntry::Mod(krate));
 
     update_edge(
         analysis,
@@ -76,20 +76,22 @@ pub fn krate(
         AnalysisEdge::new(false, Some(id(name))),
     );
 
-    if let Some(crate_root) = analysis.modules[krate_id].crate_root.as_mut() {
+    if let AnalysisEntry::Mod(crate_root) = get_entry_mut(analysis, root_index)?
+        && let Some(crate_root) = crate_root.crate_root.as_mut()
+    {
         crate_root
             .extern_prelude
             .insert(name.to_string(), root_index);
     }
 
-    root_index
+    Ok(root_index)
 }
 
-pub fn path_segments(path: &Path) -> Vec<&Ident> {
+pub fn path_segments(path: &Path) -> Vec<Ident> {
     path.borrow()
         .segments
         .iter()
-        .map(|seg| &seg.ident)
+        .map(|seg| seg.ident.clone())
         .collect::<Vec<_>>()
 }
 
@@ -98,6 +100,10 @@ pub fn path_string(path: &[Ident]) -> String {
         .map(|id| id.to_string())
         .collect::<Vec<_>>()
         .join("::")
+}
+
+pub fn path_from_string(path: &str) -> Vec<Ident> {
+    path.split("::").into_iter().map(|s| id(s)).collect()
 }
 
 pub fn path_refs_string(path: &Path) -> String {

@@ -4,5 +4,5 @@ pub struct A {}
 struct B {}
 
 impl crate::abc::Abc {
-    const ZZZZ: &str = "ZzZz";
+    pub const ZZZZ: &str = "ZzZz";
 }

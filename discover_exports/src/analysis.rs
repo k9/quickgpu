@@ -1,11 +1,9 @@
 use std::collections::HashMap;
 
-use crate::AResult;
-use anyhow::{Context, bail};
 use petgraph::{graph::NodeIndex, prelude::StableGraph};
 use syn::{
-    Attribute, Fields, Generics, Ident, ImplRestriction, Item, ItemEnum, ItemImpl, ItemMod,
-    ItemStruct, ItemTrait, ItemType, TraitItem, Type, TypeParamBound, Variant, Visibility,
+    Attribute, Fields, Generics, Ident, ImplItemConst, ImplRestriction, Item, ItemEnum, ItemImpl,
+    ItemMod, ItemStruct, ItemTrait, ItemType, TraitItem, Type, TypeParamBound, Variant, Visibility,
 };
 
 #[derive(Clone, Debug, Default)]
@@ -67,6 +65,17 @@ impl AnalysisStruct {
             fields,
             impls,
         }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct AnalysisConst {
+    pub vis: Visibility,
+}
+
+impl AnalysisConst {
+    pub fn new(ImplItemConst { vis, .. }: ImplItemConst) -> Self {
+        Self { vis }
     }
 }
 
@@ -163,11 +172,7 @@ impl AnalysisTrait {
 #[derive(Default)]
 pub struct Analysis {
     pub graph: StableGraph<AnalysisEntry, AnalysisEdge>,
-    pub structs: Vec<AnalysisStruct>,
-    pub enums: Vec<AnalysisEnum>,
-    pub types: Vec<AnalysisTypeAlias>,
-    pub traits: Vec<AnalysisTrait>,
-    pub modules: Vec<AnalysisMod>,
+    pub root_index: NodeIndex,
 }
 
 #[derive(Debug, Clone)]
@@ -196,130 +201,14 @@ impl<T> VecPushIndex<T> for Vec<T> {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub enum AnalysisEntry {
-    Struct(usize),
-    Enum(usize),
-    Type(usize),
-    Trait(usize),
-    Mod(usize),
+    Struct(AnalysisStruct),
+    Enum(AnalysisEnum),
+    Type(AnalysisTypeAlias),
+    Trait(AnalysisTrait),
+    Mod(AnalysisMod),
+    Variant,
+    Const(AnalysisConst),
     Origin,
-    None,
-}
-
-#[derive(Clone, Copy, Debug)]
-pub enum AnalysisRef<'a> {
-    Struct(&'a AnalysisStruct),
-    Enum(&'a AnalysisEnum),
-    Type(&'a AnalysisTypeAlias),
-    Trait(&'a AnalysisTrait),
-    Mod(&'a AnalysisMod),
-    Origin,
-}
-
-pub enum AnalysisRefMut<'a> {
-    Struct(&'a mut AnalysisStruct),
-    Enum(&'a mut AnalysisEnum),
-    Type(&'a mut AnalysisTypeAlias),
-    Trait(&'a mut AnalysisTrait),
-    Mod(&'a mut AnalysisMod),
-    Origin,
-}
-
-impl AnalysisEntry {
-    pub fn get_ref<'a, 'b>(&'b self, analysis: &'a Analysis) -> AResult<AnalysisRef<'a>> {
-        match self {
-            AnalysisEntry::Struct(id) => {
-                if let Some(item) = analysis.structs.get(*id) {
-                    return Ok(AnalysisRef::Struct(item));
-                };
-            }
-            AnalysisEntry::Enum(id) => {
-                if let Some(item) = analysis.enums.get(*id) {
-                    return Ok(AnalysisRef::Enum(item));
-                };
-            }
-            AnalysisEntry::Type(id) => {
-                if let Some(item) = analysis.types.get(*id) {
-                    return Ok(AnalysisRef::Type(item));
-                };
-            }
-            AnalysisEntry::Trait(id) => {
-                if let Some(item) = analysis.traits.get(*id) {
-                    return Ok(AnalysisRef::Trait(item));
-                };
-            }
-            AnalysisEntry::Mod(id) => {
-                if let Some(item) = analysis.modules.get(*id) {
-                    return Ok(AnalysisRef::Mod(item));
-                };
-            }
-            AnalysisEntry::Origin => return Ok(AnalysisRef::Origin),
-            AnalysisEntry::None => (),
-        };
-
-        bail!("Couldn't get AnalysisItem ref")
-    }
-
-    pub fn node_index_ref<'a>(
-        analysis: &'a Analysis,
-        node_index: NodeIndex,
-    ) -> AResult<AnalysisRef<'a>> {
-        analysis
-            .graph
-            .node_weight(node_index)
-            .context("Couldn't get node")?
-            .get_ref(analysis)
-    }
-
-    pub fn get_ref_mut<'a, 'b>(
-        &'b self,
-        analysis: &'a mut Analysis,
-    ) -> AResult<AnalysisRefMut<'a>> {
-        match self {
-            AnalysisEntry::Struct(id) => {
-                if let Some(item) = analysis.structs.get_mut(*id) {
-                    return Ok(AnalysisRefMut::Struct(item));
-                };
-            }
-            AnalysisEntry::Enum(id) => {
-                if let Some(item) = analysis.enums.get_mut(*id) {
-                    return Ok(AnalysisRefMut::Enum(item));
-                };
-            }
-            AnalysisEntry::Type(id) => {
-                if let Some(item) = analysis.types.get_mut(*id) {
-                    return Ok(AnalysisRefMut::Type(item));
-                };
-            }
-            AnalysisEntry::Trait(id) => {
-                if let Some(item) = analysis.traits.get_mut(*id) {
-                    return Ok(AnalysisRefMut::Trait(item));
-                };
-            }
-            AnalysisEntry::Mod(id) => {
-                if let Some(item) = analysis.modules.get_mut(*id) {
-                    return Ok(AnalysisRefMut::Mod(item));
-                };
-            }
-            AnalysisEntry::Origin => (),
-            AnalysisEntry::None => (),
-        };
-
-        bail!("Couldn't get AnalysisItem ref")
-    }
-
-    pub fn node_index_ref_mut<'a>(
-        analysis: &'a mut Analysis,
-        node_index: NodeIndex,
-    ) -> AResult<AnalysisRefMut<'a>> {
-        let entry = analysis
-            .graph
-            .node_weight(node_index)
-            .context("Couldn't get node")?;
-
-        let entry = entry.clone();
-
-        entry.get_ref_mut(analysis)
-    }
 }

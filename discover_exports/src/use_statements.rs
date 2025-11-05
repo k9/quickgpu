@@ -4,15 +4,15 @@ use syn::{Item, UseTree};
 
 use crate::{
     AResult, Analysis,
-    analysis::{AnalysisEdge, AnalysisEntry, AnalysisRef, AnalysisRefMut},
-    crate_graph::{find_neighbor, update_edge},
+    analysis::{AnalysisEdge, AnalysisEntry},
+    crate_graph::{find_neighbor, get_entry, get_entry_mut, update_edge},
     process::resolve_next_segment,
 };
 
 pub fn process_use_statements(analysis: &mut Analysis, parent_mod: NodeIndex) -> AResult<()> {
     let mut bfs = Bfs::new(&analysis.graph, parent_mod);
     while let Some(node_index) = bfs.next(&analysis.graph) {
-        if let AnalysisRef::Mod(module) = AnalysisEntry::node_index_ref(analysis, node_index)? {
+        if let AnalysisEntry::Mod(module) = get_entry(analysis, node_index)? {
             let module = module.clone();
 
             for item in module.content {
@@ -46,7 +46,9 @@ fn process_use_tree(
             }
         }
         syn::UseTree::Name(use_name) => {
-            if let Ok(next_index) = resolve_next_segment(analysis, to_module, &use_name.ident) {
+            if let Ok(next_index) =
+                resolve_next_segment(analysis, to_module, to_module, &use_name.ident)
+            {
                 update_edge(
                     analysis,
                     from_module,
@@ -95,7 +97,7 @@ fn process_use_path(
     to_module: NodeIndex,
     use_path: &syn::UsePath,
 ) -> AResult<()> {
-    if let Ok(next_index) = resolve_next_segment(analysis, to_module, &use_path.ident) {
+    if let Ok(next_index) = resolve_next_segment(analysis, to_module, to_module, &use_path.ident) {
         process_use_tree(analysis, from_module, next_index, &use_path.tree)?;
     };
 
@@ -131,9 +133,7 @@ fn process_extern_crate(
                 AnalysisEdge::new(false, Some(name.clone())),
             );
 
-            let Ok(AnalysisRefMut::Mod(parent)) =
-                AnalysisEntry::node_index_ref_mut(analysis, parent_index)
-            else {
+            let Ok(AnalysisEntry::Mod(parent)) = get_entry_mut(analysis, parent_index) else {
                 bail!("Couldn't get parent node for extern crate");
             };
 

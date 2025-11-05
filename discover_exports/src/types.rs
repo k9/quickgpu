@@ -1,48 +1,43 @@
 use petgraph::graph::NodeIndex;
 use quote::ToTokens;
 use syn::{
-    GenericArgument, PathArguments, PathSegment, Type, punctuated::Punctuated, spanned::Spanned,
+    GenericArgument, Path, PathArguments, PathSegment, Type, punctuated::Punctuated,
+    spanned::Spanned,
 };
 
-use crate::{Analysis, process::resolve_path, utils::path_segments};
+use crate::{Analysis, crate_graph::item_path, process::resolve_path, utils::path_segments};
 
-pub fn resolve_type_paths(
-    ty: Type,
-    analysis: &Analysis,
-    root_index: NodeIndex,
-    item_index: NodeIndex,
-) -> Type {
+pub fn resolve_type_paths(ty: Type, analysis: &Analysis, item_index: NodeIndex) -> Type {
     let mut ty = ty.clone();
 
     match &mut ty {
         Type::Array(array) => {
-            *array.elem = resolve_type_paths(*array.elem.clone(), analysis, root_index, item_index);
+            *array.elem = resolve_type_paths(*array.elem.clone(), analysis, item_index);
         }
-        Type::BareFn(_) => todo!(),
-        Type::Group(_) => todo!(),
-        Type::ImplTrait(_) => todo!(),
-        Type::Infer(_) => todo!(),
-        Type::Macro(_) => todo!(),
-        Type::Never(_) => todo!(),
-        Type::Paren(_) => todo!(),
+        Type::BareFn(_) => {}
+        Type::Group(_) => {}
+        Type::ImplTrait(_) => {}
+        Type::Infer(_) => {}
+        Type::Macro(_) => {}
+        Type::Never(_) => {}
+        Type::Paren(_) => {}
         Type::Path(path) => {
-            type_path(analysis, root_index, item_index, &mut path.path);
+            type_path(analysis, item_index, &mut path.path);
         }
         Type::Ptr(ptr) => {
-            *ptr.elem = resolve_type_paths(*ptr.elem.clone(), analysis, root_index, item_index);
+            *ptr.elem = resolve_type_paths(*ptr.elem.clone(), analysis, item_index);
         }
         Type::Reference(reference) => {
-            *reference.elem =
-                resolve_type_paths(*reference.elem.clone(), analysis, root_index, item_index);
+            *reference.elem = resolve_type_paths(*reference.elem.clone(), analysis, item_index);
         }
         Type::Slice(slice) => {
-            *slice.elem = resolve_type_paths(*slice.elem.clone(), analysis, root_index, item_index);
+            *slice.elem = resolve_type_paths(*slice.elem.clone(), analysis, item_index);
         }
         Type::TraitObject(object) => {
             object.bounds.iter_mut().for_each(|bound| {
                 match bound {
                     syn::TypeParamBound::Trait(trait_bound) => {
-                        type_path(analysis, root_index, item_index, &mut trait_bound.path);
+                        type_path(analysis, item_index, &mut trait_bound.path);
                     }
                     _ => (),
                 };
@@ -50,7 +45,7 @@ pub fn resolve_type_paths(
         }
         Type::Tuple(tuple) => {
             tuple.elems.iter_mut().for_each(|elem| {
-                *elem = resolve_type_paths(elem.clone(), analysis, root_index, item_index);
+                *elem = resolve_type_paths(elem.clone(), analysis, item_index);
             });
         }
         Type::Verbatim(_) => todo!(),
@@ -60,12 +55,7 @@ pub fn resolve_type_paths(
     ty
 }
 
-fn type_path(
-    analysis: &Analysis,
-    root_index: NodeIndex,
-    item_index: NodeIndex,
-    path: &mut syn::Path,
-) {
+pub fn type_path(analysis: &Analysis, item_index: NodeIndex, path: &mut Path) {
     let segments = path_segments(&path);
 
     if let Some(last_segment) = path.segments.last() {
@@ -78,7 +68,6 @@ fn type_path(
                         *arg = GenericArgument::Type(resolve_type_paths(
                             arg_ty.clone(),
                             analysis,
-                            root_index,
                             item_index,
                         ));
                     }
@@ -87,7 +76,7 @@ fn type_path(
             });
         }
 
-        match resolve_path(analysis, root_index, item_index, &segments) {
+        match resolve_path(analysis, item_index, &segments) {
             Ok((_, resolved)) => {
                 let mut segments = Punctuated::new();
                 for ident in resolved.iter() {
@@ -109,9 +98,10 @@ fn type_path(
                     && last_segment.len() > 1
                     && arguments.is_none()
                 {
-                    log::debug!(
-                        "Couldn't resolve type {} {:?} {:?}",
+                    log::warn!(
+                        "Couldn't resolve type {} from {:?} - {:?} {:?}",
                         path.into_token_stream(),
+                        item_path(analysis, item_index),
                         path.span().start(),
                         path.span().file()
                     );

@@ -1,12 +1,7 @@
-use discover_exports::{
-    Analysis, AnalysisEnum,
-    analysis::{AnalysisEntry, AnalysisRef},
-    crate_graph::filter_map_nodes,
-    discover, parse_crate,
-};
+use discover_exports::{Analysis, crate_graph::for_each_node, discover, parse_crate};
 
 use crate::{
-    generate::struct_entry::filter_struct,
+    generate::struct_entry::output_struct,
     utils::{relative_path, rustfmt},
 };
 
@@ -33,64 +28,60 @@ const SKIP: &[&str] = &[
 pub fn generate() -> anyhow::Result<()> {
     let mut analysis = Analysis::default();
 
-    let root_index = parse_crate(
-        &mut analysis,
-        relative_path("expanded/wgpu.rs"),
-        relative_path("wgpu/wgpu"),
-        "wgpu",
-    )?;
-
-    parse_crate(
+    let wgpu_types = parse_crate(
         &mut analysis,
         relative_path("expanded/wgpu_types.rs"),
         relative_path("wgpu/wgpu-types"),
         "wgpu_types",
+        vec![],
     )
     .unwrap();
+    analysis.root_index = wgpu_types;
+    discover(&mut analysis).unwrap();
 
-    parse_crate(
+    let wgpu_core = parse_crate(
         &mut analysis,
         relative_path("expanded/wgpu_core.rs"),
         relative_path("wgpu/wgpu-core"),
         "wgpu_core",
+        vec![("wgpu_types".to_string(), wgpu_types)],
     )
     .unwrap();
+    analysis.root_index = wgpu_core;
+    discover(&mut analysis).unwrap();
 
-    parse_crate(
+    let wgpu_hal = parse_crate(
         &mut analysis,
         relative_path("expanded/wgpu_hal.rs"),
         relative_path("wgpu/wgpu-hal"),
         "wgpu_hal",
+        vec![("wgpu_core".to_string(), wgpu_core)],
     )
     .unwrap();
+    analysis.root_index = wgpu_hal;
+    discover(&mut analysis).unwrap();
 
-    parse_crate(
+    let naga = parse_crate(
         &mut analysis,
         relative_path("expanded/naga.rs"),
         relative_path("wgpu/naga"),
-        "naga",
+        "wgpu_hal",
+        vec![],
     )
     .unwrap();
+    analysis.root_index = naga;
+    discover(&mut analysis).unwrap();
 
-    let exports = discover(&mut analysis, root_index).unwrap();
-
-    let structs = filter_map_nodes(&analysis, root_index, |node_index| {
-        let Ok(AnalysisRef::Struct(entry)) = AnalysisEntry::node_index_ref(&analysis, node_index)
-        else {
-            return None;
-        };
-
-        filter_struct(entry)
-    });
-
-    exports
-        .structs
-        .into_iter()
-        .map(|struct_item| struct_entry::filter_struct(struct_item))
-        .collect::<AResult<Vec<_>>>()?
-        .into_iter()
-        .filter_map(|x| x)
-        .collect::<Vec<_>>();
+    let wgpu = parse_crate(
+        &mut analysis,
+        relative_path("expanded/wgpu.rs"),
+        relative_path("wgpu/wgpu"),
+        "wgpu",
+        vec![],
+    )
+    .unwrap();
+    analysis.root_index = wgpu;
+    discover(&mut analysis).unwrap();
 
     let mut builders = vec![(
         "".to_string(),
@@ -101,9 +92,11 @@ use std::num::NonZeroU32;
         .to_string(),
     )];
 
-    for struct_item in structs {
-        builders.push(struct_entry::output_struct(struct_item)?);
-    }
+    for_each_node(&analysis, |index| {
+        if let Some(output) = output_struct(&analysis, index).unwrap() {
+            builders.push(output);
+        }
+    });
 
     let combined = builders
         .iter()

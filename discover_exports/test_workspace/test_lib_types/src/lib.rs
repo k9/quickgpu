@@ -12,7 +12,9 @@ pub mod counters {
     pub struct CounterA {}
     pub struct CounterB {}
     pub struct CounterC {}
-    pub struct CounterD {
+
+    #[allow(dead_code)]
+    struct CounterD {
         pub d: CounterC,
     }
 

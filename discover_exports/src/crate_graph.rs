@@ -1,35 +1,82 @@
 use anyhow::Context;
 use petgraph::{
-    algo::{astar, has_path_connecting},
+    Direction,
+    algo::astar,
     dot::{Config, Dot},
     graph::{EdgeIndex, NodeIndex},
     visit::{Bfs, EdgeRef, Walker},
 };
 use quote::quote as q;
-use syn::Ident;
+use syn::{Ident, ImplItem, ImplItemConst};
 
 use crate::{
-    AResult, AnalysisEdge,
-    analysis::{Analysis, AnalysisEntry, AnalysisRef},
+    AResult, AnalysisEdge, AnalysisStruct,
+    analysis::{Analysis, AnalysisEntry, AnalysisMod},
     utils::IsPublic,
 };
 
-#[allow(dead_code)]
 pub fn filter_map_nodes<T>(
     analysis: &Analysis,
-    root_index: NodeIndex,
     filter_fn: impl FnMut(NodeIndex) -> Option<T>,
 ) -> impl Iterator<Item = T> {
-    Bfs::new(&analysis.graph, root_index)
+    Bfs::new(&analysis.graph, analysis.root_index)
         .iter(&analysis.graph)
         .filter_map(filter_fn)
 }
 
-#[allow(dead_code)]
-pub fn for_each_node(analysis: &Analysis, root_index: NodeIndex, item_fn: impl FnMut(NodeIndex)) {
-    Bfs::new(&analysis.graph, root_index)
+pub fn for_each_node(analysis: &Analysis, item_fn: impl FnMut(NodeIndex)) {
+    Bfs::new(&analysis.graph, analysis.root_index)
         .iter(&analysis.graph)
         .for_each(item_fn)
+}
+
+pub fn get_entry(analysis: &Analysis, node_index: NodeIndex) -> AResult<&AnalysisEntry> {
+    analysis
+        .graph
+        .node_weight(node_index)
+        .context("Couldn't get node weight")
+}
+
+pub fn get_struct(analysis: &Analysis, node_index: NodeIndex) -> AResult<Option<&AnalysisStruct>> {
+    if let AnalysisEntry::Struct(entry) = get_entry(analysis, node_index)? {
+        Ok(Some(entry))
+    } else {
+        Ok(None)
+    }
+}
+pub fn get_mod(analysis: &Analysis, node_index: NodeIndex) -> AResult<Option<&AnalysisMod>> {
+    if let AnalysisEntry::Mod(entry) = get_entry(analysis, node_index)? {
+        Ok(Some(entry))
+    } else {
+        Ok(None)
+    }
+}
+
+pub fn get_entry_mut(
+    analysis: &mut Analysis,
+    node_index: NodeIndex,
+) -> AResult<&mut AnalysisEntry> {
+    analysis
+        .graph
+        .node_weight_mut(node_index)
+        .context("Couldn't get node weight")
+}
+
+pub fn get_struct_const<'a>(
+    entry: &'a AnalysisStruct,
+    ident: &'a Ident,
+) -> Option<&'a ImplItemConst> {
+    for impl_ in &entry.impls {
+        for item in &impl_.items {
+            if let ImplItem::Const(c) = item {
+                if ident.to_string() == c.ident.to_string() {
+                    return Some(c);
+                }
+            }
+        }
+    }
+
+    None
 }
 
 pub fn find_neighbor<'a>(
@@ -61,7 +108,7 @@ pub fn update_edge<'a>(
         let existing = existing_index.weight();
 
         if edge.from_hierarchy == existing.from_hierarchy {
-            log::warn!("already-existing edge type {:?} to {:?}", existing, edge);
+            log::debug!("already-existing edge type {:?} to {:?}", existing, edge);
             return existing_index.id();
         }
     }
@@ -69,14 +116,10 @@ pub fn update_edge<'a>(
     analysis.graph.add_edge(from, to, edge)
 }
 
-pub fn item_path<'a>(
-    analysis: &'a Analysis,
-    root_index: NodeIndex,
-    node_index: NodeIndex,
-) -> AResult<Vec<Ident>> {
+pub fn item_path<'a>(analysis: &'a Analysis, node_index: NodeIndex) -> AResult<Vec<Ident>> {
     let graph_path = astar(
         &analysis.graph,
-        root_index,
+        analysis.root_index,
         |x| x == node_index,
         |_| 1,
         |_| 0,
@@ -86,24 +129,25 @@ pub fn item_path<'a>(
     let mut path = vec![];
     let mut previous_segment = None;
     for node_index in graph_path.1.iter() {
-        let from_index = match previous_segment {
-            Some(index) => index,
-            None => analysis
+        if let Some(from_index) = previous_segment {
+            if let Some(edge) = analysis
                 .graph
-                .edges_directed(*node_index, petgraph::Direction::Incoming)
+                .edges_connecting(from_index, *node_index)
                 .next()
-                .map(|edge| edge.source())
-                .context("Can't get path edge")?,
-        };
-
-        if let Some(edge) = analysis
-            .graph
-            .edges_connecting(from_index, *node_index)
-            .next()
-        {
-            if let Some(name) = &edge.weight().name {
-                path.push(name.clone());
+            {
+                if let Some(name) = &edge.weight().name {
+                    path.push(name.clone());
+                }
             }
+        } else {
+            let edge = analysis
+                .graph
+                .edges_directed(analysis.root_index, Direction::Incoming)
+                .next()
+                .unwrap()
+                .weight();
+
+            path.push(edge.name.clone().unwrap());
         }
 
         previous_segment = Some(*node_index);
@@ -112,42 +156,59 @@ pub fn item_path<'a>(
     Ok(path)
 }
 
-#[allow(dead_code)]
-pub fn keep_only_public<'a>(analysis: &'a mut Analysis, root_index: NodeIndex) -> AResult<()> {
-    let indices = analysis.graph.node_indices().collect::<Vec<_>>();
-    for node_index in indices {
-        let public = match AnalysisEntry::node_index_ref(analysis, node_index)? {
-            AnalysisRef::Struct(entry) => entry.vis.is_public(),
-            AnalysisRef::Enum(entry) => entry.vis.is_public(),
-            AnalysisRef::Type(entry) => entry.vis.is_public(),
-            AnalysisRef::Trait(entry) => entry.vis.is_public(),
-            AnalysisRef::Mod(entry) => {
-                // If this is a crate root, but not this crate's root, skip it
-                entry.vis.is_public() && !(entry.crate_root.is_some() && node_index != root_index)
-            }
-            AnalysisRef::Origin => true,
-        };
+pub fn keep_only_public<'a>(analysis: &'a mut Analysis) -> AResult<()> {
+    let to_remove = keep_only_public_recurse(analysis, analysis.root_index)?;
 
-        if !public {
-            analysis.graph.remove_node(node_index);
-        }
-    }
-
-    let indices = analysis.graph.node_indices().collect::<Vec<_>>();
-    for node_index in indices {
-        if !(has_path_connecting(&analysis.graph, root_index, node_index, None)
-            || has_path_connecting(&analysis.graph, node_index, root_index, None))
-        {
-            analysis.graph.remove_node(node_index);
-        }
+    for index in to_remove {
+        analysis.graph.remove_node(index);
     }
 
     Ok(())
 }
 
-#[allow(dead_code)]
-pub fn node_ident(analysis: &Analysis, root_index: NodeIndex, index: NodeIndex) -> AResult<Ident> {
-    item_path(&analysis, root_index, index)?
+pub fn keep_only_public_recurse<'a>(
+    analysis: &'a mut Analysis,
+    current: NodeIndex,
+) -> AResult<Vec<NodeIndex>> {
+    let mut neighbors = analysis.graph.neighbors(current).detach();
+    let mut visited = vec![];
+    let mut to_remove = vec![];
+    while let Some((_, node_index)) = neighbors.next(&analysis.graph) {
+        if visited.contains(&node_index) {
+            continue;
+        } else {
+            visited.push(node_index);
+        }
+
+        let (public, recurse) = match get_entry(analysis, node_index)? {
+            AnalysisEntry::Struct(entry) => (entry.vis.is_public(), true),
+            AnalysisEntry::Enum(entry) => (entry.vis.is_public(), true),
+            AnalysisEntry::Type(entry) => (entry.vis.is_public(), true),
+            AnalysisEntry::Trait(entry) => (entry.vis.is_public(), true),
+            AnalysisEntry::Mod(entry) => {
+                // If this is a crate root, but not this crate's root, skip it
+                (
+                    entry.vis.is_public(),
+                    !(entry.crate_root.is_some() && node_index != analysis.root_index),
+                )
+            }
+            AnalysisEntry::Variant => (true, true),
+            AnalysisEntry::Const(entry) => (entry.vis.is_public(), true),
+            AnalysisEntry::Origin => (true, true),
+        };
+
+        if !public {
+            to_remove.push(node_index);
+        } else if recurse {
+            to_remove.append(&mut keep_only_public_recurse(analysis, node_index)?);
+        }
+    }
+
+    Ok(to_remove)
+}
+
+pub fn node_ident(analysis: &Analysis, index: NodeIndex) -> AResult<Ident> {
+    item_path(&analysis, index)?
         .last()
         .context("Invalid path")
         .cloned()
@@ -171,37 +232,32 @@ pub fn print_dot(analysis: &Analysis) {
             },
             &|_, (_, entry)| {
                 let label = match entry {
-                    AnalysisEntry::Struct(id) => {
-                        let entry = &analysis.structs[*id];
+                    AnalysisEntry::Struct(entry) => {
                         let vis = &entry.vis;
                         q!(#vis struct).to_string()
                     }
-                    AnalysisEntry::Enum(id) => {
-                        let entry = &analysis.enums[*id];
+                    AnalysisEntry::Const(entry) => {
                         let vis = &entry.vis;
-
+                        q!(#vis const).to_string()
+                    }
+                    AnalysisEntry::Enum(entry) => {
+                        let vis = &entry.vis;
                         q!(#vis enum).to_string()
                     }
-                    AnalysisEntry::Type(id) => {
-                        let entry = &analysis.types[*id];
+                    AnalysisEntry::Type(entry) => {
                         let vis = &entry.vis;
-
                         q!(#vis type).to_string()
                     }
-                    AnalysisEntry::Trait(id) => {
-                        let entry = &analysis.traits[*id];
+                    AnalysisEntry::Trait(entry) => {
                         let vis = &entry.vis;
-
                         q!(#vis trait).to_string()
                     }
-                    AnalysisEntry::Mod(id) => {
-                        let entry = &analysis.modules[*id];
+                    AnalysisEntry::Mod(entry) => {
                         let vis = &entry.vis;
-
                         q!(#vis mod).to_string()
                     }
+                    AnalysisEntry::Variant => "variant".to_string(),
                     AnalysisEntry::Origin => "origin".to_string(),
-                    AnalysisEntry::None => "none".to_string(),
                 };
 
                 format!("label = \"{}\"", label)
