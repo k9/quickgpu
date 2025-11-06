@@ -5,8 +5,8 @@ use quote::{ToTokens, quote as q};
 use syn::{Expr, Field, Fields, ImplItem, Member, Stmt, Type, Visibility, spanned::Spanned};
 
 use discover_exports::{
-    Analysis, EntryIndex,
-    crate_graph::{get_struct, get_struct_const, item_path, node_ident},
+    EntryIndex,
+    crate_graph::{full_path, get_struct_const, node_ident},
     utils::id,
 };
 
@@ -18,7 +18,7 @@ pub struct BuilderField<'a> {
 }
 
 pub(crate) fn output_struct(
-    analysis: &Analysis,
+    analysis: &CrateAnalysis,
     index: EntryIndex,
 ) -> AResult<Option<(String, String)>> {
     let comment = "".to_string();
@@ -140,7 +140,7 @@ pub(crate) fn output_struct(
     });
 
     let generics = &entry.generics;
-    let path = item_path(analysis, index)?;
+    let path = full_path(analysis, index)?;
 
     let code = q! {
         #[bon::builder(

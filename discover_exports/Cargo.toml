@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 anyhow = "1.0.100"
+fixedbitset = "0.5.7"
 log = "0.4.28"
 petgraph = "0.8.3"
 proc-macro2 = "1.0.101"

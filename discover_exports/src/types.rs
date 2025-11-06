@@ -5,14 +5,14 @@ use syn::{
     spanned::Spanned,
 };
 
-use crate::{Analysis, crate_graph::item_path, process::resolve_path, utils::path_segments};
+use crate::{analysis::Ctx, crate_graph::full_path, process::resolve_path, utils::path_segments};
 
-pub fn resolve_type_paths(ty: Type, analysis: &Analysis, item_index: NodeIndex) -> Type {
+pub fn resolve_type_paths(ty: Type, ctx: &Ctx, item_index: NodeIndex) -> Type {
     let mut ty = ty.clone();
 
     match &mut ty {
         Type::Array(array) => {
-            *array.elem = resolve_type_paths(*array.elem.clone(), analysis, item_index);
+            *array.elem = resolve_type_paths(*array.elem.clone(), ctx, item_index);
         }
         Type::BareFn(_) => {}
         Type::Group(_) => {}
@@ -22,22 +22,22 @@ pub fn resolve_type_paths(ty: Type, analysis: &Analysis, item_index: NodeIndex) 
         Type::Never(_) => {}
         Type::Paren(_) => {}
         Type::Path(path) => {
-            type_path(analysis, item_index, &mut path.path);
+            type_path(ctx, item_index, &mut path.path);
         }
         Type::Ptr(ptr) => {
-            *ptr.elem = resolve_type_paths(*ptr.elem.clone(), analysis, item_index);
+            *ptr.elem = resolve_type_paths(*ptr.elem.clone(), ctx, item_index);
         }
         Type::Reference(reference) => {
-            *reference.elem = resolve_type_paths(*reference.elem.clone(), analysis, item_index);
+            *reference.elem = resolve_type_paths(*reference.elem.clone(), ctx, item_index);
         }
         Type::Slice(slice) => {
-            *slice.elem = resolve_type_paths(*slice.elem.clone(), analysis, item_index);
+            *slice.elem = resolve_type_paths(*slice.elem.clone(), ctx, item_index);
         }
         Type::TraitObject(object) => {
             object.bounds.iter_mut().for_each(|bound| {
                 match bound {
                     syn::TypeParamBound::Trait(trait_bound) => {
-                        type_path(analysis, item_index, &mut trait_bound.path);
+                        type_path(ctx, item_index, &mut trait_bound.path);
                     }
                     _ => (),
                 };
@@ -45,7 +45,7 @@ pub fn resolve_type_paths(ty: Type, analysis: &Analysis, item_index: NodeIndex) 
         }
         Type::Tuple(tuple) => {
             tuple.elems.iter_mut().for_each(|elem| {
-                *elem = resolve_type_paths(elem.clone(), analysis, item_index);
+                *elem = resolve_type_paths(elem.clone(), ctx, item_index);
             });
         }
         Type::Verbatim(_) => todo!(),
@@ -55,7 +55,7 @@ pub fn resolve_type_paths(ty: Type, analysis: &Analysis, item_index: NodeIndex) 
     ty
 }
 
-pub fn type_path(analysis: &Analysis, item_index: NodeIndex, path: &mut Path) {
+pub fn type_path(ctx: &Ctx, item_index: NodeIndex, path: &mut Path) {
     let segments = path_segments(&path);
 
     if let Some(last_segment) = path.segments.last() {
@@ -67,7 +67,7 @@ pub fn type_path(analysis: &Analysis, item_index: NodeIndex, path: &mut Path) {
                     GenericArgument::Type(arg_ty) => {
                         *arg = GenericArgument::Type(resolve_type_paths(
                             arg_ty.clone(),
-                            analysis,
+                            ctx,
                             item_index,
                         ));
                     }
@@ -76,36 +76,35 @@ pub fn type_path(analysis: &Analysis, item_index: NodeIndex, path: &mut Path) {
             });
         }
 
-        match resolve_path(analysis, item_index, &segments) {
-            Ok((_, resolved)) => {
-                let mut segments = Punctuated::new();
-                for ident in resolved.iter() {
-                    segments.push(PathSegment {
-                        ident: (*ident).clone(),
-                        arguments: PathArguments::None,
-                    });
-                }
-
-                path.segments = segments;
+        if let Ok(node) = resolve_path(ctx, item_index, &segments)
+            && let Ok(full) = full_path(ctx, node)
+        {
+            let mut segments = Punctuated::new();
+            for ident in full.iter() {
+                segments.push(PathSegment {
+                    ident: (*ident).clone(),
+                    arguments: PathArguments::None,
+                });
             }
-            Err(_) => {
-                let last_segment = last_segment.ident.to_string();
-                let last_segment = last_segment.as_str();
-                if ![
-                    "f32", "f64", "i32", "u8", "u32", "u64", "usize", "bool", "String", "str",
-                ]
-                .contains(&last_segment)
-                    && last_segment.len() > 1
-                    && arguments.is_none()
-                {
-                    log::warn!(
-                        "Couldn't resolve type {} from {:?} - {:?} {:?}",
-                        path.into_token_stream(),
-                        item_path(analysis, item_index),
-                        path.span().start(),
-                        path.span().file()
-                    );
-                }
+
+            path.segments = segments;
+        } else {
+            let last_segment = last_segment.ident.to_string();
+            let last_segment = last_segment.as_str();
+            if ![
+                "f32", "f64", "i32", "u8", "u32", "u64", "usize", "bool", "String", "str",
+            ]
+            .contains(&last_segment)
+                && last_segment.len() > 1
+                && arguments.is_none()
+            {
+                log::warn!(
+                    "Couldn't resolve type {} from {:?} - {:?} {:?}",
+                    path.into_token_stream(),
+                    full_path(ctx, item_index),
+                    path.span().start(),
+                    path.span().file()
+                );
             }
         };
 

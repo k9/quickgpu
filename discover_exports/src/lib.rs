@@ -1,12 +1,6 @@
 use petgraph::graph::NodeIndex;
 
-pub use crate::analysis::{
-    Analysis, AnalysisEdge, AnalysisEnum, AnalysisStruct, AnalysisTypeAlias,
-};
-use crate::crate_graph::keep_only_public;
-pub use crate::process::parse_crate;
-use crate::process::{process_fields, process_impls};
-use crate::use_statements::process_use_statements;
+pub use crate::analysis::{AnalysisEdge, AnalysisEnum, AnalysisStruct, AnalysisTypeAlias};
 
 pub mod analysis;
 pub mod crate_graph;
@@ -19,36 +13,14 @@ pub mod utils;
 type AResult<T> = anyhow::Result<T>;
 pub type EntryIndex = NodeIndex;
 
-pub fn discover(analysis: &mut Analysis) -> AResult<()> {
-    discover_paths(analysis)?;
-    process_impls(analysis)?;
-    process_fields(analysis)?;
-    keep_only_public(analysis)?;
-    Ok(())
-}
-
-fn discover_paths(analysis: &mut Analysis) -> AResult<()> {
-    let mut num_edges: usize = analysis.graph.edge_count();
-    loop {
-        process_use_statements(analysis, analysis.root_index)?;
-        let new_num_edges = analysis.graph.edge_count();
-        if num_edges == new_num_edges {
-            break;
-        } else {
-            num_edges = new_num_edges;
-        }
-    }
-
-    Ok(())
-}
-
 #[cfg(test)]
 mod test {
     use std::collections::HashMap;
 
     use crate::{
-        analysis::{Analysis, AnalysisEntry},
-        crate_graph::{filter_map_nodes, for_each_node, get_entry, node_ident, print_dot},
+        EntryIndex,
+        analysis::{Analysis, AnalysisEntry, Ctx},
+        crate_graph::{filter_map_nodes, for_each_node, full_path, node_ident, print_dot},
         process::{parse_crate, process_crate},
         utils::{path_from_string, path_string, relative_path},
     };
@@ -56,62 +28,61 @@ mod test {
     use quote::quote as q;
     use syn::{ImplItem, ImplItemConst};
 
-    use super::discover;
+    use super::process::resolve_path;
 
-    fn test_workspace() -> Analysis {
-        let mut analysis = Analysis::default();
-
-        analysis.root_index = parse_crate(
-            &mut analysis,
+    fn test_workspace<'a>(analysis: &'a mut Analysis) -> Ctx<'a> {
+        parse_crate(
+            analysis,
             relative_path("../expanded/wgpu_types.rs"),
             relative_path("test_workspace/test_lib_types"),
             "test_lib_types",
             vec![],
         )
         .unwrap();
-        discover(&mut analysis).unwrap();
 
-        analysis.root_index = parse_crate(
-            &mut analysis,
+        let ctx = parse_crate(
+            analysis,
             relative_path("../expanded/wgpu.rs"),
             relative_path("test_workspace/test_lib"),
             "test_lib",
             vec![],
         )
         .unwrap();
-        discover(&mut analysis).unwrap();
 
-        analysis
+        ctx
     }
 
     #[test]
     fn test_discover() {
-        let analysis = test_workspace();
+        let mut analysis = Analysis::default();
+        let ctx = test_workspace(&mut analysis);
 
-        print_dot(&analysis);
+        print_dot(&ctx).unwrap();
 
         assert_eq!(
-            filter_map_nodes(&analysis, |index| matches!(
-                get_entry(&analysis, index).unwrap(),
+            filter_map_nodes(&ctx, |index| matches!(
+                ctx.entry(index).unwrap(),
                 AnalysisEntry::Struct(_)
             )
             .then_some(index))
+            .unwrap()
             .count(),
             7
         );
 
         let mut consts: HashMap<String, Vec<String>> = HashMap::new();
-        for_each_node(&analysis, |index| {
-            if let AnalysisEntry::Struct(entry) = get_entry(&analysis, index).unwrap() {
+        for_each_node(&ctx, |index| {
+            if let AnalysisEntry::Struct(entry) = ctx.entry(index).unwrap() {
                 consts.insert(
-                    node_ident(&analysis, index).unwrap().to_string(),
+                    node_ident(&ctx, index).unwrap().to_string(),
                     struct_consts(entry)
                         .iter()
                         .map(|c| c.ident.to_string())
                         .collect::<Vec<_>>(),
                 );
             }
-        });
+        })
+        .unwrap();
 
         assert_eq!(consts.len(), 7);
 
@@ -138,59 +109,96 @@ mod test {
     }
 
     #[test]
-    fn resolve_path() {
-        let mut analysis = test_workspace();
-        let root_index = analysis.root_index.clone();
+    fn test_resolve_path() {
+        let mut analysis = Analysis::default();
+        let mut ctx = test_workspace(&mut analysis);
 
-        let resolution =
-            super::process::resolve_path(&mut analysis, root_index, &path_from_string("abc::ZZ"))
-                .unwrap();
+        let (_, path) = resolve_full(&mut ctx, None, "abc::ZZ");
+        assert_eq!(&path, "test_lib::abc::ZZ");
 
-        assert_eq!(path_string(&resolution.1), "test_lib::abc::ZZ");
+        let (abc_index, abc) = resolve_full(&mut ctx, None, "crate::abc");
+        assert_eq!(&abc, "test_lib::abc");
 
-        let abc = super::process::resolve_path(
-            &mut analysis,
-            root_index,
-            &path_from_string("crate::abc"),
-        )
-        .unwrap();
+        let (_, resolution) = resolve_full(&mut ctx, Some(abc_index), "super");
+        assert_eq!(&resolution, "test_lib");
 
-        assert_eq!(path_string(&abc.1), "test_lib::abc");
-
-        let resolution =
-            super::process::resolve_path(&mut analysis, abc.0, &path_from_string("super")).unwrap();
-
-        assert_eq!(path_string(&resolution.1), "test_lib");
-
-        let resolution =
-            super::process::resolve_path(&mut analysis, abc.0, &path_from_string("crate")).unwrap();
-
-        assert_eq!(path_string(&resolution.1), "test_lib");
+        let (_, resolution) = resolve_full(&mut ctx, Some(abc_index), "crate");
+        assert_eq!(&resolution, "test_lib");
 
         assert_eq!(
-            path_string(
-                &super::process::resolve_path(
-                    &mut analysis,
-                    abc.0,
-                    &path_from_string("super::tlt::counters::CounterA")
-                )
-                .unwrap()
-                .1
-            ),
+            &resolve_full(&mut ctx, Some(abc_index), "super::tlt::counters::CounterA").1,
             "test_lib::tlt::CounterA"
         );
 
         assert_eq!(
-            path_string(
-                &super::process::resolve_path(
-                    &mut analysis,
-                    abc.0,
-                    &path_from_string("test_lib::tlt::counters::CounterA")
-                )
-                .unwrap()
-                .1
-            ),
+            &resolve_full(
+                &mut ctx,
+                Some(abc_index),
+                "test_lib::tlt::counters::CounterA"
+            )
+            .1,
             "test_lib::tlt::CounterA"
+        );
+    }
+
+    fn resolve_full(
+        ctx: &Ctx<'_>,
+        from: Option<EntryIndex>,
+        relative_path: &str,
+    ) -> (EntryIndex, String) {
+        let from = from.unwrap_or_else(|| ctx.crate_root.clone());
+        let resolution = resolve_path(ctx, from, &path_from_string(&relative_path)).unwrap();
+        (
+            resolution,
+            path_string(&full_path(&*ctx, resolution).unwrap()),
+        )
+    }
+
+    #[test]
+    fn one_crate() {
+        let mut analysis = Analysis::default();
+
+        let mut ctx = process_crate(
+            &mut analysis,
+            "base",
+            q!(
+                pub struct A {}
+                pub mod inner {
+                    pub mod inner2 {
+                        pub enum E {
+                            X,
+                            Y,
+                        }
+                    }
+                }
+                pub mod inner3 {
+                    pub use super::inner::inner2::E;
+                    pub use crate::inner;
+                }
+            )
+            .to_string(),
+            vec![],
+        )
+        .unwrap();
+
+        let (a_node, path) = resolve_full(&mut ctx, None, "A");
+        assert_eq!(&path, "A");
+        assert_eq!(&resolve_full(&mut ctx, None, "crate::A").1, "A");
+        assert_eq!(&resolve_full(&mut ctx, Some(a_node), "inner").1, "inner");
+
+        let (inner2_node, path) = resolve_full(&mut ctx, Some(a_node), "inner::inner2");
+        assert_eq!(path, "inner::inner2");
+        assert_eq!(
+            &resolve_full(&mut ctx, Some(inner2_node), "super").1,
+            "inner"
+        );
+        assert_eq!(
+            &resolve_full(&mut ctx, Some(inner2_node), "E::X").1,
+            "inner3::E::X"
+        );
+        assert_eq!(
+            &resolve_full(&mut ctx, None, "crate::inner3::inner").1,
+            "inner"
         );
     }
 
@@ -198,7 +206,7 @@ mod test {
     fn crate_relative() {
         let mut analysis = Analysis::default();
 
-        let extra = process_crate(
+        process_crate(
             &mut analysis,
             "extra",
             q!(
@@ -210,9 +218,8 @@ mod test {
             vec![],
         )
         .unwrap();
-        discover(&mut analysis).unwrap();
 
-        let root_index = process_crate(
+        let ctx = process_crate(
             &mut analysis,
             "base",
             q!(
@@ -220,24 +227,11 @@ mod test {
                 pub struct A {}
             )
             .to_string(),
-            vec![("extra".to_string(), extra)],
+            vec!["extra".to_string()],
         )
         .unwrap();
-        analysis.root_index = root_index;
-        discover(&mut analysis).unwrap();
 
-        assert_eq!(
-            path_string(
-                &super::process::resolve_path(
-                    &mut analysis,
-                    root_index,
-                    &path_from_string("base::ext")
-                )
-                .unwrap()
-                .1
-            ),
-            "base::ext"
-        );
+        assert_eq!(&resolve_full(&ctx, None, "base::ext").1, "base::ext");
     }
 
     #[test]
@@ -255,7 +249,7 @@ mod test {
         )
         .unwrap();
 
-        let root_index = process_crate(
+        let ctx = process_crate(
             &mut analysis,
             "base",
             q!(
@@ -271,20 +265,17 @@ mod test {
         )
         .unwrap();
 
-        analysis.root_index = root_index;
-
-        discover(&mut analysis).unwrap();
-
-        let mut structs = filter_map_nodes(&analysis, |node_index| {
-            if let Ok(AnalysisEntry::Struct(_)) = get_entry(&analysis, node_index) {
+        let mut structs = filter_map_nodes(&ctx, |node_index| {
+            if let Ok(AnalysisEntry::Struct(_)) = ctx.entry(node_index) {
                 Some(node_index)
             } else {
                 None
             }
-        });
+        })
+        .unwrap();
 
         assert_eq!(
-            node_ident(&analysis, structs.next().unwrap())
+            node_ident(&ctx, structs.next().unwrap())
                 .unwrap()
                 .to_string(),
             "ABase"

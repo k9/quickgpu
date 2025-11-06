@@ -1,4 +1,4 @@
-use discover_exports::{Analysis, crate_graph::for_each_node, discover, parse_crate};
+use discover_exports::crate_graph::for_each_node;
 
 use crate::{
     generate::struct_entry::output_struct,
@@ -26,7 +26,7 @@ const SKIP: &[&str] = &[
 ];
 
 pub fn generate() -> anyhow::Result<()> {
-    let mut analysis = Analysis::default();
+    let mut analysis = CrateAnalysis::default();
 
     let wgpu_types = parse_crate(
         &mut analysis,

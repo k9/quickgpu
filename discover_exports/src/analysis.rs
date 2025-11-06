@@ -1,14 +1,26 @@
-use std::collections::HashMap;
-
-use petgraph::{graph::NodeIndex, prelude::StableGraph};
+use anyhow::Context;
+use fixedbitset::FixedBitSet;
+use petgraph::{graph::NodeIndex, prelude::StableGraph, visit::Bfs};
+use proc_macro2::Span;
 use syn::{
     Attribute, Fields, Generics, Ident, ImplItemConst, ImplRestriction, Item, ItemEnum, ItemImpl,
-    ItemMod, ItemStruct, ItemTrait, ItemType, TraitItem, Type, TypeParamBound, Variant, Visibility,
+    ItemMod, ItemStruct, ItemTrait, ItemType, Token, TraitItem, Type, TypeParamBound, Variant,
+    Visibility,
 };
 
-#[derive(Clone, Debug, Default)]
-pub struct CrateRoot {
-    pub extern_prelude: HashMap<String, NodeIndex>,
+use crate::{AResult, EntryIndex, utils::id};
+
+#[derive(Clone, Debug)]
+pub struct AnalysisCrate {
+    pub content: Vec<Item>,
+    pub vis: Visibility,
+    pub name: Ident,
+}
+
+impl AnalysisCrate {
+    pub fn new(name: Ident, vis: Visibility, content: Vec<Item>) -> Self {
+        Self { name, vis, content }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -16,7 +28,6 @@ pub struct AnalysisMod {
     pub attrs: Vec<Attribute>,
     pub vis: Visibility,
     pub content: Vec<Item>,
-    pub crate_root: Option<CrateRoot>,
 }
 
 impl AnalysisMod {
@@ -27,13 +38,11 @@ impl AnalysisMod {
             content,
             ..
         }: ItemMod,
-        crate_root: Option<CrateRoot>,
     ) -> Self {
         Self {
             attrs,
             vis,
             content: content.map_or(vec![], |c| c.1),
-            crate_root,
         }
     }
 }
@@ -169,10 +178,71 @@ impl AnalysisTrait {
     }
 }
 
-#[derive(Default)]
+pub type AnalysisGraph = StableGraph<AnalysisEntry, AnalysisEdge>;
+
 pub struct Analysis {
-    pub graph: StableGraph<AnalysisEntry, AnalysisEdge>,
-    pub root_index: NodeIndex,
+    pub graph: AnalysisGraph,
+}
+
+impl Default for Analysis {
+    fn default() -> Self {
+        Self {
+            graph: AnalysisGraph::new(),
+        }
+    }
+}
+
+impl Analysis {
+    pub fn add_crate(&'_ mut self, name: String, contents: String) -> AResult<Ctx<'_>> {
+        let file = syn::parse_file(&contents)?;
+
+        let crate_root = self
+            .graph
+            .add_node(AnalysisEntry::ExternCrate(AnalysisCrate {
+                name: id(name.as_str()),
+                vis: syn::Visibility::Public(Token![pub](Span::call_site())),
+                content: file.items,
+            }));
+
+        Ok(Ctx {
+            analysis: self,
+            crate_root,
+        })
+    }
+}
+
+pub struct Ctx<'a> {
+    pub analysis: &'a mut Analysis,
+    pub crate_root: EntryIndex,
+}
+
+impl<'a> Ctx<'a> {
+    pub fn graph(&self) -> &AnalysisGraph {
+        &self.analysis.graph
+    }
+    pub fn graph_mut(&mut self) -> &mut AnalysisGraph {
+        &mut self.analysis.graph
+    }
+
+    pub fn entry(&self, index: NodeIndex) -> AResult<&AnalysisEntry> {
+        self.graph()
+            .node_weight(index)
+            .context("Couldn't get entry")
+    }
+
+    pub fn entry_mut(&mut self, index: NodeIndex) -> AResult<&mut AnalysisEntry> {
+        self.graph_mut()
+            .node_weight_mut(index)
+            .context("Couldn't get entry")
+    }
+
+    pub fn krate(&self) -> AResult<&AnalysisEntry> {
+        self.entry(self.crate_root)
+    }
+
+    pub fn bfs(&self) -> AResult<Bfs<NodeIndex, FixedBitSet>> {
+        Ok(Bfs::new(&self.graph(), self.crate_root))
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -203,6 +273,7 @@ impl<T> VecPushIndex<T> for Vec<T> {
 
 #[derive(Clone, Debug)]
 pub enum AnalysisEntry {
+    ExternCrate(AnalysisCrate),
     Struct(AnalysisStruct),
     Enum(AnalysisEnum),
     Type(AnalysisTypeAlias),
@@ -210,5 +281,4 @@ pub enum AnalysisEntry {
     Mod(AnalysisMod),
     Variant,
     Const(AnalysisConst),
-    Origin,
 }

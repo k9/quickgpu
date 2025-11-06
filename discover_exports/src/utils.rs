@@ -1,27 +1,14 @@
-use std::borrow::Borrow;
-use std::fs::File;
-use std::path::PathBuf;
-use std::process::Command;
-use std::process::Stdio;
+use std::{
+    borrow::Borrow,
+    fs::File,
+    path::PathBuf,
+    process::{Command, Stdio},
+};
 
 use anyhow::bail;
-use petgraph::graph::NodeIndex;
 use proc_macro2::Span;
 
-use syn::Ident;
-use syn::Item;
-use syn::Path;
-use syn::Token;
-use syn::Visibility;
-
-use crate::AResult;
-use crate::Analysis;
-use crate::AnalysisEdge;
-use crate::analysis::AnalysisEntry;
-use crate::analysis::AnalysisMod;
-use crate::analysis::CrateRoot;
-use crate::crate_graph::get_entry_mut;
-use crate::crate_graph::update_edge;
+use syn::{Ident, Path, Visibility};
 
 pub fn id<'a>(s: impl Into<&'a str>) -> Ident {
     Ident::new(s.into(), Span::call_site())
@@ -47,44 +34,6 @@ pub fn relative_path(p: impl Into<PathBuf>) -> PathBuf {
     std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .join(p.into())
         .to_path_buf()
-}
-
-pub fn krate(
-    analysis: &mut Analysis,
-    name: &str,
-    crate_root: bool,
-    content: Vec<Item>,
-) -> AResult<NodeIndex> {
-    let krate = AnalysisMod {
-        attrs: vec![],
-        vis: syn::Visibility::Public(Token![pub](Span::call_site())),
-        content,
-        crate_root: if crate_root {
-            Some(CrateRoot::default())
-        } else {
-            None
-        },
-    };
-
-    let origin_index = analysis.graph.add_node(AnalysisEntry::Origin);
-    let root_index = analysis.graph.add_node(AnalysisEntry::Mod(krate));
-
-    update_edge(
-        analysis,
-        origin_index,
-        root_index,
-        AnalysisEdge::new(false, Some(id(name))),
-    );
-
-    if let AnalysisEntry::Mod(crate_root) = get_entry_mut(analysis, root_index)?
-        && let Some(crate_root) = crate_root.crate_root.as_mut()
-    {
-        crate_root
-            .extern_prelude
-            .insert(name.to_string(), root_index);
-    }
-
-    Ok(root_index)
 }
 
 pub fn path_segments(path: &Path) -> Vec<Ident> {
