@@ -2,18 +2,19 @@ use std::path::PathBuf;
 
 use crate::{
     AResult, EntryIndex,
-    analysis::{
-        Analysis, AnalysisConst, AnalysisEdge, AnalysisEntry, AnalysisEnum, AnalysisMod,
-        AnalysisStruct, AnalysisTrait, AnalysisTypeAlias, Ctx,
+    analysis::{Analysis, AnalysisEdge, Ctx},
+    analysis_entry::{
+        AnalysisEntry, AnalysisEnum, AnalysisImpl, AnalysisImplConst, AnalysisMod, AnalysisStruct,
+        AnalysisTrait, AnalysisType,
     },
-    crate_graph::{find_neighbor, keep_only_public, update_edge},
-    types::{resolve_type_paths, type_path},
+    crate_graph::{find_neighbor, update_edge},
+    types::type_path,
     use_statements::process_use_statements,
     utils::{id, path_segments, write_expanded},
 };
 use anyhow::{Context, bail};
 use petgraph::{Direction, graph::NodeIndex};
-use syn::{Fields, Ident, ImplItem, Item, Type, visit_mut::VisitMut};
+use syn::{Ident, ImplItem, Item, Type, visit_mut::VisitMut};
 
 pub fn parse_crate<'a>(
     analysis: &'a mut Analysis,
@@ -41,35 +42,43 @@ pub fn process_crate<'a>(
     let crate_root = ctx.crate_root.clone();
 
     for name in dependencies {
-        let node = ctx
-            .graph()
-            .node_indices()
-            .find(|n| {
-                if let Ok(AnalysisEntry::ExternCrate(krate)) = ctx.entry(*n) {
-                    return krate.name.to_string() == name;
-                }
-
-                return false;
-            })
-            .context(format!("Couldn't find dependency {}", name))?;
-
-        ctx.graph_mut().add_edge(
-            crate_root,
-            node,
-            AnalysisEdge {
-                from_hierarchy: false,
-                name: Some(id(name.as_str())),
-            },
-        );
+        add_extern_crate(&mut ctx, crate_root, id(name.as_str()), id(name.as_str()));
     }
 
     process_subtree(&mut ctx, crate_root)?;
     discover_paths(&mut ctx)?;
-    process_impls(&mut ctx)?;
-    process_fields(&mut ctx)?;
-    keep_only_public(&mut ctx)?;
+    link_impls(&mut ctx)?;
 
     Ok(ctx)
+}
+
+fn add_extern_crate(
+    ctx: &mut Ctx<'_>,
+    from_node: NodeIndex,
+    extern_crate_name: Ident,
+    extern_crate_rename: Ident,
+) {
+    let Some(node) = ctx.graph().node_indices().find(|n| {
+        if let Ok(AnalysisEntry::Mod(krate)) = ctx.entry(*n)
+            && let Some(name) = &krate.root_of_crate
+        {
+            return name.to_string() == extern_crate_name.to_string();
+        }
+
+        return false;
+    }) else {
+        log::debug!("Skipping extern crate {}", extern_crate_name);
+        return;
+    };
+
+    ctx.graph_mut().add_edge(
+        from_node,
+        node,
+        AnalysisEdge {
+            from_hierarchy: false,
+            name: Some(extern_crate_rename),
+        },
+    );
 }
 
 fn discover_paths(ctx: &mut Ctx) -> AResult<()> {
@@ -88,26 +97,27 @@ fn discover_paths(ctx: &mut Ctx) -> AResult<()> {
 }
 
 pub fn process_subtree(ctx: &mut Ctx, parent_mod: NodeIndex) -> AResult<()> {
-    let content = match ctx.entry(parent_mod)? {
-        AnalysisEntry::ExternCrate(entry) => entry.content.clone(),
-        AnalysisEntry::Mod(entry) => entry.content.clone(),
-        _ => bail!("Couldn't get subtree node"),
+    let content = if let AnalysisEntry::Mod(entry) = ctx.entry(parent_mod)? {
+        entry.content()
+    } else {
+        bail!("Couldn't get subtree node")
     };
 
     for item in content.into_iter() {
         match item {
             Item::Mod(mod_item) => {
+                let mod_item = mod_item.clone();
                 let ident = mod_item.ident.clone();
 
                 let child_mod = ctx
                     .graph_mut()
-                    .add_node(AnalysisEntry::Mod(AnalysisMod::new(mod_item)));
+                    .add_node(AnalysisEntry::Mod(AnalysisMod::new(mod_item, None)));
 
                 update_edge(
                     ctx,
                     parent_mod,
                     child_mod,
-                    AnalysisEdge::new(true, Some(ident)),
+                    AnalysisEdge::new(true, Some(ident.clone())),
                 )?;
 
                 process_subtree(ctx, child_mod)?;
@@ -117,10 +127,7 @@ pub fn process_subtree(ctx: &mut Ctx, parent_mod: NodeIndex) -> AResult<()> {
 
                 let child = ctx
                     .graph_mut()
-                    .add_node(AnalysisEntry::Struct(AnalysisStruct::new(
-                        item.clone(),
-                        vec![],
-                    )));
+                    .add_node(AnalysisEntry::Struct(AnalysisStruct::new(item.clone())));
 
                 update_edge(ctx, parent_mod, child, AnalysisEdge::new(true, Some(ident)))?;
             }
@@ -129,18 +136,18 @@ pub fn process_subtree(ctx: &mut Ctx, parent_mod: NodeIndex) -> AResult<()> {
 
                 let child = ctx
                     .graph_mut()
-                    .add_node(AnalysisEntry::Enum(AnalysisEnum::new(item.clone(), vec![])));
+                    .add_node(AnalysisEntry::Enum(AnalysisEnum::new(item.clone())));
 
                 update_edge(ctx, parent_mod, child, AnalysisEdge::new(true, Some(ident)))?;
 
-                for variant in &item.variants {
-                    let variant_index = ctx.graph_mut().add_node(AnalysisEntry::Variant);
+                for variant in item.variants {
+                    let variant_node = ctx.graph_mut().add_node(AnalysisEntry::Variant);
 
                     update_edge(
                         ctx,
                         child,
-                        variant_index,
-                        AnalysisEdge::new(true, Some(variant.ident.clone())),
+                        variant_node,
+                        AnalysisEdge::new(true, Some(variant.ident)),
                     )?;
                 }
             }
@@ -149,7 +156,7 @@ pub fn process_subtree(ctx: &mut Ctx, parent_mod: NodeIndex) -> AResult<()> {
 
                 let child = ctx
                     .graph_mut()
-                    .add_node(AnalysisEntry::Type(AnalysisTypeAlias::new(item.clone())));
+                    .add_node(AnalysisEntry::Type(AnalysisType::new(item.clone())));
 
                 update_edge(ctx, parent_mod, child, AnalysisEdge::new(true, Some(ident)))?;
             }
@@ -161,67 +168,33 @@ pub fn process_subtree(ctx: &mut Ctx, parent_mod: NodeIndex) -> AResult<()> {
 
                 update_edge(ctx, parent_mod, child, AnalysisEdge::new(true, Some(ident)))?;
             }
-            _ => (),
-        };
-    }
+            Item::Impl(item) => {
+                let child = ctx
+                    .graph_mut()
+                    .add_node(AnalysisEntry::Impl(AnalysisImpl::new(item.clone())));
 
-    Ok(())
-}
+                update_edge(ctx, parent_mod, child, AnalysisEdge::new(true, None))?;
 
-pub fn process_impls(ctx: &mut Ctx) -> AResult<()> {
-    let mut to_add = vec![];
-    let mut bfs = ctx.bfs()?;
+                for inner in item.items {
+                    if let ImplItem::Const(c) = inner {
+                        let ident = c.ident.clone();
+                        let const_node = ctx
+                            .graph_mut()
+                            .add_node(AnalysisEntry::ImplConst(AnalysisImplConst::new(c)));
 
-    while let Some(node_index) = bfs.next(ctx.graph()) {
-        if let AnalysisEntry::Mod(module) = ctx.entry(node_index)? {
-            let content = module.content.clone();
-            for item in content {
-                if let Item::Impl(item_impl) = &item {
-                    let mut item_impl = item_impl.clone();
-                    let ty = (*item_impl.self_ty).clone();
-                    let ty = resolve_type_paths(ty, ctx, node_index);
-                    if let Type::Path(path) = &ty {
-                        if let Ok(resolved_index) =
-                            resolve_path(ctx, ctx.crate_root, &path_segments(&path.path))
-                        {
-                            item_impl.self_ty = Box::new(ty);
-
-                            let mut resolver = TyResolve {
-                                ctx,
-                                item_index: node_index,
-                            };
-
-                            resolver.visit_item_impl_mut(&mut item_impl);
-
-                            for item in &item_impl.items {
-                                if let ImplItem::Const(const_item) = item {
-                                    let entry = AnalysisConst::new(const_item.clone());
-                                    let ident = const_item.ident.clone();
-                                    to_add.push((entry, ident, resolved_index));
-                                }
-                            }
-
-                            match ctx.entry_mut(resolved_index) {
-                                Ok(AnalysisEntry::Struct(entry)) => entry.impls.push(item_impl),
-                                Ok(AnalysisEntry::Enum(entry)) => entry.impls.push(item_impl),
-                                _ => (),
-                            }
-                        }
+                        update_edge(ctx, child, const_node, AnalysisEdge::new(true, Some(ident)))?;
                     }
                 }
             }
-        }
-    }
+            Item::ExternCrate(item) => {
+                let rename = item
+                    .rename
+                    .map_or_else(|| item.ident.clone(), |(_, rename)| rename);
 
-    for (entry, ident, resolved_index) in to_add.into_iter() {
-        let const_index = ctx.graph_mut().add_node(AnalysisEntry::Const(entry));
-
-        update_edge(
-            ctx,
-            resolved_index,
-            const_index,
-            AnalysisEdge::new(true, Some(ident)),
-        )?;
+                add_extern_crate(ctx, parent_mod, item.ident.clone(), rename);
+            }
+            _ => (),
+        };
     }
 
     Ok(())
@@ -233,40 +206,9 @@ struct TyResolve<'a> {
 }
 
 impl<'a> VisitMut for TyResolve<'a> {
-    fn visit_type_mut(&mut self, ty: &mut Type) {
-        *ty = resolve_type_paths(ty.clone(), self.ctx, self.item_index);
-    }
-
     fn visit_path_mut(&mut self, path: &mut syn::Path) {
         type_path(self.ctx, self.item_index, path);
     }
-}
-
-pub fn process_fields(ctx: &mut Ctx) -> AResult<()> {
-    let mut bfs = ctx.bfs()?;
-    while let Some(node_index) = bfs.next(ctx.graph()) {
-        if let AnalysisEntry::Struct(entry) = ctx.entry_mut(node_index)? {
-            let entry = entry.clone();
-            if let Fields::Named(fields) = &entry.fields {
-                for (field_index, field) in fields.named.iter().enumerate() {
-                    let ty = field.ty.clone();
-                    let ty = resolve_type_paths(ty, ctx, node_index);
-
-                    if let AnalysisEntry::Struct(entry) = ctx.entry_mut(node_index)? {
-                        if let Fields::Named(fields) = &mut entry.fields {
-                            fields
-                                .named
-                                .get_mut(field_index)
-                                .context("Error updating field")?
-                                .ty = ty;
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    Ok(())
 }
 
 pub fn resolve_path(
@@ -287,9 +229,7 @@ pub fn resolve_path_inner(
         .node_weight(item_index)
         .context("Couldn't get node")?;
 
-    let module_index = if matches!(entry, AnalysisEntry::Mod(_))
-        || matches!(entry, AnalysisEntry::ExternCrate(_))
-    {
+    let module_index = if matches!(entry, AnalysisEntry::Mod(_)) {
         item_index
     } else {
         get_super(ctx, item_index)?
@@ -335,10 +275,57 @@ pub fn resolve_next_segment(
         get_super(ctx, current)
     } else if let Some(child_index) = find_neighbor(ctx, current, &path_segment) {
         Ok(child_index)
-    } else if current == ctx.crate_root {
-        Ok(ctx.crate_root)
+    } else if let Ok(node) = resolve_prelude(ctx, path_segment) {
+        Ok(node)
     } else {
-        bail!("extern crate not implemented");
+        bail!("Couldn't resolve segment {:?}", path_segment);
+    }
+}
+
+pub fn link_impls(ctx: &mut Ctx) -> AResult<()> {
+    let mut bfs = ctx.bfs()?;
+
+    let mut to_add = vec![];
+    while let Some(impl_node) = bfs.next(&ctx.graph()) {
+        if let AnalysisEntry::Impl(impl_entry) = ctx.entry(impl_node).unwrap()
+            && let Type::Path(path) = *impl_entry.item.self_ty.clone()
+        {
+            let adt = resolve_path(ctx, impl_node, &path_segments(&path.path))?;
+
+            let mut neighbors = ctx.graph().neighbors(impl_node).detach();
+            while let Some((edge_index, neighbor)) = neighbors.next(ctx.graph()) {
+                if let Some(edge) = ctx.graph().edge_weight(edge_index)
+                    && let Some(name) = edge.name.as_ref()
+                {
+                    if let AnalysisEntry::ImplConst(_) = ctx.entry(neighbor)? {
+                        to_add.push((adt, neighbor, AnalysisEdge::new(false, Some(name.clone()))));
+                    }
+                }
+            }
+        }
+    }
+
+    for (from_node, to_node, edge) in to_add {
+        ctx.graph_mut().add_edge(from_node, to_node, edge);
+    }
+
+    Ok(())
+}
+
+fn resolve_prelude(ctx: &Ctx, path_segment: &Ident) -> AResult<NodeIndex> {
+    let root = ctx.crate_root;
+    if let AnalysisEntry::Mod(module) = ctx.krate()?
+        && let Some(root_of) = &module.root_of_crate
+        && root_of.to_string() == path_segment.to_string()
+    {
+        Ok(root)
+    } else if let Some(neighbor) = find_neighbor(ctx, root, path_segment)
+        && let AnalysisEntry::Mod(entry) = ctx.entry(neighbor)?
+        && entry.root_of_crate.is_some()
+    {
+        Ok(neighbor)
+    } else {
+        bail!("Couldn't find extern crate {:?}", path_segment);
     }
 }
 

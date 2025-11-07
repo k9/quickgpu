@@ -1,8 +1,7 @@
 use petgraph::graph::NodeIndex;
 
-pub use crate::analysis::{AnalysisEdge, AnalysisEnum, AnalysisStruct, AnalysisTypeAlias};
-
 pub mod analysis;
+pub mod analysis_entry;
 pub mod crate_graph;
 mod exports;
 mod process;
@@ -15,18 +14,16 @@ pub type EntryIndex = NodeIndex;
 
 #[cfg(test)]
 mod test {
-    use std::collections::HashMap;
-
     use crate::{
         EntryIndex,
-        analysis::{Analysis, AnalysisEntry, Ctx},
-        crate_graph::{filter_map_nodes, for_each_node, full_path, node_ident, print_dot},
+        analysis::{Analysis, Ctx},
+        analysis_entry::AnalysisEntry,
+        crate_graph::{PathType, filter_map_nodes, full_path, node_ident},
         process::{parse_crate, process_crate},
         utils::{path_from_string, path_string, relative_path},
     };
 
     use quote::quote as q;
-    use syn::{ImplItem, ImplItemConst};
 
     use super::process::resolve_path;
 
@@ -45,7 +42,7 @@ mod test {
             relative_path("../expanded/wgpu.rs"),
             relative_path("test_workspace/test_lib"),
             "test_lib",
-            vec![],
+            vec!["test_lib_types".to_string()],
         )
         .unwrap();
 
@@ -57,55 +54,17 @@ mod test {
         let mut analysis = Analysis::default();
         let ctx = test_workspace(&mut analysis);
 
-        print_dot(&ctx).unwrap();
-
         assert_eq!(
-            filter_map_nodes(&ctx, |index| matches!(
-                ctx.entry(index).unwrap(),
-                AnalysisEntry::Struct(_)
+            filter_map_nodes(
+                &ctx,
+                |index| matches!(ctx.entry(index).unwrap(), AnalysisEntry::Struct(_))
+                    .then_some(index),
+                PathType::PublicOnly
             )
-            .then_some(index))
             .unwrap()
             .count(),
             7
         );
-
-        let mut consts: HashMap<String, Vec<String>> = HashMap::new();
-        for_each_node(&ctx, |index| {
-            if let AnalysisEntry::Struct(entry) = ctx.entry(index).unwrap() {
-                consts.insert(
-                    node_ident(&ctx, index).unwrap().to_string(),
-                    struct_consts(entry)
-                        .iter()
-                        .map(|c| c.ident.to_string())
-                        .collect::<Vec<_>>(),
-                );
-            }
-        })
-        .unwrap();
-
-        assert_eq!(consts.len(), 7);
-
-        let abc_consts = consts.get("A").unwrap();
-        assert_eq!(abc_consts.len(), 0);
-
-        let abc_consts = consts.get("Abc").unwrap();
-        assert_eq!(abc_consts.len(), 2);
-        assert!(abc_consts.contains(&"XYZ".to_string()));
-        assert!(abc_consts.contains(&"ZZZZ".to_string()));
-    }
-
-    fn struct_consts(entry: &crate::AnalysisStruct) -> Vec<&ImplItemConst> {
-        let mut consts = vec![];
-        for impl_item in &entry.impls {
-            for item in &impl_item.items {
-                if let ImplItem::Const(c) = item {
-                    consts.push(c);
-                };
-            }
-        }
-
-        consts
     }
 
     #[test]
@@ -114,30 +73,25 @@ mod test {
         let mut ctx = test_workspace(&mut analysis);
 
         let (_, path) = resolve_full(&mut ctx, None, "abc::ZZ");
-        assert_eq!(&path, "test_lib::abc::ZZ");
+        assert_eq!(&path, "abc::ZZ");
 
         let (abc_index, abc) = resolve_full(&mut ctx, None, "crate::abc");
-        assert_eq!(&abc, "test_lib::abc");
+        assert_eq!(&abc, "abc");
 
         let (_, resolution) = resolve_full(&mut ctx, Some(abc_index), "super");
-        assert_eq!(&resolution, "test_lib");
+        assert_eq!(&resolution, "");
 
         let (_, resolution) = resolve_full(&mut ctx, Some(abc_index), "crate");
-        assert_eq!(&resolution, "test_lib");
+        assert_eq!(&resolution, "");
 
         assert_eq!(
             &resolve_full(&mut ctx, Some(abc_index), "super::tlt::counters::CounterA").1,
-            "test_lib::tlt::CounterA"
+            "tlt::CounterA"
         );
 
         assert_eq!(
-            &resolve_full(
-                &mut ctx,
-                Some(abc_index),
-                "test_lib::tlt::counters::CounterA"
-            )
-            .1,
-            "test_lib::tlt::CounterA"
+            &resolve_full(&mut ctx, Some(abc_index), "tlt::counters::CounterA").1,
+            "tlt::CounterA"
         );
     }
 
@@ -150,7 +104,7 @@ mod test {
         let resolution = resolve_path(ctx, from, &path_from_string(&relative_path)).unwrap();
         (
             resolution,
-            path_string(&full_path(&*ctx, resolution).unwrap()),
+            path_string(&full_path(&*ctx, resolution, PathType::PublicOnly).unwrap()),
         )
     }
 
@@ -203,6 +157,42 @@ mod test {
     }
 
     #[test]
+    fn impls() {
+        let mut analysis = Analysis::default();
+
+        let mut ctx = process_crate(
+            &mut analysis,
+            "base",
+            q!(
+                pub struct A {}
+
+                pub mod inner {
+                    pub struct B {}
+                }
+
+                pub mod impls {
+                    impl crate::A {
+                        pub const X: super::inner::B = crate::inner::B {};
+                    }
+                    impl super::inner::B {
+                        pub const Y: u32 = 5;
+                    }
+                    const C: crate::inner::B = crate::inner::B {};
+                }
+            )
+            .to_string(),
+            vec![],
+        )
+        .unwrap();
+
+        assert_eq!(&resolve_full(&mut ctx, None, "crate::A").1, "A");
+        assert_eq!(
+            &resolve_full(&mut ctx, None, "crate::inner::B::Y").1,
+            "inner::B::Y"
+        );
+    }
+
+    #[test]
     fn crate_relative() {
         let mut analysis = Analysis::default();
 
@@ -212,7 +202,9 @@ mod test {
             q!(
                 pub mod B {
                     pub const Z: crate::A = crate::A {};
+                    pub struct Inner {}
                 }
+                pub use B::Inner;
             )
             .to_string(),
             vec![],
@@ -231,7 +223,11 @@ mod test {
         )
         .unwrap();
 
-        assert_eq!(&resolve_full(&ctx, None, "base::ext").1, "base::ext");
+        assert_eq!(&resolve_full(&ctx, None, "base::ext").1, "ext");
+        assert_eq!(
+            &resolve_full(&ctx, None, "base::ext::B::Inner").1,
+            "ext::Inner"
+        );
     }
 
     #[test]
@@ -265,17 +261,21 @@ mod test {
         )
         .unwrap();
 
-        let mut structs = filter_map_nodes(&ctx, |node_index| {
-            if let Ok(AnalysisEntry::Struct(_)) = ctx.entry(node_index) {
-                Some(node_index)
-            } else {
-                None
-            }
-        })
+        let mut structs = filter_map_nodes(
+            &ctx,
+            |node_index| {
+                if let Ok(AnalysisEntry::Struct(_)) = ctx.entry(node_index) {
+                    Some(node_index)
+                } else {
+                    None
+                }
+            },
+            PathType::PublicOnly,
+        )
         .unwrap();
 
         assert_eq!(
-            node_ident(&ctx, structs.next().unwrap())
+            node_ident(&ctx, structs.next().unwrap(), PathType::PublicOnly)
                 .unwrap()
                 .to_string(),
             "ABase"
@@ -283,22 +283,26 @@ mod test {
 
         assert!(structs.next().is_none());
 
-        /*let mut types = filter_nodes(&analysis, root_index, |node_index| {
-            if let Ok(AnalysisRef::Type(_)) = AnalysisEntry::node_index_ref(&analysis, node_index) {
-                Some(node_index)
-            } else {
-                None
-            }
-        });
-
+        let mut types = filter_map_nodes(
+            &ctx,
+            |node_index| {
+                if let Ok(AnalysisEntry::Type(_)) = ctx.entry(node_index) {
+                    Some(node_index)
+                } else {
+                    None
+                }
+            },
+            PathType::PublicOnly,
+        )
+        .unwrap();
 
         assert_eq!(
-            node_ident(&analysis, root_index, types.next().unwrap())
+            node_ident(&ctx, types.next().unwrap(), PathType::PublicOnly)
                 .unwrap()
                 .to_string(),
             "A"
         );
 
-        assert!(structs.next().is_none());*/
+        assert!(structs.next().is_none());
     }
 }

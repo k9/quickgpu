@@ -5,7 +5,12 @@ use syn::{
     spanned::Spanned,
 };
 
-use crate::{analysis::Ctx, crate_graph::full_path, process::resolve_path, utils::path_segments};
+use crate::{
+    analysis::Ctx,
+    crate_graph::{PathType, full_path},
+    process::resolve_path,
+    utils::path_segments,
+};
 
 pub fn resolve_type_paths(ty: Type, ctx: &Ctx, item_index: NodeIndex) -> Type {
     let mut ty = ty.clone();
@@ -59,26 +64,26 @@ pub fn type_path(ctx: &Ctx, item_index: NodeIndex, path: &mut Path) {
     let segments = path_segments(&path);
 
     if let Some(last_segment) = path.segments.last() {
-        let mut arguments = last_segment.arguments.clone();
-
-        if let PathArguments::AngleBracketed(arguments) = &mut arguments {
-            arguments.args.iter_mut().for_each(|arg| {
-                match arg {
-                    GenericArgument::Type(arg_ty) => {
-                        *arg = GenericArgument::Type(resolve_type_paths(
-                            arg_ty.clone(),
-                            ctx,
-                            item_index,
-                        ));
-                    }
-                    _ => (),
-                };
-            });
-        }
-
         if let Ok(node) = resolve_path(ctx, item_index, &segments)
-            && let Ok(full) = full_path(ctx, node)
+            && let Ok(full) = full_path(ctx, node, PathType::PublicOnly)
         {
+            let mut arguments = last_segment.arguments.clone();
+
+            if let PathArguments::AngleBracketed(arguments) = &mut arguments {
+                arguments.args.iter_mut().for_each(|arg| {
+                    match arg {
+                        GenericArgument::Type(arg_ty) => {
+                            *arg = GenericArgument::Type(resolve_type_paths(
+                                arg_ty.clone(),
+                                ctx,
+                                item_index,
+                            ));
+                        }
+                        _ => (),
+                    };
+                });
+            }
+
             let mut segments = Punctuated::new();
             for ident in full.iter() {
                 segments.push(PathSegment {
@@ -88,28 +93,12 @@ pub fn type_path(ctx: &Ctx, item_index: NodeIndex, path: &mut Path) {
             }
 
             path.segments = segments;
-        } else {
-            let last_segment = last_segment.ident.to_string();
-            let last_segment = last_segment.as_str();
-            if ![
-                "f32", "f64", "i32", "u8", "u32", "u64", "usize", "bool", "String", "str",
-            ]
-            .contains(&last_segment)
-                && last_segment.len() > 1
-                && arguments.is_none()
-            {
-                log::warn!(
-                    "Couldn't resolve type {} from {:?} - {:?} {:?}",
-                    path.into_token_stream(),
-                    full_path(ctx, item_index),
-                    path.span().start(),
-                    path.span().file()
-                );
-            }
-        };
 
-        if let Some(last) = path.segments.last_mut() {
-            last.arguments = arguments;
-        }
+            if let Some(last) = path.segments.last_mut() {
+                last.arguments = arguments;
+            }
+        } else {
+            log::debug!("Couldn't resolve {:?}", path);
+        };
     }
 }

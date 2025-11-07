@@ -10,8 +10,8 @@ use proc_macro2::Span;
 
 use syn::{Ident, Path, Visibility};
 
-pub fn id<'a>(s: impl Into<&'a str>) -> Ident {
-    Ident::new(s.into(), Span::call_site())
+pub fn id(s: impl Into<String>) -> Ident {
+    Ident::new(&s.into(), Span::call_site())
 }
 
 pub fn write_expanded(output_path: &PathBuf, crate_path: &PathBuf) -> Result<(), anyhow::Error> {
