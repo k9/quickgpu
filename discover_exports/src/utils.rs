@@ -1,5 +1,4 @@
 use std::{
-    borrow::Borrow,
     fs::File,
     path::PathBuf,
     process::{Command, Stdio},
@@ -8,7 +7,7 @@ use std::{
 use anyhow::bail;
 use proc_macro2::Span;
 
-use syn::{Ident, Path, Visibility};
+use syn::{Ident, Path, PathArguments, PathSegment, Visibility, punctuated::Punctuated};
 
 pub fn id(s: impl Into<String>) -> Ident {
     Ident::new(&s.into(), Span::call_site())
@@ -36,29 +35,26 @@ pub fn relative_path(p: impl Into<PathBuf>) -> PathBuf {
         .to_path_buf()
 }
 
-pub fn path_segments(path: &Path) -> Vec<Ident> {
-    path.borrow()
-        .segments
-        .iter()
-        .map(|seg| seg.ident.clone())
-        .collect::<Vec<_>>()
-}
+pub fn path_from_string(path: &str) -> Path {
+    let mut segments = Punctuated::new();
 
-pub fn path_string(path: &[Ident]) -> String {
-    path.iter()
-        .map(|id| id.to_string())
-        .collect::<Vec<_>>()
-        .join("::")
-}
+    path.split("::").into_iter().for_each(|s| {
+        segments.push(PathSegment {
+            ident: id(s),
+            arguments: PathArguments::None,
+        });
+    });
 
-pub fn path_from_string(path: &str) -> Vec<Ident> {
-    path.split("::").into_iter().map(|s| id(s)).collect()
+    Path {
+        leading_colon: None,
+        segments,
+    }
 }
 
 pub fn path_refs_string(path: &Path) -> String {
-    let path = path_segments(path);
-    path.iter()
-        .map(|id| id.to_string())
+    path.segments
+        .iter()
+        .map(|segment| segment.ident.to_string())
         .collect::<Vec<_>>()
         .join("::")
 }

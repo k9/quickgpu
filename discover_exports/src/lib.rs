@@ -4,7 +4,8 @@ pub mod analysis;
 pub mod analysis_entry;
 pub mod crate_graph;
 mod exports;
-mod process;
+pub mod process;
+pub mod resolve;
 pub mod types;
 mod use_statements;
 pub mod utils;
@@ -18,14 +19,17 @@ mod test {
         EntryIndex,
         analysis::{Analysis, Ctx},
         analysis_entry::AnalysisEntry,
-        crate_graph::{PathType, filter_map_nodes, full_path, node_ident},
+        crate_graph::{filter_map_nodes, print_dot},
         process::{parse_crate, process_crate},
-        utils::{path_from_string, path_string, relative_path},
+        resolve::{
+            PathType, full_path, resolve_impls, resolve_path, resolve_struct, resolve_type_alias,
+        },
+        utils::{path_from_string, path_refs_string, relative_path},
     };
 
+    use petgraph::visit::Walker;
     use quote::quote as q;
-
-    use super::process::resolve_path;
+    use syn::{Expr, ImplItem, Stmt};
 
     fn test_workspace<'a>(analysis: &'a mut Analysis) -> Ctx<'a> {
         parse_crate(
@@ -73,25 +77,25 @@ mod test {
         let mut ctx = test_workspace(&mut analysis);
 
         let (_, path) = resolve_full(&mut ctx, None, "abc::ZZ");
-        assert_eq!(&path, "abc::ZZ");
+        assert_eq!(&path, "test_lib::abc::ZZ");
 
         let (abc_index, abc) = resolve_full(&mut ctx, None, "crate::abc");
-        assert_eq!(&abc, "abc");
+        assert_eq!(&abc, "test_lib::abc");
 
         let (_, resolution) = resolve_full(&mut ctx, Some(abc_index), "super");
-        assert_eq!(&resolution, "");
+        assert_eq!(&resolution, "test_lib");
 
         let (_, resolution) = resolve_full(&mut ctx, Some(abc_index), "crate");
-        assert_eq!(&resolution, "");
+        assert_eq!(&resolution, "test_lib");
 
         assert_eq!(
             &resolve_full(&mut ctx, Some(abc_index), "super::tlt::counters::CounterA").1,
-            "tlt::CounterA"
+            "test_lib::tlt::CounterA"
         );
 
         assert_eq!(
             &resolve_full(&mut ctx, Some(abc_index), "tlt::counters::CounterA").1,
-            "tlt::CounterA"
+            "test_lib::tlt::CounterA"
         );
     }
 
@@ -104,7 +108,7 @@ mod test {
         let resolution = resolve_path(ctx, from, &path_from_string(&relative_path)).unwrap();
         (
             resolution,
-            path_string(&full_path(&*ctx, resolution, PathType::PublicOnly).unwrap()),
+            path_refs_string(&full_path(&*ctx, resolution, PathType::PublicOnly).unwrap()),
         )
     }
 
@@ -136,23 +140,26 @@ mod test {
         .unwrap();
 
         let (a_node, path) = resolve_full(&mut ctx, None, "A");
-        assert_eq!(&path, "A");
-        assert_eq!(&resolve_full(&mut ctx, None, "crate::A").1, "A");
-        assert_eq!(&resolve_full(&mut ctx, Some(a_node), "inner").1, "inner");
+        assert_eq!(&path, "base::A");
+        assert_eq!(&resolve_full(&mut ctx, None, "crate::A").1, "base::A");
+        assert_eq!(
+            &resolve_full(&mut ctx, Some(a_node), "inner").1,
+            "base::inner"
+        );
 
-        let (inner2_node, path) = resolve_full(&mut ctx, Some(a_node), "inner::inner2");
-        assert_eq!(path, "inner::inner2");
+        let (inner2_node, path) = resolve_full(&mut ctx, Some(a_node), "base::inner::inner2");
+        assert_eq!(path, "base::inner::inner2");
         assert_eq!(
             &resolve_full(&mut ctx, Some(inner2_node), "super").1,
-            "inner"
+            "base::inner"
         );
         assert_eq!(
             &resolve_full(&mut ctx, Some(inner2_node), "E::X").1,
-            "inner3::E::X"
+            "base::inner3::E::X"
         );
         assert_eq!(
             &resolve_full(&mut ctx, None, "crate::inner3::inner").1,
-            "inner"
+            "base::inner"
         );
     }
 
@@ -164,16 +171,26 @@ mod test {
             &mut analysis,
             "base",
             q!(
-                pub struct A {}
+                pub struct A {
+                    pub b: B,
+                }
 
                 pub mod inner {
                     pub struct B {}
+                    impl Default for crate::A {
+                        pub fn default() {
+                            crate::A { b: B::default() }
+                        }
+                    }
                 }
 
                 pub mod impls {
-                    impl crate::A {
-                        pub const X: super::inner::B = crate::inner::B {};
+                    impl Default for crate::inner::B {
+                        fn default() {
+                            B {}
+                        }
                     }
+
                     impl super::inner::B {
                         pub const Y: u32 = 5;
                     }
@@ -185,11 +202,79 @@ mod test {
         )
         .unwrap();
 
-        assert_eq!(&resolve_full(&mut ctx, None, "crate::A").1, "A");
+        let (index, path) = resolve_full(&mut ctx, None, "crate::A");
+        assert_eq!(&path, "base::A");
+
+        let impl_ = &resolve_impls(&ctx, index).unwrap()[0];
+        let ImplItem::Fn(item) = &impl_.items[0] else {
+            panic!("Expected function");
+        };
+
+        let Stmt::Expr(expr, _) = &item.block.stmts[0] else {
+            panic!("Expected expr");
+        };
+
+        let Expr::Struct(expr) = &expr else {
+            panic!("Expected struct");
+        };
+
+        let expr = &expr.fields[0].expr;
+
+        assert_eq!(
+            q!(base::inner::B::default()).to_string(),
+            q!(#expr).to_string()
+        );
+
         assert_eq!(
             &resolve_full(&mut ctx, None, "crate::inner::B::Y").1,
-            "inner::B::Y"
+            "base::inner::B::Y"
         );
+    }
+
+    #[test]
+    fn resolve_item() {
+        let mut analysis = Analysis::default();
+
+        let mut ctx = process_crate(
+            &mut analysis,
+            "base",
+            q!(
+                pub enum Other {}
+                pub mod abc {
+                    pub struct Abc {
+                        pub a: super::Other,
+                    }
+
+                    pub mod def {
+                        pub struct Ghi {
+                            pub g: crate::Other,
+                        }
+
+                        impl super::Abc {
+                            pub const C: u32 = 5;
+                        }
+                    }
+                }
+            )
+            .to_string(),
+            vec![],
+        )
+        .unwrap();
+
+        let bfs = ctx
+            .bfs()
+            .unwrap()
+            .iter(ctx.graph())
+            .filter(|node| full_path(&ctx, *node, PathType::PublicOnly).is_ok())
+            .collect::<Vec<_>>();
+
+        print_dot(&ctx).unwrap();
+
+        bfs.into_iter().for_each(|node| {
+            if let Ok(item) = resolve_struct(&mut ctx, node) {
+                let path = path_refs_string(&full_path(&ctx, node, PathType::PublicOnly).unwrap());
+            }
+        });
     }
 
     #[test]
@@ -223,11 +308,48 @@ mod test {
         )
         .unwrap();
 
-        assert_eq!(&resolve_full(&ctx, None, "base::ext").1, "ext");
+        assert_eq!(&resolve_full(&ctx, None, "base::ext").1, "base::ext");
         assert_eq!(
             &resolve_full(&ctx, None, "base::ext::B::Inner").1,
-            "ext::Inner"
+            "base::ext::Inner"
         );
+    }
+
+    #[test]
+    fn top_level() {
+        let mut analysis = Analysis::default();
+
+        process_crate(
+            &mut analysis,
+            "extra",
+            q!(
+                pub struct B {}
+            )
+            .to_string(),
+            vec![],
+        )
+        .unwrap();
+
+        let ctx = process_crate(
+            &mut analysis,
+            "base",
+            q!(
+                extern crate extra as ext;
+                pub struct A {}
+            )
+            .to_string(),
+            vec!["extra".to_string()],
+        )
+        .unwrap();
+
+        let from = ctx.crate_root.clone();
+        let resolution = resolve_path(&ctx, from, &path_from_string("A")).unwrap();
+        assert!(full_path(&ctx, resolution, PathType::PublicOnly).is_ok());
+        assert!(full_path(&ctx, resolution, PathType::TopLevelPublicOnly).is_ok());
+
+        let resolution = resolve_path(&ctx, from, &path_from_string("ext::B")).unwrap();
+        assert!(full_path(&ctx, resolution, PathType::PublicOnly).is_ok());
+        assert!(full_path(&ctx, resolution, PathType::TopLevelPublicOnly).is_err());
     }
 
     #[test]
@@ -238,7 +360,10 @@ mod test {
             &mut analysis,
             "extra",
             q!(
-                pub struct A {}
+                pub struct A<'a, 'bc, T, U> {
+                    pub f: &'bc T,
+                    pub f2: &'a U,
+                }
             )
             .to_string(),
             vec![],
@@ -252,7 +377,7 @@ mod test {
                 extern crate extra as ext;
                 pub mod api {
                     pub use ext::A as ABase;
-                    pub type A = ABase;
+                    pub type A<'b, U> = ABase<'b, 'static, u32, U>;
                 }
                 pub use api::*;
             )
@@ -275,10 +400,10 @@ mod test {
         .unwrap();
 
         assert_eq!(
-            node_ident(&ctx, structs.next().unwrap(), PathType::PublicOnly)
-                .unwrap()
-                .to_string(),
-            "ABase"
+            path_refs_string(
+                &full_path(&ctx, structs.next().unwrap(), PathType::PublicOnly).unwrap()
+            ),
+            "base::ABase"
         );
 
         assert!(structs.next().is_none());
@@ -296,13 +421,14 @@ mod test {
         )
         .unwrap();
 
+        let type_alias = types.next().unwrap();
+        assert!(structs.next().is_none());
+
         assert_eq!(
-            node_ident(&ctx, types.next().unwrap(), PathType::PublicOnly)
-                .unwrap()
-                .to_string(),
-            "A"
+            path_refs_string(&full_path(&ctx, type_alias, PathType::PublicOnly).unwrap()),
+            "base::A"
         );
 
-        assert!(structs.next().is_none());
+        let (item, struct_index) = resolve_type_alias(&ctx, type_alias).unwrap();
     }
 }

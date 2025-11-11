@@ -1,13 +1,13 @@
 use anyhow::Context;
 use petgraph::graph::NodeIndex;
-use syn::{Item, UseTree};
+use syn::{Item, PathArguments, PathSegment, UseTree};
 
 use crate::{
     AResult,
     analysis::{AnalysisEdge, Ctx},
     analysis_entry::AnalysisEntry,
     crate_graph::{find_neighbor, update_edge},
-    process::resolve_next_segment,
+    resolve::resolve_next_segment,
 };
 
 pub fn process_use_statements(ctx: &mut Ctx) -> AResult<()> {
@@ -44,8 +44,15 @@ fn process_use_tree(
             }
         }
         syn::UseTree::Name(use_name) => {
-            if let Ok(next_index) = resolve_next_segment(ctx, to_module, to_module, &use_name.ident)
-            {
+            if let Ok(next_index) = resolve_next_segment(
+                ctx,
+                to_module,
+                to_module,
+                &PathSegment {
+                    ident: use_name.ident.clone(),
+                    arguments: PathArguments::None,
+                },
+            ) {
                 update_edge(
                     ctx,
                     from_module,
@@ -89,7 +96,15 @@ fn process_use_path(
     to_module: NodeIndex,
     use_path: &syn::UsePath,
 ) -> AResult<()> {
-    if let Ok(next_index) = resolve_next_segment(ctx, to_module, to_module, &use_path.ident) {
+    if let Ok(next_index) = resolve_next_segment(
+        ctx,
+        to_module,
+        to_module,
+        &PathSegment {
+            ident: use_path.ident.clone(),
+            arguments: PathArguments::None,
+        },
+    ) {
         process_use_tree(ctx, from_module, next_index, &use_path.tree)?;
     };
 

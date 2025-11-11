@@ -1,4 +1,4 @@
-use anyhow::Context;
+use anyhow::{Context, bail};
 use fixedbitset::FixedBitSet;
 use petgraph::{graph::NodeIndex, prelude::StableGraph, visit::Bfs};
 use proc_macro2::Span;
@@ -6,7 +6,7 @@ use syn::{Ident, ItemMod, Token, Visibility, token};
 
 use crate::{
     AResult, EntryIndex,
-    analysis_entry::{AnalysisEntry, AnalysisMod},
+    analysis_entry::{AnalysisEntry, AnalysisMod, AnalysisStruct},
     utils::id,
 };
 
@@ -65,6 +65,18 @@ impl<'a> Ctx<'a> {
         self.graph()
             .node_weight(index)
             .context("Couldn't get entry")
+    }
+
+    pub fn struct_entry(&self, index: NodeIndex) -> AResult<&AnalysisStruct> {
+        if let Ok(AnalysisEntry::Struct(entry)) = self
+            .graph()
+            .node_weight(index)
+            .context("Couldn't get entry")
+        {
+            Ok(entry)
+        } else {
+            bail!("Couldn't get struct entry")
+        }
     }
 
     pub fn entry_mut(&mut self, index: NodeIndex) -> AResult<&mut AnalysisEntry> {

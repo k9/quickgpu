@@ -1,6 +1,7 @@
 use syn::{
-    Ident, ImplItemConst, Item, ItemEnum, ItemImpl, ItemMod, ItemStruct, ItemTrait, ItemType,
-    Visibility, token,
+    Ident, ImplItemConst, ImplItemFn, Item, ItemEnum, ItemImpl, ItemMod, ItemStruct, ItemTrait,
+    ItemType, Variant, Visibility,
+    token::{self, Pub},
 };
 
 use crate::utils::id;
@@ -26,6 +27,22 @@ impl AnalysisEnum {
     pub fn new(mut item: ItemEnum) -> Self {
         item.ident = id("__dont_use__");
         Self { item }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct AnalysisVariant {
+    pub vis: Visibility,
+    pub item: Variant,
+}
+
+impl AnalysisVariant {
+    pub fn new(mut item: Variant) -> Self {
+        item.ident = id("__dont_use__");
+        Self {
+            item,
+            vis: Visibility::Public(token::Pub::default()),
+        }
     }
 }
 
@@ -77,11 +94,15 @@ impl AnalysisMod {
 #[derive(Clone, Debug)]
 pub struct AnalysisImpl {
     pub item: ItemImpl,
+    pub vis: Visibility,
 }
 
 impl AnalysisImpl {
     pub fn new(item: ItemImpl) -> Self {
-        Self { item }
+        Self {
+            item,
+            vis: Visibility::Public(token::Pub::default()),
+        }
     }
 }
 
@@ -91,8 +112,26 @@ pub struct AnalysisImplConst {
 }
 
 impl AnalysisImplConst {
-    pub fn new(mut item: ImplItemConst) -> Self {
+    pub fn new(mut item: ImplItemConst, from_trait: bool) -> Self {
         item.ident = id("__dont_use__");
+        if from_trait {
+            item.vis = Visibility::Public(Pub::default());
+        }
+
+        Self { item }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct AnalysisImplFn {
+    pub item: ImplItemFn,
+}
+
+impl AnalysisImplFn {
+    pub fn new(mut item: ImplItemFn, from_trait: bool) -> Self {
+        if from_trait {
+            item.vis = Visibility::Public(Pub::default());
+        }
 
         Self { item }
     }
@@ -107,20 +146,22 @@ pub enum AnalysisEntry {
     Mod(AnalysisMod),
     Impl(AnalysisImpl),
     ImplConst(AnalysisImplConst),
-    Variant,
+    ImplFn(AnalysisImplFn),
+    Variant(AnalysisVariant),
 }
 
 impl AnalysisEntry {
-    pub fn vis(&self) -> Visibility {
+    pub fn vis(&self) -> &Visibility {
         match self {
-            AnalysisEntry::Struct(entry) => entry.item.vis.clone(),
-            AnalysisEntry::Enum(entry) => entry.item.vis.clone(),
-            AnalysisEntry::Type(entry) => entry.item.vis.clone(),
-            AnalysisEntry::Trait(entry) => entry.item.vis.clone(),
-            AnalysisEntry::Mod(entry) => entry.item.vis.clone(),
-            AnalysisEntry::ImplConst(entry) => entry.item.vis.clone(),
-            AnalysisEntry::Impl(_) => Visibility::Public(token::Pub::default()),
-            AnalysisEntry::Variant => Visibility::Public(token::Pub::default()),
+            AnalysisEntry::Struct(entry) => &entry.item.vis,
+            AnalysisEntry::Enum(entry) => &entry.item.vis,
+            AnalysisEntry::Type(entry) => &entry.item.vis,
+            AnalysisEntry::Trait(entry) => &entry.item.vis,
+            AnalysisEntry::Mod(entry) => &entry.item.vis,
+            AnalysisEntry::ImplConst(entry) => &entry.item.vis,
+            AnalysisEntry::ImplFn(entry) => &entry.item.vis,
+            AnalysisEntry::Impl(entry) => &entry.vis,
+            AnalysisEntry::Variant(entry) => &entry.vis,
         }
     }
 

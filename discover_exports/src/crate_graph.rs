@@ -1,18 +1,17 @@
 use anyhow::{Context, bail};
 use petgraph::{
-    algo::astar,
+    Direction,
     dot::{Config, Dot},
     graph::{EdgeIndex, NodeIndex},
     visit::{EdgeRef, Walker},
 };
 use quote::quote as q;
-use syn::Ident;
 
+use crate::resolve::{PathType, full_path};
 use crate::{
     AResult,
     analysis::{AnalysisEdge, Ctx},
     analysis_entry::AnalysisEntry,
-    utils::IsPublic,
 };
 
 pub fn filter_map_nodes<T>(
@@ -40,7 +39,8 @@ pub fn for_each_node(
 ) -> AResult<()> {
     let bfs = ctx.bfs()?;
     bfs.iter(ctx.graph())
-        .filter(move |node| {
+        .map(|n| n.clone())
+        .filter(|node| {
             if path_type == PathType::PublicOnly {
                 full_path(ctx, *node, path_type).is_ok()
             } else {
@@ -70,6 +70,25 @@ pub fn find_neighbor<'a>(
     None
 }
 
+pub fn get_super(ctx: &Ctx, node_index: NodeIndex) -> AResult<NodeIndex> {
+    let mut parents = ctx
+        .graph()
+        .neighbors_directed(node_index, Direction::Incoming)
+        .detach();
+
+    while let Ok((edge_index, node_index)) =
+        parents.next(ctx.graph()).context("Couldn't get parent")
+    {
+        if let Some(edge) = ctx.graph().edge_weight(edge_index)
+            && edge.from_hierarchy
+        {
+            return Ok(node_index);
+        }
+    }
+
+    bail!("Couldn't get parent");
+}
+
 pub fn update_edge<'a>(
     ctx: &'a mut Ctx,
     from: NodeIndex,
@@ -87,60 +106,6 @@ pub fn update_edge<'a>(
     }
 
     Ok(ctx.graph_mut().add_edge(from, to, edge))
-}
-
-#[derive(Debug, PartialEq, Clone, Copy)]
-pub enum PathType {
-    Any,
-    PublicOnly,
-}
-
-pub fn full_path<'a>(
-    ctx: &'a Ctx,
-    node_index: NodeIndex,
-    path_type: PathType,
-) -> AResult<Vec<Ident>> {
-    let (cost, graph_path) = astar(
-        ctx.graph(),
-        ctx.crate_root,
-        |x| x == node_index,
-        |e| {
-            let entry = ctx.entry(e.target()).unwrap();
-            let is_impl = matches!(entry, AnalysisEntry::Impl(_));
-            let no_visibility = path_type == PathType::PublicOnly && !entry.vis().is_public();
-
-            if no_visibility || is_impl { 1 } else { 0 }
-        },
-        |_| 0,
-    )
-    .context(format!("Couldn't get path {:?}", node_index))?;
-
-    if cost > 0 {
-        bail!("Can't find public path to item");
-    }
-
-    let mut path = vec![];
-    let mut previous_segment = None;
-    for node_index in graph_path.iter() {
-        if let Some(from_index) = previous_segment {
-            if let Some(edge) = ctx.graph().edges_connecting(from_index, *node_index).next() {
-                if let Some(name) = &edge.weight().name {
-                    path.push(name.clone());
-                }
-            }
-        }
-
-        previous_segment = Some(*node_index);
-    }
-
-    Ok(path)
-}
-
-pub fn node_ident(ctx: &Ctx, index: NodeIndex, path_type: PathType) -> AResult<Ident> {
-    full_path(&ctx, index, path_type)?
-        .last()
-        .context("Invalid path")
-        .cloned()
 }
 
 #[allow(dead_code)]
@@ -168,7 +133,8 @@ pub fn print_dot(ctx: &Ctx) -> AResult<()> {
                     AnalysisEntry::Trait(_) => q!(#vis trait).to_string(),
                     AnalysisEntry::Impl(_) => q!(impl).to_string(),
                     AnalysisEntry::ImplConst(_) => q!(#vis const).to_string(),
-                    AnalysisEntry::Variant => q!(variant).to_string(),
+                    AnalysisEntry::ImplFn(_) => q!(#vis fn).to_string(),
+                    AnalysisEntry::Variant(_) => q!(variant).to_string(),
                     AnalysisEntry::Mod(module) => {
                         let root = &module.root_of_crate;
                         q!(#vis mod #root).to_string()

@@ -4,7 +4,7 @@ exclude = ["example", "discover_exports/test_workspace"]
 resolver = "2"
 
 [profile.dev]
-opt-level = 1
+opt-level = 3
 
 [profile.dev.package."*"]
 opt-level = 3

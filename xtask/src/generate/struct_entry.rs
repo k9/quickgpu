@@ -1,12 +1,19 @@
-use anyhow::bail;
+use anyhow::{Context, bail};
 use convert_case::{Case, Casing};
 use proc_macro2::TokenStream;
 use quote::{ToTokens, quote as q};
-use syn::{Expr, Field, Fields, ImplItem, Member, Stmt, Type, Visibility, spanned::Spanned};
+use syn::{
+    Expr, Field, FieldValue, Fields, ImplItem, Member, Stmt, Type, TypeParamBound, Visibility,
+    punctuated::Punctuated, token::Comma,
+};
 
 use discover_exports::{
     EntryIndex,
-    crate_graph::{full_path, get_struct_const, node_ident},
+    analysis::Ctx,
+    resolve::{
+        PathType, full_path, resolve_assoc_consts, resolve_impls, resolve_struct,
+        resolve_type_alias,
+    },
     utils::id,
 };
 
@@ -17,24 +24,36 @@ pub struct BuilderField<'a> {
     pub default_value: Option<TokenStream>,
 }
 
-pub(crate) fn output_struct(
-    analysis: &CrateAnalysis,
-    index: EntryIndex,
-) -> AResult<Option<(String, String)>> {
+pub(crate) fn output_struct(ctx: &Ctx, index: EntryIndex) -> AResult<Option<(String, String)>> {
     let comment = "".to_string();
-    let Some(entry) = get_struct(analysis, index)? else {
+
+    let Ok(path) = full_path(ctx, index, PathType::TopLevelPublicOnly) else {
         return Ok(None);
     };
 
-    let ident = node_ident(analysis, index)?;
+    let segment = path.segments.last();
+    let Some(segment) = segment else {
+        return Ok(None);
+    };
+    let ident = segment.ident.clone();
+
+    let item;
+    let mut index = index;
+    if let Ok(as_struct) = resolve_struct(ctx, index) {
+        item = as_struct;
+    } else if let Ok((as_alias, struct_index)) = resolve_type_alias(ctx, index) {
+        item = as_alias;
+        index = struct_index;
+    } else {
+        return Ok(None);
+    };
 
     if SKIP.contains(&ident.to_string().as_str()) {
         log::debug!("Skipping {} since it's in skip list", ident);
-
         return Ok(None);
     }
 
-    let Fields::Named(fields) = &entry.fields else {
+    let Fields::Named(fields) = &item.fields else {
         log::debug!("Skipping {} since it doesn't have named fields", ident);
         return Ok(None);
     };
@@ -57,7 +76,20 @@ pub(crate) fn output_struct(
         })
         .collect::<Vec<_>>();
 
-    for impl_item in &entry.impls {
+    let impls = resolve_impls(ctx, index)?;
+    let consts = resolve_assoc_consts(ctx, index)?;
+    let generics = item.generics.clone();
+    let mut generics_with_constraints = item.generics.clone();
+
+    if ["Operations", "CommandBufferDescriptor"].contains(&ident.to_string().as_str()) {
+        for param in generics_with_constraints.type_params_mut() {
+            param.bounds = Punctuated::new();
+            let z: TypeParamBound = syn::parse_quote!(Default);
+            param.bounds.push(z);
+        }
+    }
+
+    for impl_item in &impls {
         if let Some((_, trait_item, _)) = &impl_item.trait_
             && trait_item
                 .segments
@@ -78,35 +110,30 @@ pub(crate) fn output_struct(
                 && let Some(Stmt::Expr(expr, _)) = func.block.stmts.last()
             {
                 if let Expr::Path(expr_path) = expr {
-                    let const_value =
-                        get_struct_const(entry, &expr_path.path.segments.last().unwrap().ident)
-                            .unwrap();
+                    let const_value = consts
+                        .iter()
+                        .find(|(path, _)| {
+                            let const_ident = path.segments.last().map(|s| s.ident.to_string());
+                            let expr_ident =
+                                expr_path.path.segments.last().map(|s| s.ident.to_string());
 
-                    let Expr::Struct(expr_struct) = &const_value.expr else {
+                            const_ident.is_some() && const_ident == expr_ident
+                        })
+                        .context("Couldn't find const")?;
+
+                    let Expr::Struct(expr_struct) = &const_value.1.expr else {
                         bail!("Unsupported default");
                     };
 
                     for field in fields.iter_mut() {
-                        if !is_option(field) {
-                            let const_field = expr_struct
-                                .fields
-                                .iter()
-                                .find(|const_field| {
-                                    let Member::Named(const_ident) = &const_field.member else {
-                                        panic!("Unnamed field in default");
-                                    };
-
-                                    field.field.ident.as_ref().unwrap().to_string()
-                                        == const_ident.to_string()
-                                })
-                                .unwrap();
-
-                            let default_value = const_field.expr.clone().into_token_stream();
-                            field.default_value = Some(q!(default = #default_value));
-                        }
+                        set_field_default(field, &expr_struct.fields);
                     }
                 } else {
-                    println!("{:?} _CUSTOM_", expr.span().source_text());
+                    if let Expr::Struct(expr) = expr {
+                        for field in fields.iter_mut() {
+                            set_field_default(field, &expr.fields);
+                        }
+                    };
                 };
             }
         }
@@ -139,25 +166,40 @@ pub(crate) fn output_struct(
         q!(#ident)
     });
 
-    let generics = &entry.generics;
-    let path = full_path(analysis, index)?;
-
     let code = q! {
         #[bon::builder(
             //builder_type(doc __builder_type_docs__),
             state_mod(vis="pub(crate)"),
             finish_fn=build,
         )]
-        pub fn #fn_ident #generics(
+        pub fn #fn_ident #generics_with_constraints(
             #(#fn_params),*
-        ) -> #(#path)::* #generics {
-            #(#path)::* {
+        ) -> #path #generics {
+            #path {
                 #(#struct_values),*
             }
         }
     };
 
     Ok(Some((comment, code.to_string())))
+}
+
+fn set_field_default(field: &mut BuilderField<'_>, expr_fields: &Punctuated<FieldValue, Comma>) {
+    if !is_option(field) {
+        let const_field = expr_fields
+            .iter()
+            .find(|const_field| {
+                let Member::Named(const_ident) = &const_field.member else {
+                    panic!("Unnamed field in default");
+                };
+
+                field.field.ident.as_ref().unwrap().to_string() == const_ident.to_string()
+            })
+            .unwrap();
+
+        let default_value = const_field.expr.clone().into_token_stream();
+        field.default_value = Some(q!(default = #default_value));
+    }
 }
 
 fn is_option(field: &BuilderField<'_>) -> bool {
