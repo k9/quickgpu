@@ -21,13 +21,10 @@ mod test {
         analysis_entry::AnalysisEntry,
         crate_graph::{filter_map_nodes, print_dot},
         process::{parse_crate, process_crate},
-        resolve::{
-            PathType, full_path, resolve_impls, resolve_path, resolve_struct, resolve_type_alias,
-        },
+        resolve::{PathType, get_public_path, get_top_level_path, resolve_impls, resolve_path},
         utils::{path_from_string, path_refs_string, relative_path},
     };
 
-    use petgraph::visit::Walker;
     use quote::quote as q;
     use syn::{Expr, ImplItem, Stmt};
 
@@ -61,7 +58,7 @@ mod test {
         assert_eq!(
             filter_map_nodes(
                 &ctx,
-                |index| matches!(ctx.entry(index).unwrap(), AnalysisEntry::Struct(_))
+                |(index, _)| matches!(ctx.entry(index).unwrap(), AnalysisEntry::Struct(_))
                     .then_some(index),
                 PathType::PublicOnly
             )
@@ -106,10 +103,9 @@ mod test {
     ) -> (EntryIndex, String) {
         let from = from.unwrap_or_else(|| ctx.crate_root.clone());
         let resolution = resolve_path(ctx, from, &path_from_string(&relative_path)).unwrap();
-        (
-            resolution,
-            path_refs_string(&full_path(&*ctx, resolution, PathType::PublicOnly).unwrap()),
-        )
+        let path = get_top_level_path(ctx, resolution).unwrap();
+
+        (resolution, path_refs_string(&path))
     }
 
     #[test]
@@ -235,7 +231,7 @@ mod test {
     fn resolve_item() {
         let mut analysis = Analysis::default();
 
-        let mut ctx = process_crate(
+        let ctx = process_crate(
             &mut analysis,
             "base",
             q!(
@@ -261,20 +257,7 @@ mod test {
         )
         .unwrap();
 
-        let bfs = ctx
-            .bfs()
-            .unwrap()
-            .iter(ctx.graph())
-            .filter(|node| full_path(&ctx, *node, PathType::PublicOnly).is_ok())
-            .collect::<Vec<_>>();
-
         print_dot(&ctx).unwrap();
-
-        bfs.into_iter().for_each(|node| {
-            if let Ok(item) = resolve_struct(&mut ctx, node) {
-                let path = path_refs_string(&full_path(&ctx, node, PathType::PublicOnly).unwrap());
-            }
-        });
     }
 
     #[test]
@@ -344,12 +327,12 @@ mod test {
 
         let from = ctx.crate_root.clone();
         let resolution = resolve_path(&ctx, from, &path_from_string("A")).unwrap();
-        assert!(full_path(&ctx, resolution, PathType::PublicOnly).is_ok());
-        assert!(full_path(&ctx, resolution, PathType::TopLevelPublicOnly).is_ok());
+        assert!(get_public_path(&ctx, resolution).is_ok());
+        assert!(get_top_level_path(&ctx, resolution).is_ok());
 
         let resolution = resolve_path(&ctx, from, &path_from_string("ext::B")).unwrap();
-        assert!(full_path(&ctx, resolution, PathType::PublicOnly).is_ok());
-        assert!(full_path(&ctx, resolution, PathType::TopLevelPublicOnly).is_err());
+        assert!(get_public_path(&ctx, resolution).is_ok());
+        assert!(get_top_level_path(&ctx, resolution).is_err());
     }
 
     #[test]
@@ -388,7 +371,7 @@ mod test {
 
         let mut structs = filter_map_nodes(
             &ctx,
-            |node_index| {
+            |(node_index, _)| {
                 if let Ok(AnalysisEntry::Struct(_)) = ctx.entry(node_index) {
                     Some(node_index)
                 } else {
@@ -400,9 +383,7 @@ mod test {
         .unwrap();
 
         assert_eq!(
-            path_refs_string(
-                &full_path(&ctx, structs.next().unwrap(), PathType::PublicOnly).unwrap()
-            ),
+            path_refs_string(&get_public_path(&ctx, structs.next().unwrap()).unwrap()),
             "base::ABase"
         );
 
@@ -410,7 +391,7 @@ mod test {
 
         let mut types = filter_map_nodes(
             &ctx,
-            |node_index| {
+            |(node_index, _)| {
                 if let Ok(AnalysisEntry::Type(_)) = ctx.entry(node_index) {
                     Some(node_index)
                 } else {
@@ -421,14 +402,12 @@ mod test {
         )
         .unwrap();
 
-        let type_alias = types.next().unwrap();
         assert!(structs.next().is_none());
 
+        let type_alias = types.next().unwrap();
         assert_eq!(
-            path_refs_string(&full_path(&ctx, type_alias, PathType::PublicOnly).unwrap()),
+            path_refs_string(&get_public_path(&ctx, type_alias).unwrap()),
             "base::A"
         );
-
-        let (item, struct_index) = resolve_type_alias(&ctx, type_alias).unwrap();
     }
 }

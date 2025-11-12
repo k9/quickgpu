@@ -6,8 +6,9 @@ use petgraph::{
     visit::{EdgeRef, Walker},
 };
 use quote::quote as q;
+use syn::Path;
 
-use crate::resolve::{PathType, full_path};
+use crate::resolve::{PathType, get_public_path, get_top_level_path};
 use crate::{
     AResult,
     analysis::{AnalysisEdge, Ctx},
@@ -16,17 +17,23 @@ use crate::{
 
 pub fn filter_map_nodes<T>(
     ctx: &Ctx,
-    filter_fn: impl FnMut(NodeIndex) -> Option<T>,
+    filter_fn: impl FnMut((NodeIndex, Path)) -> Option<T>,
     path_type: PathType,
 ) -> AResult<impl Iterator<Item = T>> {
     let bfs = ctx.bfs()?;
     Ok(bfs
         .iter(ctx.graph())
-        .filter(move |node| {
-            if path_type == PathType::PublicOnly {
-                full_path(ctx, *node, path_type).is_ok()
+        .filter_map(move |node| {
+            let path = if path_type == PathType::PublicOnly {
+                get_public_path(ctx, node)
             } else {
-                true
+                get_top_level_path(ctx, node)
+            };
+
+            if let Ok(path) = path {
+                Some((node, path))
+            } else {
+                None
             }
         })
         .filter_map(filter_fn))
@@ -34,17 +41,22 @@ pub fn filter_map_nodes<T>(
 
 pub fn for_each_node(
     ctx: &Ctx,
-    item_fn: impl FnMut(NodeIndex),
+    item_fn: impl FnMut((NodeIndex, Path)),
     path_type: PathType,
 ) -> AResult<()> {
     let bfs = ctx.bfs()?;
     bfs.iter(ctx.graph())
-        .map(|n| n.clone())
-        .filter(|node| {
-            if path_type == PathType::PublicOnly {
-                full_path(ctx, *node, path_type).is_ok()
+        .filter_map(|node| {
+            let path = if path_type == PathType::PublicOnly {
+                get_public_path(ctx, node)
             } else {
-                true
+                get_top_level_path(ctx, node)
+            };
+
+            if let Ok(path) = path {
+                Some((node, path))
+            } else {
+                None
             }
         })
         .for_each(item_fn);

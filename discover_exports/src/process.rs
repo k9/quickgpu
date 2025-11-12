@@ -8,13 +8,16 @@ use crate::{
         AnalysisStruct, AnalysisTrait, AnalysisType, AnalysisVariant,
     },
     crate_graph::update_edge,
-    resolve::resolve_path,
+    resolve::{calculate_paths, resolve_path},
     use_statements::process_use_statements,
     utils::{id, write_expanded},
 };
 use anyhow::bail;
 use petgraph::graph::NodeIndex;
-use syn::{Ident, ImplItem, Item, Type};
+use syn::{
+    Ident, ImplItem, Item, ItemEnum, ItemExternCrate, ItemImpl, ItemMod, ItemStruct, ItemTrait,
+    ItemType, Type,
+};
 
 pub fn parse_crate<'a>(
     analysis: &'a mut Analysis,
@@ -48,6 +51,8 @@ pub fn process_crate<'a>(
     process_subtree(&mut ctx, crate_root)?;
     discover_paths(&mut ctx)?;
     link_impls(&mut ctx)?;
+
+    calculate_paths(&mut ctx)?;
 
     Ok(ctx)
 }
@@ -97,13 +102,17 @@ fn discover_paths(ctx: &mut Ctx) -> AResult<()> {
 }
 
 pub fn process_subtree(ctx: &mut Ctx, parent_mod: NodeIndex) -> AResult<()> {
-    let content = if let AnalysisEntry::Mod(entry) = ctx.entry(parent_mod)? {
-        entry.content()
-    } else {
+    let AnalysisEntry::Mod(entry) = ctx.entry(parent_mod)? else {
         bail!("Couldn't get subtree node")
     };
 
-    for item in content.into_iter() {
+    let Some(content) = entry.content() else {
+        bail!("Couldn't get subtree node")
+    };
+
+    let content = content.iter().cloned().collect::<Vec<_>>();
+
+    for item in content {
         match item {
             Item::Mod(mod_item) => {
                 process_mod(ctx, parent_mod, mod_item)?;
@@ -136,7 +145,7 @@ pub fn process_subtree(ctx: &mut Ctx, parent_mod: NodeIndex) -> AResult<()> {
 fn process_mod(
     ctx: &mut Ctx<'_>,
     parent_mod: NodeIndex,
-    mod_item: syn::ItemMod,
+    mod_item: ItemMod,
 ) -> Result<(), anyhow::Error> {
     let mod_item = mod_item.clone();
     let ident = mod_item.ident.clone();
@@ -158,7 +167,7 @@ fn process_mod(
 fn process_struct(
     ctx: &mut Ctx<'_>,
     parent_mod: NodeIndex,
-    item: syn::ItemStruct,
+    item: ItemStruct,
 ) -> Result<(), anyhow::Error> {
     let ident = item.ident.clone();
     let child = ctx
@@ -173,7 +182,7 @@ fn process_struct(
 fn process_enum(
     ctx: &mut Ctx<'_>,
     parent_mod: NodeIndex,
-    item: syn::ItemEnum,
+    item: ItemEnum,
 ) -> Result<(), anyhow::Error> {
     let ident = item.ident.clone();
     let child = ctx
@@ -182,7 +191,7 @@ fn process_enum(
 
     update_edge(ctx, parent_mod, child, AnalysisEdge::new(true, Some(ident)))?;
 
-    Ok(for variant in item.variants {
+    Ok(for variant in &item.variants {
         let variant_node = ctx
             .graph_mut()
             .add_node(AnalysisEntry::Variant(AnalysisVariant::new(
@@ -193,7 +202,7 @@ fn process_enum(
             ctx,
             child,
             variant_node,
-            AnalysisEdge::new(true, Some(variant.ident)),
+            AnalysisEdge::new(true, Some(variant.ident.clone())),
         )?;
     })
 }
@@ -201,7 +210,7 @@ fn process_enum(
 fn process_type(
     ctx: &mut Ctx<'_>,
     parent_mod: NodeIndex,
-    item: syn::ItemType,
+    item: ItemType,
 ) -> Result<(), anyhow::Error> {
     let ident = item.ident.clone();
     let child = ctx
@@ -216,7 +225,7 @@ fn process_type(
 fn process_trait(
     ctx: &mut Ctx<'_>,
     parent_mod: NodeIndex,
-    item: syn::ItemTrait,
+    item: ItemTrait,
 ) -> Result<(), anyhow::Error> {
     let ident = item.ident.clone();
     let child = ctx
@@ -231,7 +240,7 @@ fn process_trait(
 fn process_impl(
     ctx: &mut Ctx<'_>,
     parent_mod: NodeIndex,
-    item: syn::ItemImpl,
+    item: ItemImpl,
 ) -> Result<(), anyhow::Error> {
     let child = ctx
         .graph_mut()
@@ -239,14 +248,14 @@ fn process_impl(
 
     update_edge(ctx, parent_mod, child, AnalysisEdge::new(true, None))?;
 
-    Ok(for inner in item.items {
+    Ok(for inner in &item.items {
         match inner {
             ImplItem::Const(c) => {
                 let ident = c.ident.clone();
                 let const_node =
                     ctx.graph_mut()
                         .add_node(AnalysisEntry::ImplConst(AnalysisImplConst::new(
-                            c,
+                            c.clone(),
                             item.trait_.is_some(),
                         )));
 
@@ -259,7 +268,7 @@ fn process_impl(
                 let fn_node = ctx
                     .graph_mut()
                     .add_node(AnalysisEntry::ImplFn(AnalysisImplFn::new(
-                        f,
+                        f.clone(),
                         item.trait_.is_some(),
                     )));
 
@@ -270,10 +279,11 @@ fn process_impl(
     })
 }
 
-fn process_extern_crate(ctx: &mut Ctx<'_>, parent_mod: NodeIndex, item: syn::ItemExternCrate) {
+fn process_extern_crate(ctx: &mut Ctx<'_>, parent_mod: NodeIndex, item: ItemExternCrate) {
     let rename = item
         .rename
-        .map_or_else(|| item.ident.clone(), |(_, rename)| rename);
+        .as_ref()
+        .map_or_else(|| item.ident.clone(), |(_, rename)| rename.clone());
 
     add_extern_crate(ctx, parent_mod, item.ident.clone(), rename);
 }

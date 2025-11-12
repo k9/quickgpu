@@ -3,8 +3,12 @@ members = ["xtask", "quickgpu",  "discover_exports"]
 exclude = ["example", "discover_exports/test_workspace"]
 resolver = "2"
 
+[workspace.dependencies]
+syn = { version = "2.0.106", features = ["full", "extra-traits", "visit", "visit-mut"] }
+
 [profile.dev]
 opt-level = 3
 
 [profile.dev.package."*"]
 opt-level = 3
+

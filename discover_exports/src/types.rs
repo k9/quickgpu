@@ -3,13 +3,13 @@ use syn::{Path, PathArguments, PathSegment, punctuated::Punctuated};
 
 use crate::{
     analysis::Ctx,
-    resolve::{PathType, full_path, resolve_path},
+    resolve::{get_public_path, resolve_path},
 };
 
 pub fn type_path(ctx: &Ctx, item_index: NodeIndex, path: &mut Path) {
     if let Some(last_segment) = path.segments.last() {
         if let Ok(node) = resolve_path(ctx, item_index, path)
-            && let Ok(full) = full_path(ctx, node, PathType::PublicOnly)
+            && let Ok(full) = get_public_path(ctx, node)
         {
             let arguments = last_segment.arguments.clone();
             let mut segments = Punctuated::new();

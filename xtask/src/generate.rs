@@ -1,9 +1,12 @@
+use quote::quote as q;
+use std::collections::HashMap;
+
 use discover_exports::{
     analysis::Analysis, crate_graph::for_each_node, process::parse_crate, resolve::PathType,
 };
 
 use crate::{
-    generate::struct_entry::output_struct,
+    generate::struct_entry::{filter_struct, output_nested_impl, output_struct, without_args},
     utils::{relative_path, rustfmt},
 };
 
@@ -80,24 +83,32 @@ pub fn generate() -> anyhow::Result<()> {
 
     let mut builders = vec![(
         "".to_string(),
-        "
-use std::ops::Range;
-use std::num::NonZeroU32;
-use std::borrow::Cow;
-"
+        q!(
+            use crate::Nested;
+            use std::ops::Range;
+            use std::num::NonZeroU32;
+            use std::borrow::Cow;
+        )
         .to_string(),
     )];
 
+    let mut builder_entries = HashMap::new();
+
     for_each_node(
         &wgpu,
-        |index| {
-            if let Some(output) = output_struct(&wgpu, index).unwrap() {
-                builders.push(output);
+        |(index, path)| {
+            if filter_struct(&wgpu, index, &path).is_some() {
+                let idents = without_args(&path);
+                builder_entries.insert(q!(#idents).to_string(), (index, path.clone()));
             }
         },
-        PathType::PublicOnly,
+        PathType::TopLevelPublicOnly,
     )
     .unwrap();
+
+    for (_, (index, path)) in builder_entries.iter() {
+        builders.push(output_struct(&wgpu, *index, path.clone(), &builder_entries));
+    }
 
     let combined = builders
         .iter()
@@ -105,7 +116,33 @@ use std::borrow::Cow;
         .collect::<Vec<String>>()
         .join("\n");
 
-    let output_path = relative_path("quickgpu/src/inner.rs");
+    let output_path = relative_path("quickgpu/src/builders.rs");
+    std::fs::write(output_path.clone(), combined)?;
+    rustfmt(output_path)?;
+
+    let mut nested_impls = vec![
+        q!(
+            use crate::Nested;
+        )
+        .to_string(),
+    ];
+
+    for (_, (index, path)) in builder_entries.iter() {
+        nested_impls.push(output_nested_impl(
+            &wgpu,
+            *index,
+            path.clone(),
+            &builder_entries,
+        ));
+    }
+
+    let combined = nested_impls
+        .iter()
+        .map(|code| format!("{code}\n"))
+        .collect::<Vec<String>>()
+        .join("\n");
+
+    let output_path = relative_path("quickgpu/src/nested.rs");
     std::fs::write(output_path.clone(), combined)?;
     rustfmt(output_path)?;
 

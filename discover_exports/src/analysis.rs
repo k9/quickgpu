@@ -1,8 +1,10 @@
+use std::collections::HashMap;
+
 use anyhow::{Context, bail};
 use fixedbitset::FixedBitSet;
 use petgraph::{graph::NodeIndex, prelude::StableGraph, visit::Bfs};
 use proc_macro2::Span;
-use syn::{Ident, ItemMod, Token, Visibility, token};
+use syn::{Ident, ItemMod, Path, Token, Visibility, token};
 
 use crate::{
     AResult, EntryIndex,
@@ -44,6 +46,8 @@ impl Analysis {
         Ok(Ctx {
             analysis: self,
             crate_root,
+            public_paths: HashMap::new(),
+            top_level_paths: HashMap::new(),
         })
     }
 }
@@ -51,6 +55,8 @@ impl Analysis {
 pub struct Ctx<'a> {
     pub analysis: &'a mut Analysis,
     pub crate_root: EntryIndex,
+    pub public_paths: HashMap<NodeIndex, Path>,
+    pub top_level_paths: HashMap<NodeIndex, Path>,
 }
 
 impl<'a> Ctx<'a> {

@@ -9,11 +9,13 @@ use proc_macro2::Span;
 
 use syn::{Ident, Path, PathArguments, PathSegment, Visibility, punctuated::Punctuated};
 
+use crate::AResult;
+
 pub fn id(s: impl Into<String>) -> Ident {
     Ident::new(&s.into(), Span::call_site())
 }
 
-pub fn write_expanded(output_path: &PathBuf, crate_path: &PathBuf) -> Result<(), anyhow::Error> {
+pub fn write_expanded(output_path: &PathBuf, crate_path: &PathBuf) -> AResult<()> {
     let Ok(output) = File::create(output_path) else {
         bail!("Failed to create {:?}", &output_path);
     };

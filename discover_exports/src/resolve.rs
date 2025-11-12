@@ -1,5 +1,5 @@
 use anyhow::{Context, bail};
-use petgraph::{algo::astar, graph::NodeIndex, visit::EdgeRef};
+use petgraph::graph::NodeIndex;
 use proc_macro2::Span;
 use quote::quote as q;
 use syn::{
@@ -302,8 +302,7 @@ pub fn resolve_assoc_consts(
             let mut c = c.clone();
             resolver.visit_impl_item_const_mut(&mut c.item);
 
-            let path = full_path(ctx, neighbor, PathType::PublicOnly)?;
-
+            let path = get_public_path(ctx, neighbor)?;
             consts.push((path, c.item));
         }
     }
@@ -311,13 +310,31 @@ pub fn resolve_assoc_consts(
     Ok(consts)
 }
 
+pub fn get_public_path(ctx: &Ctx, neighbor: NodeIndex) -> AResult<Path> {
+    let path = ctx
+        .public_paths
+        .get(&neighbor)
+        .context("Couldn't get path")?;
+
+    Ok(path.clone())
+}
+
+pub fn get_top_level_path(ctx: &Ctx, neighbor: NodeIndex) -> AResult<Path> {
+    let path = ctx
+        .top_level_paths
+        .get(&neighbor)
+        .context("Couldn't get path")?;
+
+    Ok(path.clone())
+}
+
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum PathType {
-    Any,
     PublicOnly,
     TopLevelPublicOnly,
 }
 
+/*
 pub fn full_path<'a>(ctx: &'a Ctx, node_index: NodeIndex, path_type: PathType) -> AResult<Path> {
     let (cost, graph_path) = astar(
         ctx.graph(),
@@ -384,4 +401,99 @@ pub fn full_path<'a>(ctx: &'a Ctx, node_index: NodeIndex, path_type: PathType) -
         leading_colon: None,
         segments,
     })
+}
+*/
+
+pub fn calculate_paths<'a>(ctx: &'a mut Ctx) -> AResult<()> {
+    let mut current = Path {
+        leading_colon: None,
+        segments: Punctuated::new(),
+    };
+
+    let AnalysisEntry::Mod(module) = ctx.krate()? else {
+        bail!("Couldn't get crate name");
+    };
+
+    let Some(root_of_crate) = module.root_of_crate.clone() else {
+        bail!("Couldn't get crate name");
+    };
+
+    current.segments.push(PathSegment {
+        ident: root_of_crate,
+        arguments: PathArguments::None,
+    });
+
+    ctx.public_paths.clear();
+    calculate_paths_recurse(ctx, ctx.crate_root, current.clone(), PathType::PublicOnly);
+
+    ctx.top_level_paths.clear();
+    calculate_paths_recurse(
+        ctx,
+        ctx.crate_root,
+        current.clone(),
+        PathType::TopLevelPublicOnly,
+    );
+
+    Ok(())
+}
+
+pub fn calculate_paths_recurse<'a>(
+    ctx: &'a mut Ctx,
+    node_index: NodeIndex,
+    current: Path,
+    path_type: PathType,
+) {
+    let mut neighbors = ctx.graph().neighbors(node_index).detach();
+    while let Some((edge_index, neighbor)) = neighbors.next(ctx.graph()) {
+        if let Some(edge) = ctx.graph().edge_weight(edge_index)
+            && let Some(name) = edge.name.as_ref()
+        {
+            let entry = ctx.entry(neighbor).unwrap();
+            let is_impl = matches!(entry, AnalysisEntry::Impl(_));
+
+            let is_crate = path_type == PathType::TopLevelPublicOnly
+                && if let AnalysisEntry::Mod(module) = entry
+                    && module.root_of_crate.is_some()
+                {
+                    true
+                } else {
+                    false
+                };
+
+            let no_visibility = !entry.vis().is_public();
+
+            if !no_visibility && !is_impl && !is_crate {
+                let mut next = current.clone();
+                next.segments.push(PathSegment {
+                    ident: name.clone(),
+                    arguments: PathArguments::None,
+                });
+
+                let existing_path = if path_type == PathType::PublicOnly {
+                    ctx.public_paths.get(&neighbor)
+                } else {
+                    ctx.top_level_paths.get(&neighbor)
+                };
+
+                let shortest_path = match existing_path {
+                    Some(shortest_path) => {
+                        if shortest_path.segments.len() < next.segments.len() {
+                            shortest_path.clone()
+                        } else {
+                            next
+                        }
+                    }
+                    None => next,
+                };
+
+                if path_type == PathType::PublicOnly {
+                    ctx.public_paths.insert(neighbor, shortest_path.clone());
+                } else {
+                    ctx.top_level_paths.insert(neighbor, shortest_path.clone());
+                }
+
+                calculate_paths_recurse(ctx, neighbor, shortest_path.clone(), path_type);
+            }
+        }
+    }
 }

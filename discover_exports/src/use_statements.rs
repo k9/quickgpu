@@ -12,17 +12,22 @@ use crate::{
 
 pub fn process_use_statements(ctx: &mut Ctx) -> AResult<()> {
     let mut bfs = ctx.bfs()?;
+    let mut to_process = vec![];
     while let Some(node_index) = bfs.next(&ctx.graph()) {
-        if let AnalysisEntry::Mod(module) = ctx.entry(node_index)? {
-            let module = module.clone();
-
-            for item in module.content() {
+        if let AnalysisEntry::Mod(module) = ctx.entry(node_index)?
+            && let Some(content) = module.content()
+        {
+            for item in content {
                 if let Item::Use(use_statement) = item {
                     let use_statement = use_statement.clone();
-                    process_use_tree(ctx, node_index, node_index, &use_statement.tree)?;
+                    to_process.push((node_index, use_statement));
                 }
             }
         }
+    }
+
+    for (node_index, use_statement) in to_process {
+        process_use_tree(ctx, node_index, node_index, &use_statement.tree)?;
     }
 
     Ok(())

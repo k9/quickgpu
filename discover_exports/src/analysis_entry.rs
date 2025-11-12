@@ -86,8 +86,8 @@ impl AnalysisMod {
         }
     }
 
-    pub fn content(&self) -> Vec<Item> {
-        self.item.content.clone().map_or(vec![], |c| c.1)
+    pub fn content(&self) -> Option<&Vec<Item>> {
+        self.item.content.as_ref().map(|c| &c.1)
     }
 }
 
