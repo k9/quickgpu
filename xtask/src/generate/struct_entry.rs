@@ -27,7 +27,7 @@ use super::SKIP;
 pub struct BuilderField<'a> {
     pub field: &'a mut Field,
     pub default_value: Option<TokenStream>,
-    pub nested_impl: bool,
+    pub nested_impl: Option<TokenStream>,
 }
 
 pub struct Output {
@@ -94,7 +94,7 @@ pub(crate) fn output_struct(
         .map(|field| BuilderField {
             field,
             default_value: None,
-            nested_impl: false,
+            nested_impl: None,
         })
         .collect::<Vec<_>>();
 
@@ -118,7 +118,7 @@ pub(crate) fn output_struct(
     for f in fields.iter_mut() {
         let mut resolver = BuilderResolve {
             builders,
-            nested_impl: false,
+            nested_impl: None,
         };
 
         resolver.visit_field_mut(f.field);
@@ -130,13 +130,11 @@ pub(crate) fn output_struct(
         log::debug!("    {}", q!(#ident: #ty));
     }
 
-    let nested_fields = fields.iter().filter(|f| f.nested_impl).count();
-
     let builder_code =
-        output_builder_code(&path, ident, fields, &generics, &generics_with_constraints);
+        output_builder_code(&path, ident, &fields, &generics, &generics_with_constraints);
 
     let nested_impl = if generate_nested_impl {
-        output_nested(path, nested_fields, generics)
+        output_nested(path, &fields, &generics, &generics_with_constraints)
     } else {
         "".to_string()
     };

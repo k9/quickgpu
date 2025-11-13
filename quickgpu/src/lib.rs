@@ -1,11 +1,7 @@
-use wgpu::GlBackendOptions;
-
-use crate::builders::GlBackendOptionsBuilder;
-
 pub mod builders;
 pub mod nested;
 
-pub trait Nested<T> {
+pub trait Nested<T>: Default {
     fn unnest(self) -> T;
 }
 
@@ -15,22 +11,14 @@ impl<T, N: Nested<T>> Nested<Option<T>> for Option<N> {
     }
 }
 
-pub enum NestedGlBackendOptions {
-    Base(GlBackendOptions),
-    Builder(GlBackendOptionsBuilder),
-}
-
-impl NestedGlBackendOptions {
-    pub fn unnest(self) -> GlBackendOptions {
-        match self {
-            NestedGlBackendOptions::Base(base) => base,
-            NestedGlBackendOptions::Builder(builder) => builder.build(),
-        }
+impl<T, N: Nested<T>> Nested<Vec<T>> for Vec<N> {
+    fn unnest(self) -> Vec<T> {
+        self.into_iter().map(|t| t.unnest()).collect::<Vec<_>>()
     }
 }
 
-impl Default for NestedGlBackendOptions {
-    fn default() -> Self {
-        NestedGlBackendOptions::Base(GlBackendOptions::default())
+impl<'a, T> Nested<&'a [T]> for &'a [T] {
+    fn unnest(self) -> &'a [T] {
+        self
     }
 }

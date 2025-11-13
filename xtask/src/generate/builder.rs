@@ -8,7 +8,7 @@ use crate::generate::struct_entry::BuilderField;
 pub fn output_builder_code(
     path: &Path,
     ident: Ident,
-    fields: Vec<BuilderField>,
+    fields: &[BuilderField],
     generics: &Generics,
     generics_with_constraints: &Generics,
 ) -> String {
@@ -30,7 +30,7 @@ pub fn output_builder_code(
 
     let struct_values = fields.iter().map(|f| {
         let ident = &f.field.ident;
-        let value = if f.nested_impl {
+        let value = if f.nested_impl.is_some() {
             q!(#ident .unnest())
         } else {
             q!(#ident)
