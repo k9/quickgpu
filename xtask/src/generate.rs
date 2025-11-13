@@ -6,13 +6,13 @@ use discover_exports::{
 };
 
 use crate::{
-    generate::struct_entry::{filter_struct, output_nested_impl, output_struct, without_args},
-    utils::{relative_path, rustfmt},
+    generate::struct_entry::{Output, filter_struct, output_struct},
+    utils::{relative_path, rustfmt, without_args},
 };
 
+pub mod builder;
+pub mod nested;
 mod struct_entry;
-
-type AResult<T> = anyhow::Result<T>;
 
 const SKIP: &[&str] = &[
     "AdapterInfo",
@@ -81,16 +81,20 @@ pub fn generate() -> anyhow::Result<()> {
         wgpu
     };
 
-    let mut builders = vec![(
-        "".to_string(),
-        q!(
+    let mut builders = vec![Output {
+        builder_comment: "".to_string(),
+        builder_code: q!(
             use crate::Nested;
             use std::ops::Range;
             use std::num::NonZeroU32;
             use std::borrow::Cow;
         )
         .to_string(),
-    )];
+        nested_impl: q!(
+            use crate::Nested;
+        )
+        .to_string(),
+    }];
 
     let mut builder_entries = HashMap::new();
 
@@ -112,7 +116,13 @@ pub fn generate() -> anyhow::Result<()> {
 
     let combined = builders
         .iter()
-        .map(|(comment, code)| format!("{comment}\n{code}\n"))
+        .map(
+            |Output {
+                 builder_comment,
+                 builder_code,
+                 ..
+             }| format!("{builder_comment}\n{builder_code}\n"),
+        )
         .collect::<Vec<String>>()
         .join("\n");
 
@@ -120,25 +130,9 @@ pub fn generate() -> anyhow::Result<()> {
     std::fs::write(output_path.clone(), combined)?;
     rustfmt(output_path)?;
 
-    let mut nested_impls = vec![
-        q!(
-            use crate::Nested;
-        )
-        .to_string(),
-    ];
-
-    for (_, (index, path)) in builder_entries.iter() {
-        nested_impls.push(output_nested_impl(
-            &wgpu,
-            *index,
-            path.clone(),
-            &builder_entries,
-        ));
-    }
-
-    let combined = nested_impls
+    let combined = builders
         .iter()
-        .map(|code| format!("{code}\n"))
+        .map(|Output { nested_impl, .. }| format!("{nested_impl}\n"))
         .collect::<Vec<String>>()
         .join("\n");
 

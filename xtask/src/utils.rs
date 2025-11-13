@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use anyhow::Context;
 use duct::cmd;
 use proc_macro2::Span;
-use syn::Ident;
+use syn::{Field, Ident, Path, PathArguments, Type};
 
 use crate::AResult;
 
@@ -13,11 +13,6 @@ pub fn relative_path(p: impl Into<PathBuf>) -> PathBuf {
         .join("..")
         .join(p.into())
         .to_path_buf()
-}
-
-pub fn parse_docs(path: impl Into<PathBuf>) -> AResult<rustdoc_types::Crate> {
-    let json_string = std::fs::read_to_string(path.into())?;
-    Ok(serde_json::from_str::<rustdoc_types::Crate>(&json_string)?)
 }
 
 pub fn ident(name: &str) -> Ident {
@@ -36,4 +31,23 @@ pub fn final_path(path: &str) -> AResult<String> {
         .last()
         .context("Problem parsing path")?
         .to_string())
+}
+
+pub fn is_option(field: &Field) -> bool {
+    if let Type::Path(path) = &field.ty
+        && path.path.segments.last().map(|s| s.ident.to_string()) == Some("Option".to_string())
+    {
+        true
+    } else {
+        false
+    }
+}
+
+pub fn without_args(path: &Path) -> Path {
+    let mut path = path.clone();
+    for segment in path.segments.iter_mut() {
+        segment.arguments = PathArguments::None;
+    }
+
+    path
 }

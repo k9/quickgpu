@@ -1,8 +1,8 @@
 use bytemuck::{Pod, Zeroable};
 use quickgpu::*;
 use wgpu::{
-    Buffer, Color, CommandBuffer, CompareFunction, Device, LoadOp, RenderPipeline, TextureFormat,
-    VertexFormat, include_wgsl,
+    include_wgsl, Buffer, Color, CommandBuffer, CompareFunction, Device, LoadOp, RenderPipeline,
+    TextureFormat, VertexFormat,
 };
 
 use crate::app::RenderTextures;
@@ -55,15 +55,12 @@ impl Scene {
                             vertex_attribute()
                                 .format(VertexFormat::Float32x4)
                                 .offset(0u64)
-                                .shader_location(0u32)
-                                .build(),
+                                .shader_location(0u32),
                             vertex_attribute()
                                 .format(VertexFormat::Float32x2)
                                 .offset(4 * 4u64)
-                                .shader_location(1u32)
-                                .build(),
-                        ])
-                        .build()]),
+                                .shader_location(1u32),
+                        ])]),
             )
             .fragment(
                 fragment_state()
