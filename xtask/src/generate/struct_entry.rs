@@ -134,7 +134,8 @@ pub(crate) fn output_struct(
         output_builder_code(&path, ident, &fields, &generics, &generics_with_constraints);
 
     let nested_impl = if generate_nested_impl {
-        output_nested(path, &fields, &generics, &generics_with_constraints)
+        //output_nested(path, &fields, &generics, &generics_with_constraints)
+        "".to_string()
     } else {
         "".to_string()
     };

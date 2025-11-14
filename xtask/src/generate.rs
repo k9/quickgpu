@@ -84,10 +84,11 @@ pub fn generate() -> anyhow::Result<()> {
     let mut builders = vec![Output {
         builder_comment: "".to_string(),
         builder_code: q!(
-            use crate::Nested;
-            use std::ops::Range;
-            use std::num::NonZeroU32;
+            use crate::*;
             use std::borrow::Cow;
+            use std::marker::PhantomData;
+            use std::num::NonZeroU32;
+            use std::ops::Range;
         )
         .to_string(),
         nested_impl: q!(
