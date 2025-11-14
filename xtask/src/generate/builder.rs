@@ -1,137 +1,137 @@
+use std::collections::BTreeSet;
+
 use convert_case::{Case, Casing};
 use discover_exports::utils::id;
-use quote::quote as q;
-use syn::{GenericParam, Generics, Ident, Path, parse_quote};
+use quote::{ToTokens, format_ident, quote as q};
+use syn::{
+    GenericParam, Generics, Ident, Path,
+    visit::{self, Visit},
+};
 
 use crate::generate::struct_entry::BuilderField;
 
+#[derive(Default)]
+pub struct StructGenerics {
+    pub lifetimes: Vec<String>,
+    pub types: Vec<String>,
+}
+
+pub struct GatherGenerics<'a> {
+    pub struct_generics: &'a StructGenerics,
+    pub lifetimes: BTreeSet<&'a syn::Lifetime>,
+    pub types: BTreeSet<&'a syn::Ident>,
+}
+
+impl<'a> GatherGenerics<'a> {
+    pub fn new(struct_generics: &'a StructGenerics) -> Self {
+        Self {
+            struct_generics,
+            lifetimes: BTreeSet::new(),
+            types: BTreeSet::new(),
+        }
+    }
+}
+
+impl<'a> Visit<'a> for GatherGenerics<'a> {
+    fn visit_lifetime(&mut self, lifetime: &'a syn::Lifetime) {
+        if self
+            .struct_generics
+            .lifetimes
+            .contains(&lifetime.to_string())
+        {
+            self.lifetimes.insert(lifetime);
+        }
+
+        visit::visit_lifetime(self, lifetime);
+    }
+
+    fn visit_type_path(&mut self, path: &'a syn::TypePath) {
+        if let Some(last) = path.path.segments.last()
+            && self
+                .struct_generics
+                .types
+                .contains(&last.to_token_stream().to_string())
+        {
+            self.types.insert(&last.ident);
+        }
+
+        visit::visit_type_path(self, path);
+    }
+}
+
 pub fn output_builder_code(
-    path: &Path,
+    _path: &Path,
     ident: Ident,
     fields: &[BuilderField],
     generics: &Generics,
-    generics_with_constraints: &Generics,
+    _generics_with_constraints: &Generics,
 ) -> String {
-    let builder_ident = path.segments.last().unwrap().clone().ident;
-    let builder_ident = id(format!("{}Builder", builder_ident.to_string())
-        .replace("Origin2d", "Origin2D")
-        .replace("Origin3d", "Origin3D")
-        .replace("Extent3d", "Extent3D"));
+    let builder_ident = id(format!("{}Builder", ident.to_string()));
 
-    let fn_ident = id(ident.to_string().to_case(Case::Snake).as_str());
+    let fn_ident = id(builder_ident.to_string().to_case(Case::Snake).as_str());
+    let builder_mod_ident = fn_ident.clone();
 
-    let field_generics = fields
-        .iter()
-        .map(|f| {
-            let name = &f.field.ident.as_ref().unwrap().to_string();
-            let name = format!("{}Field", name.to_case(Case::Pascal));
+    let mut struct_generics = StructGenerics::default();
 
-            id(name)
-        })
-        .collect::<Vec<_>>();
+    for param in &generics.params {
+        match param {
+            GenericParam::Lifetime(lifetime) => {
+                struct_generics
+                    .lifetimes
+                    .push(lifetime.to_token_stream().to_string());
+            }
+            GenericParam::Type(ty) => {
+                struct_generics.types.push(q!(#ty).to_string());
+            }
+            _ => (),
+        };
+    }
 
-    let builder_generics = q!(<#(#field_generics),*>);
+    let field_types = fields.iter().map(|f| {
+        let ident = f
+            .field
+            .ident
+            .as_ref()
+            .unwrap()
+            .to_string()
+            .to_case(Case::Pascal);
 
-    let struct_fields = fields.iter().enumerate().map(|(i, f)| {
-        let ident = &f.field.ident;
-        let value = field_generics[i].clone();
-
-        q!(#ident: #value)
-    });
-
-    let unset_generics = fields.iter().map(|f| {
+        let set_ident = format_ident!("{}Set", ident);
+        let unset_ident = format_ident!("{}Unset", ident);
+        let required_ident = format_ident!("{}Required", ident);
+        let is_unset_ident = format_ident!("{}IsUnset", ident);
         let ty = &f.field.ty;
 
-        q!(Unset<#ty>)
-    });
+        let mut generics = GatherGenerics::new(&struct_generics);
+        generics.visit_type(ty);
 
-    let fn_fields = fields.iter().map(|f| {
-        let ident = &f.field.ident;
+        let lifetimes = generics.lifetimes.iter().map(|lifetime| q!(#lifetime));
+        let types = generics.types.iter().map(|ty| q!(#ty));
+        let generics = lifetimes.chain(types);
+        let generics = q!(<#(#generics),*>);
 
-        q!(#ident: Unset(PhantomData))
-    });
-
-    let finish_generics = generics.clone();
-    let finish_generics_with_constraints = generics.clone();
-    let finish_values = vec![q!()];
-
-    let setters = fields.iter().map(|f| {
-        let setter_ident = f.field.ident.clone();
-        let setter_ty = &f.field.ty;
-        let setter_param = q!(#setter_ident: #setter_ty);
-        
-        let setter_generics_before = fields.iter().enumerate().map(|(i, f_inner)| {
-            let field_generic = &field_generics[i];
-            let value = if f.field == f_inner.field {
-                q!(Unset<#field_generic>)
-            } else {
-                q!(#field_generic)
-            };
-
-            q!(#value)
-        });
-        
-        let setter_generics_before = q!(<#(#setter_generics_before),*>);
-
-        let setter_generics_after = fields.iter().enumerate().map(|(i, f_inner)| {
-            let field_generic = &field_generics[i];
-            let value = if f.field == f_inner.field {
-                q!(Set<#field_generic>)
-            } else {
-                q!(#field_generic)
-            };
-
-            q!(#value)
-        });
-        
-        let setter_generics_after = q!(<#(#setter_generics_after),*>);
-        
-        let setter_values = fields.iter().map(|f| {
-            let ident = &f.field.ident;
-            let value = q!(Unset(PhantomData));
-
-            q!(#ident: #value)
-        });
-
-
-        let mut start_generics_with_constraints = generics.clone();
-        for generic in &field_generics {
-            let param: GenericParam = parse_quote!(#generic);
-            start_generics_with_constraints.params.push(param);
-        }
-    
         q!(
-            impl #start_generics_with_constraints #builder_ident #setter_generics_before {
-                pub fn #setter_ident (self, #setter_param) -> #builder_ident #setter_generics_after {
-                    #builder_ident {
-                        #(#setter_values),*
-                    }
+            pub struct #set_ident #generics(pub #ty);
+            pub struct #unset_ident #generics(PhantomData<#ty>);
+            pub trait #required_ident {}
+            pub trait #is_unset_ident: #required_ident {}
+
+            impl #generics #required_ident for #unset_ident #generics {}
+            impl #generics #is_unset_ident for #unset_ident #generics {}
+            impl #generics #required_ident for #set_ident #generics {}
+            impl #generics #set_ident #generics {
+                fn get(self) -> #ty {
+                    self.0
                 }
             }
         )
     });
 
     let builder_code = q!(
-        #[derive(Debug)]
-        pub struct #builder_ident #builder_generics {
-            #(#struct_fields),*
-        }
+        pub mod #builder_mod_ident {
+            use std::{marker::PhantomData, num::NonZeroU32, borrow::Cow, ops::Range};
 
-        pub fn #fn_ident #generics_with_constraints () -> #builder_ident <#(#unset_generics),*> {
-            #builder_ident {
-               #(#fn_fields),*
-            }
-        }
-
-        #(#setters)*
-
-        impl #finish_generics_with_constraints #builder_ident #finish_generics
-        {
-            pub fn build(self) -> #path {
-                #path {
-                    #(#finish_values),*
-                }
-            }
+            #(#field_types)*
         }
     )
     .to_string();

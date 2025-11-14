@@ -115,7 +115,7 @@ pub(crate) fn output_struct(
         apply_impl(&mut fields, &consts, impl_item);
     }
 
-    for f in fields.iter_mut() {
+    /*for f in fields.iter_mut() {
         let mut resolver = BuilderResolve {
             builders,
             nested_impl: None,
@@ -128,7 +128,7 @@ pub(crate) fn output_struct(
         let ty = &f.field.ty;
 
         log::debug!("    {}", q!(#ident: #ty));
-    }
+    }*/
 
     let builder_code =
         output_builder_code(&path, ident, &fields, &generics, &generics_with_constraints);
