@@ -5,7 +5,7 @@ use proc_macro2::TokenStream;
 use quote::{ToTokens, quote as q};
 use syn::{
     Expr, Field, FieldValue, Fields, Ident, ImplItem, ItemStruct, Member, Path, Stmt,
-    TypeParamBound, Visibility, punctuated::Punctuated, token::Comma, visit_mut::VisitMut,
+    TypeParamBound, Visibility, punctuated::Punctuated, token::Comma,
 };
 
 use discover_exports::{
@@ -14,13 +14,7 @@ use discover_exports::{
     resolve::{resolve_assoc_consts, resolve_impls, resolve_struct, resolve_type_alias},
 };
 
-use crate::{
-    generate::{
-        builder::output_builder_code,
-        nested::{BuilderResolve, output_nested},
-    },
-    utils::is_option,
-};
+use crate::{generate::builder::output_builder_code, utils::is_option};
 
 use super::SKIP;
 
@@ -40,13 +34,10 @@ pub(crate) fn filter_struct(
     ctx: &Ctx,
     index: EntryIndex,
     path: &Path,
-) -> Option<(EntryIndex, Ident, ItemStruct, bool)> {
-    let segment = path.segments.last();
-    let Some(segment) = segment else {
+) -> Option<(EntryIndex, ItemStruct, bool)> {
+    let Some(ident) = ident_from_path(path) else {
         return None;
     };
-
-    let ident = segment.ident.clone();
 
     let Some((index, item, generate_nested_impl)) = get_index_and_item(ctx, index) else {
         return None;
@@ -71,16 +62,20 @@ pub(crate) fn filter_struct(
         return None;
     };
 
-    Some((index, ident, item, generate_nested_impl))
+    Some((index, item, generate_nested_impl))
+}
+
+pub fn ident_from_path(path: &Path) -> Option<Ident> {
+    path.segments.last().map(|s| s.ident.clone())
 }
 
 pub(crate) fn output_struct(
     ctx: &Ctx,
     index: EntryIndex,
     path: Path,
-    builders: &HashMap<String, (EntryIndex, Path)>,
+    _builders: &HashMap<String, (EntryIndex, Path)>,
 ) -> Output {
-    let (index, ident, mut item, generate_nested_impl) = filter_struct(ctx, index, &path).unwrap();
+    let (index, mut item, generate_nested_impl) = filter_struct(ctx, index, &path).unwrap();
 
     let builder_comment = "".to_string();
 
@@ -100,11 +95,11 @@ pub(crate) fn output_struct(
 
     let impls = resolve_impls(ctx, index).unwrap();
     let consts = resolve_assoc_consts(ctx, index).unwrap();
-    let generics = item.generics.clone();
-    let mut generics_with_constraints = item.generics.clone();
+    let mut generics = item.generics.clone();
 
+    let ident = ident_from_path(&path).unwrap();
     if ["Operations", "CommandBufferDescriptor"].contains(&ident.to_string().as_str()) {
-        for param in generics_with_constraints.type_params_mut() {
+        for param in generics.type_params_mut() {
             param.bounds = Punctuated::new();
             let z: TypeParamBound = syn::parse_quote!(Default);
             param.bounds.push(z);
@@ -130,8 +125,7 @@ pub(crate) fn output_struct(
         log::debug!("    {}", q!(#ident: #ty));
     }*/
 
-    let builder_code =
-        output_builder_code(&path, ident, &fields, &generics, &generics_with_constraints);
+    let builder_code = output_builder_code(&path, &fields, &generics);
 
     let nested_impl = if generate_nested_impl {
         //output_nested(path, &fields, &generics, &generics_with_constraints)
@@ -165,7 +159,7 @@ pub fn apply_impl(
         {
             for field in fields.iter_mut() {
                 if !is_option(&field.field) {
-                    field.default_value = Some(q!(default));
+                    field.default_value = Some(q!(Default::default()));
                 }
             }
         } else if let ImplItem::Fn(func) = &impl_item.items[0]
@@ -233,6 +227,6 @@ fn set_field_default(field: &mut BuilderField<'_>, expr_fields: &Punctuated<Fiel
             .unwrap();
 
         let default_value = const_field.expr.clone().into_token_stream();
-        field.default_value = Some(q!(default = #default_value));
+        field.default_value = Some(q!(#default_value));
     }
 }

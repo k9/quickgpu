@@ -1,4 +1,5 @@
 pub mod generate;
+pub mod type_helpers;
 pub mod utils;
 
 use clap::{Parser, Subcommand};

@@ -83,7 +83,23 @@ pub fn generate() -> anyhow::Result<()> {
 
     let mut builders = vec![Output {
         builder_comment: "".to_string(),
-        builder_code: q!().to_string(),
+        builder_code: q!(
+            mod common {
+                pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
+
+                // For required fields
+                pub trait IsRequired {}
+                pub trait IsUnset {}
+
+                // For optional fields
+                pub trait IsUnsetOptional {}
+                pub trait IsOptional {}
+                pub trait ResolveOptional<T>: IsOptional {
+                    fn resolve(self) -> T;
+                }
+            }
+        )
+        .to_string(),
         nested_impl: q!(
             use crate::Nested;
         )
