@@ -86,6 +86,7 @@ pub fn generate() -> anyhow::Result<()> {
         builder_comment: "".to_string(),
         builder_code: q!(
             mod common {
+                pub use crate::Nested;
                 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
 
                 // For required fields
@@ -99,10 +100,6 @@ pub fn generate() -> anyhow::Result<()> {
                     fn resolve(self) -> T;
                 }
             }
-        )
-        .to_string(),
-        nested_impl: q!(
-            use crate::Nested;
         )
         .to_string(),
     }];
@@ -138,16 +135,6 @@ pub fn generate() -> anyhow::Result<()> {
         .join("\n");
 
     let output_path = relative_path("quickgpu/src/builders.rs");
-    std::fs::write(output_path.clone(), combined)?;
-    rustfmt(output_path)?;
-
-    let combined = builders
-        .iter()
-        .map(|Output { nested_impl, .. }| format!("{nested_impl}\n"))
-        .collect::<Vec<String>>()
-        .join("\n");
-
-    let output_path = relative_path("quickgpu/src/nested.rs");
     std::fs::write(output_path.clone(), combined)?;
     rustfmt(output_path)?;
 

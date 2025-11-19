@@ -4,7 +4,7 @@ use anyhow::Context;
 use convert_case::{Case, Casing};
 use duct::cmd;
 use quote::format_ident;
-use syn::{Field, Ident, Path, PathArguments, Type};
+use syn::{Field, GenericArgument, Ident, Path, PathArguments, Type};
 
 use crate::AResult;
 
@@ -70,4 +70,16 @@ pub fn upper_camel_ident(field: &Field) -> Ident {
             .to_string()
             .to_case(Case::UpperCamel)
     )
+}
+
+pub fn option_argument(ty: &mut Type) -> Option<&mut GenericArgument> {
+    if let Type::Path(path) = ty
+        && let Some(last) = path.path.segments.last_mut()
+        && let PathArguments::AngleBracketed(arguments) = &mut last.arguments
+        && let Some(arg) = arguments.args.first_mut()
+    {
+        Some(arg)
+    } else {
+        None
+    }
 }

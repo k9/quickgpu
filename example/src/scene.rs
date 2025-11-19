@@ -1,8 +1,8 @@
 use bytemuck::{Pod, Zeroable};
 use quickgpu::*;
 use wgpu::{
-    Buffer, Color, CommandBuffer, CompareFunction, Device, LoadOp, RenderPipeline, TextureFormat,
-    VertexFormat, include_wgsl,
+    Buffer, Color, CommandBuffer, CompareFunction, Device, LoadOp, PipelineCompilationOptions,
+    RenderPipeline, TextureFormat, VertexFormat, include_wgsl,
 };
 
 use crate::app::RenderTextures;
@@ -55,18 +55,22 @@ impl Scene {
                             vertex_attribute()
                                 .format(VertexFormat::Float32x4)
                                 .offset(0u64)
-                                .shader_location(0u32),
+                                .shader_location(0u32)
+                                .build(),
                             vertex_attribute()
                                 .format(VertexFormat::Float32x2)
                                 .offset(4 * 4u64)
-                                .shader_location(1u32),
-                        ])]),
+                                .shader_location(1u32)
+                                .build(),
+                        ])
+                        .build()]),
             )
             .fragment(
                 fragment_state()
                     .module(&shader)
                     .entry_point("fs_main")
-                    .targets(&[Some(format.into())]),
+                    .targets(&[Some(format.into())])
+                    .compilation_options(PipelineCompilationOptions::default()),
             )
             .primitive(primitive_state().cull_mode(wgpu::Face::Back))
             .depth_stencil(
@@ -117,8 +121,7 @@ impl Scene {
                 .depth_stencil_attachment(
                     render_pass_depth_stencil_attachment()
                         .view(render_textures.depth)
-                        .depth_ops(operations().load(LoadOp::Clear(1.0)).build())
-                        .build(),
+                        .depth_ops(operations().load(LoadOp::Clear(1.0)).build()),
                 )
                 .begin_with(&mut encoder);
 

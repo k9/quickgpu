@@ -1,7 +1,7 @@
 use convert_case::{Case, Casing};
 use proc_macro2::TokenStream;
-use quote::{format_ident, quote as q};
-use syn::{Generics, Ident, Path, PathArguments, Type, parse_quote, visit::Visit};
+use quote::{ToTokens, format_ident, quote as q};
+use syn::{GenericArgument, GenericParam, Generics, Ident, Path, parse_quote, visit::Visit};
 
 use crate::{
     generate::{
@@ -12,13 +12,14 @@ use crate::{
         struct_entry::{BuilderField, ident_from_path},
     },
     type_helpers::{GatherGenerics, UniqueGenerics},
-    utils::{OptionType, option_type, upper_camel_ident},
+    utils::{OptionType, option_argument, option_type, upper_camel_ident},
 };
 
 pub fn output_builder_code(
     path: &Path,
     fields: &[BuilderField],
     struct_generics: &Generics,
+    generate_nested_impl: bool,
 ) -> String {
     let ident = ident_from_path(path).unwrap();
     let builder_ident = format_ident!("{}Builder", ident);
@@ -122,6 +123,17 @@ pub fn output_builder_code(
         builder_new_fields.push(q!(#ident: #ty));
     }
 
+    let nested = make_nested(
+        path,
+        &builder_ident,
+        &build_fn_params,
+        &build_impl_params,
+        &build_impl_args,
+        &build_where,
+        &struct_generic_args,
+        generate_nested_impl,
+    );
+
     q!(
         pub use #builder_mod_ident::#fn_ident;
 
@@ -160,9 +172,47 @@ pub fn output_builder_code(
                     }
                 }
             }
+
+            #nested
         }
     )
     .to_string()
+}
+
+pub fn make_nested(
+    path: &Path,
+    builder_ident: &Ident,
+    build_fn_params: &[TokenStream],
+    build_impl_params: &[GenericParam],
+    build_impl_args: &[GenericArgument],
+    build_where: &[GenericParam],
+    struct_generic_args: &TokenStream,
+    generate_nested_impl: bool,
+) -> TokenStream {
+    let nested_impl_params = build_fn_params
+        .iter()
+        .cloned()
+        .chain(build_impl_params.iter().map(|p| p.to_token_stream()));
+
+    if generate_nested_impl {
+        q!(
+            impl<#(#nested_impl_params),*> Nested<#path #struct_generic_args> for
+                #builder_ident <#(#build_impl_args),*>
+                where #(#build_where),* {
+                fn unnest(self) -> #path #struct_generic_args {
+                    self.build()
+                }
+            }
+
+            impl #struct_generic_args Nested<#path #struct_generic_args> for #path #struct_generic_args {
+                fn unnest(self) -> #path #struct_generic_args {
+                    self
+                }
+            }
+        )
+    } else {
+        q!()
+    }
 }
 
 fn setter(
@@ -187,17 +237,19 @@ fn setter(
     } = make_setter_impl_generics(&fields, Some(f), struct_generics);
 
     if option_type(&f.field) == OptionType::Option
-        && let Type::Path(path) = &ty
-        && let Some(last) = path.path.segments.last()
-        && let PathArguments::AngleBracketed(arguments) = &last.arguments
-        && let Some(arg) = arguments.args.first()
+        && let Some(arg) = option_argument(&mut ty.clone())
     {
-        // Create a "maybe" setter which take option directly
+        // Create a "maybe" setter which takes option directly
         let setter_fn_ident = format_ident!("maybe_{}", setter_ident.as_ref().unwrap());
-
         let setter_fields = make_setter_fields(&fields, Some(f), false);
+        let nested_ty = if f.nested_ty {
+            q!(impl Nested<#ty>)
+        } else {
+            q!(#ty)
+        };
+
         setters.push(q!(
-            pub fn #setter_fn_ident #setter_generic_params (self, #setter_ident: #ty) ->
+            pub fn #setter_fn_ident #setter_generic_params (self, #setter_ident: #nested_ty) ->
                 #builder_ident< #(#setter_impl_args),*>
                 where #(#setter_where_params),*
                   {
@@ -212,8 +264,14 @@ fn setter(
     };
 
     let setter_fields = make_setter_fields(&fields, Some(f), true);
+    let nested_ty = if f.nested_ty {
+        q!(impl Nested<#ty>)
+    } else {
+        q!(#ty)
+    };
+
     setters.push(q!(
-        pub fn #setter_ident #setter_generic_params (self, #setter_ident: #ty) ->
+        pub fn #setter_ident #setter_generic_params (self, #setter_ident: #nested_ty) ->
             #builder_ident< #(#setter_impl_args),*>
             where #(#setter_where_params),*
               {
@@ -244,10 +302,16 @@ fn make_setter_fields(
                 format_ident!("{}Value", upper_camel)
             };
 
-            if unnest_option && option_type(&f.field) == OptionType::Option {
-                setter_fields.push(q!(#ident: #value(Some(#ident))));
+            let expr = if selected.nested_ty {
+                q!(#ident .unnest())
             } else {
-                setter_fields.push(q!(#ident: #value(#ident)));
+                q!(#ident)
+            };
+
+            if unnest_option && option_type(&f.field) == OptionType::Option {
+                setter_fields.push(q!(#ident: #value(Some(#expr))));
+            } else {
+                setter_fields.push(q!(#ident: #value(#expr)));
             }
         } else {
             let ident = &f.field.ident;

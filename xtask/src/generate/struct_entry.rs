@@ -4,21 +4,20 @@ use anyhow::Context;
 use proc_macro2::TokenStream;
 use quote::{ToTokens, quote as q};
 use syn::{
-    Expr, Field, FieldValue, Fields, Ident, ImplItem, ItemStruct, Member, Path, Stmt,
+    Expr, Field, FieldValue, Fields, Ident, ImplItem, ItemStruct, Member, Path, Stmt, Type,
     TypeParamBound, Visibility, punctuated::Punctuated, token::Comma, visit_mut::VisitMut,
 };
 
 use discover_exports::{
     EntryIndex,
     analysis::Ctx,
-    resolve::{resolve_assoc_consts, resolve_impls, resolve_struct, resolve_type_alias},
+    resolve::{
+        resolve_assoc_consts, resolve_impls, resolve_path, resolve_struct, resolve_type_alias,
+    },
 };
 
 use crate::{
-    generate::{
-        builder::output_builder_code,
-        nested::{BuilderResolve, output_nested},
-    },
+    generate::{builder::output_builder_code, nested::BuilderResolve},
     utils::{OptionType, option_type},
 };
 
@@ -27,13 +26,12 @@ use super::SKIP;
 pub struct BuilderField<'a> {
     pub field: &'a mut Field,
     pub default_value: Option<TokenStream>,
-    pub nested_impl: Option<TokenStream>,
+    pub nested_ty: bool,
 }
 
 pub struct Output {
     pub builder_comment: String,
     pub builder_code: String,
-    pub nested_impl: String,
 }
 
 pub(crate) fn filter_struct(
@@ -95,7 +93,7 @@ pub(crate) fn output_struct(
         .map(|field| BuilderField {
             field,
             default_value: None,
-            nested_impl: None,
+            nested_ty: false,
         })
         .collect::<Vec<_>>();
 
@@ -116,14 +114,36 @@ pub(crate) fn output_struct(
         apply_impl(&mut fields, &consts, impl_item);
     }
 
+    for field in fields.iter_mut() {
+        let mut has_default_impl = false;
+
+        if let Type::Path(path) = &field.field.ty
+            && let Ok(field_ty_index) = resolve_path(ctx, ctx.crate_root, &path.path)
+        {
+            let impls = resolve_impls(ctx, field_ty_index).unwrap();
+            if impls
+                .iter()
+                .any(|block| get_default_trait_item(block).is_some())
+            {
+                has_default_impl = true;
+            }
+        }
+
+        let is_option = option_type(&field.field) != OptionType::None;
+
+        if has_default_impl || is_option {
+            field.default_value = Some(q!(Default::default()));
+        }
+    }
+
     for f in fields.iter_mut() {
         let mut resolver = BuilderResolve {
             builders,
-            nested_impl: None,
+            nested_ty: false,
         };
 
         resolver.visit_field_mut(f.field);
-        f.nested_impl = resolver.nested_impl;
+        f.nested_ty = resolver.nested_ty;
 
         let ident = &f.field.ident;
         let ty = &f.field.ty;
@@ -131,18 +151,11 @@ pub(crate) fn output_struct(
         log::debug!("    {}", q!(#ident: #ty));
     }
 
-    let builder_code = output_builder_code(&path, &fields, &generics);
-
-    let nested_impl = if generate_nested_impl {
-        output_nested(path, &fields, &generics, &generics)
-    } else {
-        "".to_string()
-    };
+    let builder_code = output_builder_code(&path, &fields, &generics, generate_nested_impl);
 
     Output {
         builder_comment,
         builder_code,
-        nested_impl,
     }
 }
 
@@ -151,12 +164,7 @@ pub fn apply_impl(
     consts: &Vec<(Path, syn::ImplItemConst)>,
     impl_item: &syn::ItemImpl,
 ) {
-    if let Some((_, trait_item, _)) = &impl_item.trait_
-        && trait_item
-            .segments
-            .last()
-            .is_some_and(|segment| segment.ident.to_string() == "Default")
-    {
+    if get_default_trait_item(impl_item).is_some() {
         if impl_item
             .attrs
             .iter()
@@ -196,12 +204,19 @@ pub fn apply_impl(
                 };
             }
         }
+    }
+}
+
+fn get_default_trait_item(impl_item: &syn::ItemImpl) -> Option<&Path> {
+    if let Some((_, trait_item, _)) = &impl_item.trait_
+        && trait_item
+            .segments
+            .last()
+            .is_some_and(|segment| segment.ident.to_string() == "Default")
+    {
+        Some(trait_item)
     } else {
-        for field in fields.iter_mut() {
-            if option_type(&field.field) != OptionType::None {
-                field.default_value = Some(q!(Default::default()));
-            }
-        }
+        None
     }
 }
 
