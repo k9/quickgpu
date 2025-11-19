@@ -5,7 +5,7 @@ use proc_macro2::TokenStream;
 use quote::{ToTokens, quote as q};
 use syn::{
     Expr, Field, FieldValue, Fields, Ident, ImplItem, ItemStruct, Member, Path, Stmt,
-    TypeParamBound, Visibility, punctuated::Punctuated, token::Comma,
+    TypeParamBound, Visibility, punctuated::Punctuated, token::Comma, visit_mut::VisitMut,
 };
 
 use discover_exports::{
@@ -14,7 +14,13 @@ use discover_exports::{
     resolve::{resolve_assoc_consts, resolve_impls, resolve_struct, resolve_type_alias},
 };
 
-use crate::{generate::builder::output_builder_code, utils::is_option};
+use crate::{
+    generate::{
+        builder::output_builder_code,
+        nested::{BuilderResolve, output_nested},
+    },
+    utils::{OptionType, option_type},
+};
 
 use super::SKIP;
 
@@ -73,7 +79,7 @@ pub(crate) fn output_struct(
     ctx: &Ctx,
     index: EntryIndex,
     path: Path,
-    _builders: &HashMap<String, (EntryIndex, Path)>,
+    builders: &HashMap<String, (EntryIndex, Path)>,
 ) -> Output {
     let (index, mut item, generate_nested_impl) = filter_struct(ctx, index, &path).unwrap();
 
@@ -110,7 +116,7 @@ pub(crate) fn output_struct(
         apply_impl(&mut fields, &consts, impl_item);
     }
 
-    /*for f in fields.iter_mut() {
+    for f in fields.iter_mut() {
         let mut resolver = BuilderResolve {
             builders,
             nested_impl: None,
@@ -123,13 +129,12 @@ pub(crate) fn output_struct(
         let ty = &f.field.ty;
 
         log::debug!("    {}", q!(#ident: #ty));
-    }*/
+    }
 
     let builder_code = output_builder_code(&path, &fields, &generics);
 
     let nested_impl = if generate_nested_impl {
-        //output_nested(path, &fields, &generics, &generics_with_constraints)
-        "".to_string()
+        output_nested(path, &fields, &generics, &generics)
     } else {
         "".to_string()
     };
@@ -158,9 +163,7 @@ pub fn apply_impl(
             .any(|attr| q!(# [automatically_derived]).to_string() == q!(#attr).to_string())
         {
             for field in fields.iter_mut() {
-                if !is_option(&field.field) {
-                    field.default_value = Some(q!(Default::default()));
-                }
+                field.default_value = Some(q!(Default::default()));
             }
         } else if let ImplItem::Fn(func) = &impl_item.items[0]
             && let Some(Stmt::Expr(expr, _)) = func.block.stmts.last()
@@ -191,7 +194,13 @@ pub fn apply_impl(
                         set_field_default(field, &expr.fields);
                     }
                 };
-            };
+            }
+        }
+    } else {
+        for field in fields.iter_mut() {
+            if option_type(&field.field) != OptionType::None {
+                field.default_value = Some(q!(Default::default()));
+            }
         }
     }
 }
@@ -214,19 +223,17 @@ fn get_index_and_item(ctx: &Ctx, index: EntryIndex) -> Option<(EntryIndex, ItemS
 }
 
 fn set_field_default(field: &mut BuilderField<'_>, expr_fields: &Punctuated<FieldValue, Comma>) {
-    if !is_option(&field.field) {
-        let const_field = expr_fields
-            .iter()
-            .find(|const_field| {
-                let Member::Named(const_ident) = &const_field.member else {
-                    panic!("Unnamed field in default");
-                };
+    let const_field = expr_fields
+        .iter()
+        .find(|const_field| {
+            let Member::Named(const_ident) = &const_field.member else {
+                panic!("Unnamed field in default");
+            };
 
-                field.field.ident.as_ref().unwrap().to_string() == const_ident.to_string()
-            })
-            .unwrap();
+            field.field.ident.as_ref().unwrap().to_string() == const_ident.to_string()
+        })
+        .unwrap();
 
-        let default_value = const_field.expr.clone().into_token_stream();
-        field.default_value = Some(q!(#default_value));
-    }
+    let default_value = const_field.expr.clone().into_token_stream();
+    field.default_value = Some(q!(#default_value));
 }

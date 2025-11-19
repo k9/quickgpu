@@ -1,8 +1,8 @@
 use bytemuck::{Pod, Zeroable};
 use quickgpu::*;
 use wgpu::{
-    include_wgsl, Buffer, Color, CommandBuffer, CompareFunction, Device, LoadOp, RenderPipeline,
-    TextureFormat, VertexFormat,
+    Buffer, Color, CommandBuffer, CompareFunction, Device, LoadOp, RenderPipeline, TextureFormat,
+    VertexFormat, include_wgsl,
 };
 
 use crate::app::RenderTextures;
@@ -45,7 +45,7 @@ impl Scene {
         let shader = device.create_shader_module(include_wgsl!("../shaders/base.wgsl"));
 
         let render_pipeline = render_pipeline_descriptor(Some("Render Pipeline"))
-            .vertex_builder(
+            .vertex(
                 vertex_state()
                     .module(&shader)
                     .entry_point("vs_main")
@@ -78,12 +78,12 @@ impl Scene {
             .multisample(multisample_state().count(sample_count).build())
             .create_with(device);
 
-        let vertex_buffer = buffer_init_descriptor("Vertex Buffer")
+        let vertex_buffer = buffer_init_descriptor(Some("Vertex Buffer"))
             .contents(bytemuck::cast_slice(VERTICES))
             .usage(wgpu::BufferUsages::VERTEX)
             .create_with(device);
 
-        let index_buffer = buffer_init_descriptor("Index Buffer")
+        let index_buffer = buffer_init_descriptor(Some("Index Buffer"))
             .contents(bytemuck::cast_slice(INDICES))
             .usage(wgpu::BufferUsages::INDEX)
             .create_with(device);
@@ -106,7 +106,7 @@ impl Scene {
         let mut encoder = command_encoder_descriptor(None).create_with(device);
 
         {
-            let mut render_pass = render_pass_descriptor("Render Pass")
+            let mut render_pass = render_pass_descriptor(Some("Render Pass"))
                 .color_attachments(&[Some(
                     render_pass_color_attachment()
                         .view(render_textures.view)
@@ -117,7 +117,8 @@ impl Scene {
                 .depth_stencil_attachment(
                     render_pass_depth_stencil_attachment()
                         .view(render_textures.depth)
-                        .depth_ops(operations().load(LoadOp::Clear(1.0))),
+                        .depth_ops(operations().load(LoadOp::Clear(1.0)).build())
+                        .build(),
                 )
                 .begin_with(&mut encoder);
 

@@ -1,8 +1,9 @@
 use std::path::PathBuf;
 
 use anyhow::Context;
+use convert_case::{Case, Casing};
 use duct::cmd;
-use proc_macro2::Span;
+use quote::format_ident;
 use syn::{Field, Ident, Path, PathArguments, Type};
 
 use crate::AResult;
@@ -13,10 +14,6 @@ pub fn relative_path(p: impl Into<PathBuf>) -> PathBuf {
         .join("..")
         .join(p.into())
         .to_path_buf()
-}
-
-pub fn ident(name: &str) -> Ident {
-    Ident::new(name, Span::call_site())
 }
 
 pub fn rustfmt(path: PathBuf) -> AResult<()> {
@@ -33,14 +30,25 @@ pub fn final_path(path: &str) -> AResult<String> {
         .to_string())
 }
 
-pub fn is_option(field: &Field) -> bool {
-    if let Type::Path(path) = &field.ty
-        && path.path.segments.last().map(|s| s.ident.to_string()) == Some("Option".to_string())
-    {
-        true
-    } else {
-        false
+#[derive(PartialEq)]
+pub enum OptionType {
+    None,
+    Option,
+    Label,
+}
+
+pub fn option_type(field: &Field) -> OptionType {
+    if let Type::Path(path) = &field.ty {
+        let ident = path.path.segments.last().map(|s| s.ident.to_string());
+
+        if ident == Some("Option".to_string()) {
+            return OptionType::Option;
+        } else if ident == Some("Label".to_string()) {
+            return OptionType::Label;
+        }
     }
+
+    OptionType::None
 }
 
 pub fn without_args(path: &Path) -> Path {
@@ -50,4 +58,16 @@ pub fn without_args(path: &Path) -> Path {
     }
 
     path
+}
+
+pub fn upper_camel_ident(field: &Field) -> Ident {
+    format_ident!(
+        "{}",
+        field
+            .ident
+            .as_ref()
+            .unwrap()
+            .to_string()
+            .to_case(Case::UpperCamel)
+    )
 }

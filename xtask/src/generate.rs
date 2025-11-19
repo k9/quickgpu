@@ -11,6 +11,7 @@ use crate::{
 };
 
 pub mod builder;
+pub mod builder_generics;
 pub mod nested;
 mod struct_entry;
 
