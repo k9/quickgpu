@@ -9,18 +9,19 @@ use crate::{
             BuildImplGenerics, SetterImplGenerics, make_build_impl_generics,
             make_setter_impl_generics,
         },
+        docs::{builder_docs, builder_fn_docs},
         struct_entry::{BuilderField, ident_from_path},
     },
     type_helpers::{GatherGenerics, UniqueGenerics},
     utils::{OptionType, option_argument, option_type, upper_camel_ident},
 };
 
-pub fn output_builder_code(
+pub fn builder_code(
     path: &Path,
     fields: &[BuilderField],
     struct_generics: &Generics,
     generate_nested_impl: bool,
-) -> String {
+) -> GeneratedBuilder {
     let ident = ident_from_path(path).unwrap();
     let builder_ident = format_ident!("{}Builder", ident);
     let fn_ident = format_ident!("{}", ident.to_string().to_case(Case::Snake));
@@ -134,49 +135,63 @@ pub fn output_builder_code(
         generate_nested_impl,
     );
 
-    q!(
-        pub use #builder_mod_ident::#fn_ident;
+    let builder_fn_docs = builder_fn_docs(path, fields);
+    let builder_docs = builder_docs(path, fields);
 
-        pub mod #builder_mod_ident {
-            #[allow(unused_imports)]
-            use super::common::*;
+    GeneratedBuilder {
+        use_statement: q!(
+            pub use builders::#builder_mod_ident::#fn_ident;
+        )
+        .to_string(),
+        code: q!(
+            pub mod #builder_mod_ident {
+                #[allow(unused_imports)]
+                use super::common::*;
 
-            pub fn #fn_ident #constructor_generic_params (#(#builder_new_params),*) ->
-                #builder_ident<#(#constructor_return_args),*> {
-                #builder_ident::new() #constructor_calls
-            }
+                #[doc = #builder_fn_docs]
+                pub fn #fn_ident #constructor_generic_params (#(#builder_new_params),*) ->
+                    #builder_ident<#(#constructor_return_args),*> {
+                    #builder_ident::new() #constructor_calls
+                }
 
-            pub struct #builder_ident #builder_struct_params {
-                #(#builder_fields),*
-            }
+                #[doc = #builder_docs]
+                pub struct #builder_ident #builder_struct_params {
+                    #(#builder_fields),*
+                }
 
-            impl #builder_ident<#(#builder_new_generic_params),*> {
-                pub fn new() -> Self {
-                    Self {
-                        #(#builder_new_fields),*
+                impl #builder_ident<#(#builder_new_generic_params),*> {
+                    pub fn new() -> Self {
+                        Self {
+                            #(#builder_new_fields),*
+                        }
                     }
                 }
-            }
 
-            #(#field_types_list)*
+                #(#field_types_list)*
 
-            impl <#(#setter_impl_params),*> #builder_ident <#(#setter_impl_args),*> {
-                #(#setters)*
-            }
+                impl <#(#setter_impl_params),*> #builder_ident <#(#setter_impl_args),*> {
+                    #(#setters)*
+                }
 
-            impl <#(#build_impl_params),*> #builder_ident <#(#build_impl_args),*> {
-                pub fn build<#(#build_fn_params),*>(self) -> #path #struct_generic_args
-                    where #(#build_where),* {
-                    #path {
-                        #(#build_fields),*
+                impl <#(#build_impl_params),*> #builder_ident <#(#build_impl_args),*> {
+                    pub fn build<#(#build_fn_params),*>(self) -> #path #struct_generic_args
+                        where #(#build_where),* {
+                        #path {
+                            #(#build_fields),*
+                        }
                     }
                 }
-            }
 
-            #nested
-        }
-    )
-    .to_string()
+                #nested
+            }
+        )
+        .to_string(),
+    }
+}
+
+pub struct GeneratedBuilder {
+    pub use_statement: String,
+    pub code: String,
 }
 
 pub fn make_nested(

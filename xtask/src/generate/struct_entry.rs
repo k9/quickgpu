@@ -17,7 +17,10 @@ use discover_exports::{
 };
 
 use crate::{
-    generate::{builder::output_builder_code, nested::BuilderResolve},
+    generate::{
+        builder::{GeneratedBuilder, builder_code},
+        nested::BuilderResolve,
+    },
     utils::{OptionType, option_type},
 };
 
@@ -30,8 +33,9 @@ pub struct BuilderField<'a> {
 }
 
 pub struct Output {
-    pub builder_comment: String,
-    pub builder_code: String,
+    pub comment: String,
+    pub use_statement: String,
+    pub code: String,
 }
 
 pub(crate) fn filter_struct(
@@ -80,8 +84,6 @@ pub(crate) fn output_struct(
     builders: &HashMap<String, (EntryIndex, Path)>,
 ) -> Output {
     let (index, mut item, generate_nested_impl) = filter_struct(ctx, index, &path).unwrap();
-
-    let builder_comment = "".to_string();
 
     let Fields::Named(fields) = &mut item.fields else {
         panic!("Invalid struct");
@@ -151,11 +153,16 @@ pub(crate) fn output_struct(
         log::debug!("    {}", q!(#ident: #ty));
     }
 
-    let builder_code = output_builder_code(&path, &fields, &generics, generate_nested_impl);
+    let comment = "".to_string();
+    let GeneratedBuilder {
+        use_statement,
+        code,
+    } = builder_code(&path, &fields, &generics, generate_nested_impl);
 
     Output {
-        builder_comment,
-        builder_code,
+        comment,
+        use_statement,
+        code,
     }
 }
 

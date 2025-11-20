@@ -12,6 +12,7 @@ use crate::{
 
 pub mod builder;
 pub mod builder_generics;
+pub mod docs;
 pub mod nested;
 mod struct_entry;
 
@@ -83,8 +84,9 @@ pub fn generate() -> anyhow::Result<()> {
     };
 
     let mut builders = vec![Output {
-        builder_comment: "".to_string(),
-        builder_code: q!(
+        comment: "".to_string(),
+        use_statement: q!().to_string(),
+        code: q!(
             pub mod common {
                 pub use crate::Nested;
                 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
@@ -125,19 +127,29 @@ pub fn generate() -> anyhow::Result<()> {
         builders.push(output_struct(&wgpu, *index, path.clone(), &builder_entries));
     }
 
-    let combined = builders
+    let use_statements = builders
         .iter()
-        .map(
-            |Output {
-                 builder_comment,
-                 builder_code,
-                 ..
-             }| format!("{builder_comment}\n{builder_code}\n"),
-        )
+        .map(|Output { use_statement, .. }| format!("{use_statement}\n"))
         .collect::<Vec<String>>()
         .join("\n");
 
-    let output_path = relative_path("quickgpu/src/builders.rs");
+    let combined = builders
+        .iter()
+        .map(|Output { comment, code, .. }| format!("{comment}\n{code}\n"))
+        .collect::<Vec<String>>()
+        .join("\n");
+
+    let combined = format!(
+        "
+        {use_statements}
+
+        pub mod builders {{
+            {combined}
+        }}
+    "
+    );
+
+    let output_path = relative_path("quickgpu/src/generated.rs");
     std::fs::write(output_path.clone(), combined)?;
     rustfmt(output_path)?;
 

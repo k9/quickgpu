@@ -1,12 +1,13 @@
-mod builders;
+mod generated;
 use std::num::NonZeroU32;
 
-pub use builders::*;
+pub use generated::*;
 use wgpu::{BufferUsages, CommandEncoder, Device, util::DeviceExt};
 
-use crate::builders::{
+use crate::generated::builders::{
     builder_buffer_init_descriptor::BufferInitDescriptorBuilder,
     builder_command_encoder_descriptor::CommandEncoderDescriptorBuilder,
+    builder_render_pass_descriptor,
     builder_render_pipeline_descriptor::RenderPipelineDescriptorBuilder,
     common::{Resolve, ResolveOptional},
 };
