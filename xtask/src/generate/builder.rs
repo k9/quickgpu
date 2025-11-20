@@ -45,7 +45,7 @@ pub fn output_builder_code(
         builder_struct_generics.insert(&parse_quote!(#param));
 
         builder_fields.push(q!(
-            #field_ident: #param
+            pub(crate) #field_ident: #param
         ));
     }
 
@@ -74,7 +74,7 @@ pub fn output_builder_code(
         if f.default_value.is_some() {
             build_fields.push(q!(#ident: self.#ident.resolve()));
         } else {
-            build_fields.push(q!(#ident: self.#ident.0));
+            build_fields.push(q!(#ident: self.#ident.resolve()));
         }
     }
 
@@ -363,7 +363,12 @@ fn field_types(f: &BuilderField<'_>, struct_generics: &UniqueGenerics) -> proc_m
             impl IsRequired for #unset {}
             impl IsUnset for #unset {}
             pub struct #value #impl_params (pub #ty);
-            impl #impl_params IsRequired for #value #impl_params {}
+            impl #impl_params IsRequired for #value #impl_args {}
+            impl #impl_params Resolve<#ty> for #value #impl_args {
+                fn resolve(self) -> #ty {
+                    self.0
+                }
+            }
         )
     }
 }

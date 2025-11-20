@@ -79,7 +79,7 @@ impl Scene {
                     .depth_write_enabled(true)
                     .depth_compare(CompareFunction::Less),
             )
-            .multisample(multisample_state().count(sample_count).build())
+            .multisample(multisample_state().count(sample_count))
             .create_with(device);
 
         let vertex_buffer = buffer_init_descriptor(Some("Vertex Buffer"))
@@ -110,18 +110,20 @@ impl Scene {
         let mut encoder = command_encoder_descriptor(None).create_with(device);
 
         {
+            let color_attachments = &[Some(
+                render_pass_color_attachment()
+                    .view(render_textures.view)
+                    .maybe_resolve_target(render_textures.resolve_target)
+                    .ops(operations().load(LoadOp::Clear(Color::WHITE)))
+                    .build(),
+            )];
+
             let mut render_pass = render_pass_descriptor(Some("Render Pass"))
-                .color_attachments(&[Some(
-                    render_pass_color_attachment()
-                        .view(render_textures.view)
-                        .maybe_resolve_target(render_textures.resolve_target)
-                        .ops(operations().load(LoadOp::Clear(Color::WHITE)))
-                        .build(),
-                )])
+                .color_attachments(color_attachments)
                 .depth_stencil_attachment(
                     render_pass_depth_stencil_attachment()
                         .view(render_textures.depth)
-                        .depth_ops(operations().load(LoadOp::Clear(1.0)).build()),
+                        .depth_ops(operations().load(LoadOp::Clear(1.0))),
                 )
                 .begin_with(&mut encoder);
 

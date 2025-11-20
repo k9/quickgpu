@@ -95,23 +95,16 @@ pub fn make_build_impl_generics(
         let ty = &f.field.ty;
         let upper_camel = upper_camel_ident(&f.field);
 
-        if f.default_value.is_some() {
-            let param = format_ident!("R{}", upper_camel);
-            let constraint = q!(ResolveOptional<#ty>);
-
-            build_where.push(parse_quote!(#param: #constraint));
-            build_impl_params.insert(&parse_quote!(#param));
-            build_impl_args.push(parse_quote!(#param));
+        let param = format_ident!("R{}", upper_camel);
+        let constraint = if f.default_value.is_some() {
+            q!(ResolveOptional<#ty>)
         } else {
-            let arg = format_ident!("{}Value", upper_camel);
-
-            let mut gather = GatherGenerics::new(&struct_generics);
-            let ty = &f.field.ty;
-            gather.visit_type(ty);
-
-            let generic_args = gather.used.as_args();
-            build_impl_args.push(parse_quote!(#arg #generic_args));
+            q!(Resolve<#ty>)
         };
+
+        build_where.push(parse_quote!(#param: #constraint));
+        build_impl_params.insert(&parse_quote!(#param));
+        build_impl_args.push(parse_quote!(#param));
     }
 
     let mut gather_impl_args = GatherGenerics::new(&struct_generics);
