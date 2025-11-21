@@ -1,3 +1,5 @@
+#![doc=include_str!("../../INTRO.md")]
+
 mod generated;
 use std::num::NonZeroU32;
 

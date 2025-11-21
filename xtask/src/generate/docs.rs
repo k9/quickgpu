@@ -19,6 +19,7 @@ Returns [`{ident}Builder`] for building [`{path_tokens}`]
 
 pub fn builder_docs(path: &syn::Path, fields: &[BuilderField]) -> String {
     let path_tokens = path.into_token_stream();
+    let path_tokens = path_tokens.to_string().replace(" ", "");
 
     let mut top_level_doc = format!(
         "
@@ -32,19 +33,23 @@ Builder for [`{path_tokens}`]
 }
 
 pub fn table(fields: &[BuilderField]) -> String {
-    let mut table_doc = format!(
-        "
-Set all required fields and any optionaly fields, then call `build()`.
+    let fields = fields
+        .iter()
+        .filter(|field| field.field.ident.as_ref().unwrap().to_string() != "label");
+
+    let mut table_doc = if fields.clone().count() > 0 {
+        format!(
+            "
+Set all required fields and any optional fields, then call `build()`.
 |Builder Field|Status|
 |-|-|
 "
-    );
+        )
+    } else {
+        "".to_string()
+    };
 
     for field in fields {
-        if field.field.ident.as_ref().unwrap().to_string() == "label" {
-            continue;
-        }
-
         let default_string = field
             .default_value
             .as_ref()
