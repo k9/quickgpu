@@ -4,13 +4,13 @@ version = "0.0.0"
 edition = "2024"
 
 [dependencies]
-anyhow = "1.0.100"
-clap = { version = "4.5.48", features = ["derive"] }
-convert_case = "0.8.0"
-env_logger = "0.11.8"
-proc-macro2 = "1.0.101"
-quote = "1.0.41"
+anyhow = { workspace = true }
+clap = { workspace = true, features = ["derive"] }
+convert_case = { workspace = true }
+env_logger = { workspace = true }
+proc-macro2 = { workspace = true }
+quote = { workspace = true }
 syn = { workspace = true }
-log = "0.4.28"
-duct = "1.1.0"
-discover_exports = { path = "../discover_exports" }
+log = { workspace = true }
+duct = { workspace = true }
+discover_exports = { workspace = true }

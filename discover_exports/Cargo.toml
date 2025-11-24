@@ -4,10 +4,10 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-anyhow = "1.0.100"
-fixedbitset = "0.5.7"
-log = "0.4.28"
-petgraph = "0.8.3"
-proc-macro2 = "1.0.101"
-quote = "1.0.41"
-syn = { version = "2.0.106", features = ["full", "extra-traits", "visit", "visit-mut"] }
+anyhow = { workspace = true }
+fixedbitset = { workspace = true }
+log = { workspace = true }
+petgraph = { workspace = true }
+proc-macro2 = { workspace = true }
+quote = { workspace = true }
+syn = { workspace = true, features = ["full", "extra-traits", "visit", "visit-mut"] }
