@@ -1,8 +1,8 @@
 use bytemuck::{Pod, Zeroable};
 use quickgpu::*;
 use wgpu::{
-    Buffer, Color, CommandBuffer, CompareFunction, Device, LoadOp, PipelineCompilationOptions,
-    RenderPipeline, TextureFormat, VertexFormat, include_wgsl,
+    Buffer, Color, CommandBuffer, Device, LoadOp, PipelineCompilationOptions, RenderPipeline,
+    TextureFormat, VertexFormat, include_wgsl,
 };
 
 use crate::app::RenderTextures;
@@ -73,12 +73,6 @@ impl Scene {
                     .compilation_options(PipelineCompilationOptions::default()),
             )
             .primitive(primitive_state().cull_mode(wgpu::Face::Back))
-            .depth_stencil(
-                depth_stencil_state()
-                    .format(TextureFormat::Depth32Float)
-                    .depth_write_enabled(true)
-                    .depth_compare(CompareFunction::Less),
-            )
             .multisample(multisample_state().count(sample_count))
             .create_with(device);
 
