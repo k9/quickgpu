@@ -1,4 +1,4 @@
-#![doc=include_str!("../../INTRO.md")]
+#![doc=include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/INTRO.md"))]
 
 mod generated;
 use std::num::NonZeroU32;
