@@ -3,7 +3,6 @@ use petgraph::graph::NodeIndex;
 pub mod analysis;
 pub mod analysis_entry;
 pub mod crate_graph;
-mod exports;
 pub mod process;
 pub mod resolve;
 pub mod types;
