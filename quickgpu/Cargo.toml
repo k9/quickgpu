@@ -1,12 +1,13 @@
 [package]
 name = "quickgpu"
-version = "0.0.2"
+version = "0.0.3"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 description = "quickgpu wraps the wgpu API allowing users to write shorter, clearer code"
 repository = "https://github.com/k9/quickgpu"
 homepage = "https://github.com/k9/quickgpu"
 documentation = "https://docs.rs/quickgpu"
+readme = "../README.md"
 
 [dependencies]
 wgpu = { workspace = true }
