@@ -1,6 +1,6 @@
 [package]
-name = "quickgpu_example"
-version = "0.0.1"
+name = "quickgpu_bunnymark"
+version = "0.1.0"
 edition = "2024"
 
 [dependencies]
@@ -11,3 +11,7 @@ pollster = { workspace = true }
 wgpu = { workspace = true }
 winit = { workspace = true }
 quickgpu = { workspace = true }
+nanorand = "0.8.0"
+png = "0.18.0"
+glam = "0.30.9"
+web-time = "1.1.0"

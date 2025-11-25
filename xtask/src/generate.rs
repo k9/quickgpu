@@ -87,7 +87,7 @@ pub fn generate() -> anyhow::Result<()> {
         comment: "".to_string(),
         use_statement: q!().to_string(),
         code: q!(
-            pub mod common {
+            pub(crate) mod common {
                 pub use crate::Nested;
                 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
 

@@ -1,5 +1,9 @@
+use quickgpu::{
+    device_descriptor, extent_3_d, request_adapter_options, texture_descriptor,
+    texture_view_descriptor,
+};
 use std::sync::Arc;
-use wgpu::{Device, Queue, Surface, SurfaceConfiguration, TextureView};
+use wgpu::{Device, Queue, Surface, SurfaceConfiguration, TextureDimension, TextureView};
 use winit::{dpi::PhysicalSize, window::Window};
 
 #[allow(unused_imports)]
@@ -13,7 +17,6 @@ pub const DEBUG_SVGS: bool = false;
 pub struct RenderTextures<'a> {
     pub view: &'a TextureView,
     pub resolve_target: Option<&'a TextureView>,
-    pub sample_count: u32,
 }
 
 pub struct State {
@@ -36,37 +39,31 @@ pub struct App {
 
 impl App {
     #[allow(clippy::too_many_arguments)]
-    pub async fn new(
-        window: Arc<Window>,
-        initial_size: PhysicalSize<u32>,
-        sample_count: u32,
-    ) -> App {
+    pub async fn new(window: Arc<Window>, initial_size: PhysicalSize<u32>) -> App {
         let instance = wgpu::Instance::default();
 
         let surface = instance.create_surface(window.clone()).unwrap();
 
         let adapter = instance
-            .request_adapter(&wgpu::RequestAdapterOptions {
-                power_preference: wgpu::PowerPreference::default(),
-                force_fallback_adapter: false,
-                compatible_surface: Some(&surface),
-            })
+            .request_adapter(
+                &request_adapter_options()
+                    .compatible_surface(&surface)
+                    .build(),
+            )
             .await
             .expect("Failed to find an appropriate adapter");
 
         // Create the logical device and command queue
         let (device, queue) = adapter
-            .request_device(&wgpu::DeviceDescriptor {
-                label: None,
-                experimental_features: wgpu::ExperimentalFeatures::disabled(),
-                required_features: wgpu::Features::empty(),
-                // Make sure we use the texture resolution limits from the adapter,
-                // so we can support images the size of the swapchain.
-                required_limits: wgpu::Limits::downlevel_webgl2_defaults()
-                    .using_resolution(adapter.limits()),
-                memory_hints: wgpu::MemoryHints::Performance,
-                trace: wgpu::Trace::Off,
-            })
+            .request_device(
+                &device_descriptor(None)
+                    .required_limits(
+                        wgpu::Limits::downlevel_webgl2_defaults()
+                            .using_resolution(adapter.limits()),
+                    )
+                    .memory_hints(wgpu::MemoryHints::Performance)
+                    .build(),
+            )
             .await
             .expect("Failed to create device");
 
@@ -78,8 +75,6 @@ impl App {
             )
             .unwrap();
 
-        surface_config.format = surface_config.format.remove_srgb_suffix();
-
         #[cfg(not(target_arch = "wasm32"))]
         {
             surface_config.usage =
@@ -88,19 +83,24 @@ impl App {
 
         surface.configure(&device, &surface_config);
 
-        let format = surface_config.format.remove_srgb_suffix();
+        let format = surface_config.format;
 
         surface_config.view_formats.push(format);
 
-        let (framebuffer_texture, framebuffer) =
-            create_multisampled_framebuffer(&device, &surface_config, sample_count);
+        let (framebuffer_texture, framebuffer) = create_framebuffer(&device, &surface_config);
 
         let state = State {
             width: surface_config.width,
             height: surface_config.height,
         };
 
-        let scene = Scene::new(&device, format, sample_count);
+        let scene = Scene::new(
+            &device,
+            &queue,
+            surface_config.width,
+            surface_config.height,
+            format,
+        );
 
         App {
             device,
@@ -123,15 +123,14 @@ pub fn resize(app: &mut App, new_size: PhysicalSize<u32>) {
     app.surface_config.height = new_size.height.max(1);
     app.surface.configure(&app.device, &app.surface_config);
 
-    let sample_count = app.framebuffer_texture.sample_count();
-
-    let (framebuffer_texture, framebuffer) =
-        create_multisampled_framebuffer(&app.device, &app.surface_config, sample_count);
+    let (framebuffer_texture, framebuffer) = create_framebuffer(&app.device, &app.surface_config);
 
     app.framebuffer_texture = framebuffer_texture;
     app.framebuffer = framebuffer;
 
-    // On macos the window needs to be redrawn manually after resizing
+    app.scene
+        .resize(&app.surface_config, &app.device, &app.queue);
+
     app.window.request_redraw();
 }
 
@@ -146,24 +145,14 @@ pub fn redraw(app: &mut App) {
         ..wgpu::TextureViewDescriptor::default()
     });
 
-    let sample_count = app.framebuffer_texture.sample_count();
-
-    let render_textures = if sample_count > 1 {
-        RenderTextures {
-            view: &app.framebuffer,
-            resolve_target: Some(&surface_view),
-            sample_count,
-        }
-    } else {
-        RenderTextures {
-            view: &surface_view,
-            resolve_target: None,
-            sample_count,
-        }
+    let render_textures = RenderTextures {
+        view: &surface_view,
+        resolve_target: None,
     };
 
     let scene_commands = app.scene.render(GPUState {
         render_textures,
+        queue: &app.queue,
         device: &app.device,
     });
 
@@ -171,40 +160,31 @@ pub fn redraw(app: &mut App) {
     frame.present();
 }
 
-pub fn create_multisampled_framebuffer(
+pub fn create_framebuffer(
     device: &wgpu::Device,
     config: &wgpu::SurfaceConfiguration,
-    sample_count: u32,
 ) -> (wgpu::Texture, wgpu::TextureView) {
-    let multisampled_texture_extent = wgpu::Extent3d {
-        width: config.width,
-        height: config.height,
-        depth_or_array_layers: 1,
-    };
-
     #[cfg(target_arch = "wasm32")]
     let usage = wgpu::TextureUsages::RENDER_ATTACHMENT;
 
     #[cfg(not(target_arch = "wasm32"))]
     let usage = wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::COPY_SRC;
 
-    let multisampled_frame_descriptor = &wgpu::TextureDescriptor {
-        size: multisampled_texture_extent,
-        mip_level_count: 1,
-        sample_count,
-        dimension: wgpu::TextureDimension::D2,
-        format: config.view_formats[0],
-        usage,
-        label: None,
-        view_formats: &[],
-    };
+    let frame_descriptor = texture_descriptor(None)
+        .size(extent_3_d().width(config.width).height(config.height))
+        .mip_level_count(1)
+        .sample_count(1)
+        .dimension(TextureDimension::D2)
+        .format(config.view_formats[0])
+        .view_formats(&[])
+        .usage(usage)
+        .build();
 
-    let texture = device.create_texture(multisampled_frame_descriptor);
+    let texture = device.create_texture(&frame_descriptor);
 
-    let descriptor = wgpu::TextureViewDescriptor {
-        format: Some(texture.format()),
-        ..Default::default()
-    };
+    let descriptor = texture_view_descriptor(None)
+        .format(texture.format())
+        .build();
 
     let view = texture.create_view(&descriptor);
 

@@ -120,11 +120,6 @@ impl Scene {
 
             let mut render_pass = render_pass_descriptor(Some("Render Pass"))
                 .color_attachments(color_attachments)
-                .depth_stencil_attachment(
-                    render_pass_depth_stencil_attachment()
-                        .view(render_textures.depth)
-                        .depth_ops(operations().load(LoadOp::Clear(1.0))),
-                )
                 .begin_with(&mut encoder);
 
             render_pass.set_pipeline(&self.render_pipeline);
