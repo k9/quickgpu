@@ -100,17 +100,24 @@ impl<'a> Ctx<'a> {
     }
 }
 
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum EdgeSource {
+    Normal,
+    Use,
+    ImplToImplItem,
+    ModToImplItem,
+    LinkToImplItem,
+    LinkToImpl,
+}
+
 #[derive(Debug, Clone)]
 pub struct AnalysisEdge {
-    pub from_hierarchy: bool,
+    pub source: EdgeSource,
     pub name: Option<Ident>,
 }
 
 impl AnalysisEdge {
-    pub fn new(from_hierarchy: bool, rename: Option<Ident>) -> Self {
-        Self {
-            from_hierarchy,
-            name: rename,
-        }
+    pub fn new(source: EdgeSource, name: Option<Ident>) -> Self {
+        Self { source, name }
     }
 }

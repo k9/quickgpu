@@ -3,17 +3,17 @@ use petgraph::graph::NodeIndex;
 use proc_macro2::Span;
 use quote::quote as q;
 use syn::{
-    GenericParam, Ident, ImplItemConst, ItemImpl, ItemStruct, Lifetime, Path, PathArguments,
-    PathSegment, Token, Type,
+    GenericParam, Ident, ImplItem, ImplItemConst, ItemImpl, ItemStruct, Lifetime, Path,
+    PathArguments, PathSegment, Token, Type,
     punctuated::Punctuated,
     visit_mut::{self, VisitMut},
 };
 
 use crate::{
     AResult, EntryIndex,
-    analysis::Ctx,
+    analysis::{Ctx, EdgeSource},
     analysis_entry::AnalysisEntry,
-    crate_graph::{find_neighbor, get_super},
+    crate_graph::{find_neighbor, get_parent, get_path_context},
     types::type_path,
     utils::IsPublic,
 };
@@ -32,31 +32,11 @@ impl<'a> VisitMut for TyResolve<'a> {
 }
 
 pub fn resolve_path(ctx: &Ctx, item_index: NodeIndex, relative_path: &Path) -> AResult<NodeIndex> {
-    resolve_path_inner(ctx, item_index, relative_path)
-}
-
-pub fn resolve_path_inner(
-    ctx: &Ctx,
-    item_index: NodeIndex,
-    relative_path: &Path,
-) -> AResult<NodeIndex> {
-    let entry = ctx
-        .graph()
-        .node_weight(item_index)
-        .context("Couldn't get node")?;
-
-    let module_index = if matches!(entry, AnalysisEntry::Mod(_)) {
-        item_index
-    } else {
-        get_super(ctx, item_index)?
-    };
-
-    resolve_path_recurse(ctx, item_index, module_index, relative_path, 0)
+    resolve_path_recurse(ctx, item_index, relative_path, 0)
 }
 
 pub fn resolve_path_recurse(
     ctx: &Ctx,
-    self_index: NodeIndex,
     current: NodeIndex,
     relative_path: &Path,
     path_segment_index: usize,
@@ -65,19 +45,12 @@ pub fn resolve_path_recurse(
         return Ok(current);
     };
 
-    let next_index = resolve_next_segment(ctx, self_index, current, path_segment)?;
-    resolve_path_recurse(
-        ctx,
-        self_index,
-        next_index,
-        relative_path,
-        path_segment_index + 1,
-    )
+    let next_index = resolve_next_segment(ctx, current, path_segment)?;
+    resolve_path_recurse(ctx, next_index, relative_path, path_segment_index + 1)
 }
 
 pub fn resolve_next_segment(
     ctx: &Ctx,
-    self_index: NodeIndex,
     current: NodeIndex,
     path_segment: &PathSegment,
 ) -> AResult<NodeIndex> {
@@ -86,17 +59,43 @@ pub fn resolve_next_segment(
     if ident.to_string() == "self" {
         Ok(current)
     } else if ident.to_string() == "Self" {
-        Ok(self_index)
+        get_parent(
+            ctx,
+            current,
+            &[EdgeSource::Normal, EdgeSource::LinkToImplItem],
+        )
+        .map(|p| p.1)
     } else if ident.to_string() == "crate" {
         Ok(ctx.crate_root)
     } else if ident.to_string() == "super" {
-        get_super(ctx, current)
+        if let Some(path_context) = get_path_context(ctx, current) {
+            get_parent(
+                ctx,
+                path_context,
+                &[EdgeSource::Normal, EdgeSource::ModToImplItem],
+            )
+            .map(|p| p.1)
+        } else {
+            bail!("Couldn't resolve super from {:?}", path_segment);
+        }
+    } else if let Some(path_context) = get_path_context(ctx, current)
+        && let Some(child_index) = find_neighbor(ctx, path_context, &ident)
+    {
+        // Neighbors in the source tree
+        Ok(child_index)
     } else if let Some(child_index) = find_neighbor(ctx, current, &ident) {
+        // Associated items
         Ok(child_index)
     } else if let Ok(node) = resolve_prelude(ctx, ident) {
         Ok(node)
     } else {
-        bail!("Couldn't resolve segment {:?}", path_segment);
+        let msg = format!(
+            "Couldn't resolve segment {:?} from {:?}",
+            path_segment, current
+        );
+
+        log::debug!("{}", msg);
+        bail!(msg);
     }
 }
 
@@ -265,24 +264,45 @@ impl<'a> VisitMut for AliasGenericsResolver<'a> {
 }
 
 pub fn resolve_impls(ctx: &Ctx, node_index: NodeIndex) -> AResult<Vec<ItemImpl>> {
+    let mut items = vec![];
+
     let mut neighbors = ctx.graph().neighbors(node_index).detach();
-    let mut consts = vec![];
-
-    while let Some((_, neighbor)) = neighbors.next(ctx.graph()) {
-        if let AnalysisEntry::Impl(impl_entry) = ctx.entry(neighbor)? {
+    while let Some((edge, neighbor)) = neighbors.next(ctx.graph()) {
+        if let Some(edge) = ctx.graph().edge_weight(edge)
+            && edge.source == EdgeSource::LinkToImpl
+            && let AnalysisEntry::Impl(impl_entry) = ctx.entry(neighbor)?
+        {
             let mut item = impl_entry.item.clone();
+            item.items.clear();
 
-            TyResolve {
-                ctx,
-                item_index: neighbor,
+            let mut neighbors = ctx.graph().neighbors(neighbor).detach();
+            while let Some((_, inner_neighbor)) = neighbors.next(ctx.graph()) {
+                if let AnalysisEntry::ImplConst(impl_const) = ctx.entry(inner_neighbor)? {
+                    let mut inner = impl_const.item.clone();
+                    TyResolve {
+                        ctx,
+                        item_index: inner_neighbor,
+                    }
+                    .visit_impl_item_const_mut(&mut inner);
+
+                    item.items.push(ImplItem::Const(inner));
+                } else if let AnalysisEntry::ImplFn(impl_fn) = ctx.entry(inner_neighbor)? {
+                    let mut inner = impl_fn.item.clone();
+                    TyResolve {
+                        ctx,
+                        item_index: inner_neighbor,
+                    }
+                    .visit_impl_item_fn_mut(&mut inner);
+
+                    item.items.push(ImplItem::Fn(inner));
+                }
             }
-            .visit_item_impl_mut(&mut item);
 
-            consts.push(item);
+            items.push(item);
         }
     }
 
-    Ok(consts)
+    Ok(items)
 }
 
 pub fn resolve_assoc_consts(
@@ -354,9 +374,11 @@ pub fn calculate_paths<'a>(ctx: &'a mut Ctx) -> AResult<()> {
     });
 
     ctx.public_paths.clear();
+    ctx.public_paths.insert(ctx.crate_root, current.clone());
     calculate_paths_recurse(ctx, ctx.crate_root, current.clone(), PathType::PublicOnly);
 
     ctx.top_level_paths.clear();
+    ctx.top_level_paths.insert(ctx.crate_root, current.clone());
     calculate_paths_recurse(
         ctx,
         ctx.crate_root,
@@ -406,9 +428,15 @@ pub fn calculate_paths_recurse<'a>(
                 };
 
                 let shortest_path = match existing_path {
-                    Some(shortest_path) => {
-                        if shortest_path.segments.len() < next.segments.len() {
-                            shortest_path.clone()
+                    Some(existing_path) => {
+                        // Prefer paths with fewer segments, or if equal,
+                        // shorter string representation
+                        if existing_path.segments.len() < next.segments.len()
+                            || (existing_path.segments.len() == next.segments.len()
+                                && q!(#existing_path).to_string().len()
+                                    < q!(#next).to_string().len())
+                        {
+                            existing_path.clone()
                         } else {
                             next
                         }

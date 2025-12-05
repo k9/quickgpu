@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use crate::{
     AResult,
-    analysis::{Analysis, AnalysisEdge, Ctx},
+    analysis::{Analysis, AnalysisEdge, Ctx, EdgeSource},
     analysis_entry::{
         AnalysisEntry, AnalysisEnum, AnalysisImpl, AnalysisImplConst, AnalysisImplFn, AnalysisMod,
         AnalysisStruct, AnalysisTrait, AnalysisType, AnalysisVariant,
@@ -15,8 +15,8 @@ use crate::{
 use anyhow::bail;
 use petgraph::graph::NodeIndex;
 use syn::{
-    Ident, ImplItem, Item, ItemEnum, ItemExternCrate, ItemImpl, ItemMod, ItemStruct, ItemTrait,
-    ItemType, Type,
+    Expr, Ident, ImplItem, Item, ItemEnum, ItemExternCrate, ItemImpl, ItemMod, ItemStruct,
+    ItemTrait, ItemType, Type,
 };
 
 pub fn parse_crate<'a>(
@@ -80,7 +80,7 @@ fn add_extern_crate(
         from_node,
         node,
         AnalysisEdge {
-            from_hierarchy: false,
+            source: EdgeSource::Use,
             name: Some(extern_crate_rename),
         },
     );
@@ -113,32 +113,52 @@ pub fn process_subtree(ctx: &mut Ctx, parent_mod: NodeIndex) -> AResult<()> {
     let content = content.iter().cloned().collect::<Vec<_>>();
 
     for item in content {
-        match item {
-            Item::Mod(mod_item) => {
-                process_mod(ctx, parent_mod, mod_item)?;
-            }
-            Item::Struct(item) => {
-                process_struct(ctx, parent_mod, item)?;
-            }
-            Item::Enum(item) => {
-                process_enum(ctx, parent_mod, item)?;
-            }
-            Item::Type(item) => {
-                process_type(ctx, parent_mod, item)?;
-            }
-            Item::Trait(item) => {
-                process_trait(ctx, parent_mod, item)?;
-            }
-            Item::Impl(item) => {
-                process_impl(ctx, parent_mod, item)?;
-            }
-            Item::ExternCrate(item) => {
-                process_extern_crate(ctx, parent_mod, item);
-            }
-            _ => (),
-        };
+        process_item(ctx, parent_mod, item)?;
     }
 
+    Ok(())
+}
+
+fn process_item(ctx: &mut Ctx, parent_mod: NodeIndex, item: Item) -> AResult<()> {
+    match item {
+        Item::Mod(mod_item) => {
+            process_mod(ctx, parent_mod, mod_item)?;
+        }
+        Item::Struct(item) => {
+            process_struct(ctx, parent_mod, item)?;
+        }
+        Item::Enum(item) => {
+            process_enum(ctx, parent_mod, item)?;
+        }
+        Item::Type(item) => {
+            process_type(ctx, parent_mod, item)?;
+        }
+        Item::Trait(item) => {
+            process_trait(ctx, parent_mod, item)?;
+        }
+        Item::Impl(item) => {
+            process_impl(ctx, parent_mod, item)?;
+        }
+        Item::ExternCrate(item) => {
+            process_extern_crate(ctx, parent_mod, item);
+        }
+        Item::Const(item) => {
+            // e.g. bitflags puts items such as impls inside a const block
+            //
+            // const _: () = {
+            //   impl Xyz {...}
+            // };
+            //
+            if let Expr::Block(expr) = *item.expr {
+                for stmt in expr.block.stmts {
+                    if let syn::Stmt::Item(item) = stmt {
+                        process_item(ctx, parent_mod, item)?;
+                    }
+                }
+            }
+        }
+        _ => (),
+    };
     Ok(())
 }
 
@@ -157,7 +177,7 @@ fn process_mod(
         ctx,
         parent_mod,
         child_mod,
-        AnalysisEdge::new(true, Some(ident.clone())),
+        AnalysisEdge::new(EdgeSource::Normal, Some(ident.clone())),
     )?;
 
     process_subtree(ctx, child_mod)?;
@@ -174,7 +194,12 @@ fn process_struct(
         .graph_mut()
         .add_node(AnalysisEntry::Struct(AnalysisStruct::new(item.clone())));
 
-    update_edge(ctx, parent_mod, child, AnalysisEdge::new(true, Some(ident)))?;
+    update_edge(
+        ctx,
+        parent_mod,
+        child,
+        AnalysisEdge::new(EdgeSource::Normal, Some(ident)),
+    )?;
 
     Ok(())
 }
@@ -189,7 +214,12 @@ fn process_enum(
         .graph_mut()
         .add_node(AnalysisEntry::Enum(AnalysisEnum::new(item.clone())));
 
-    update_edge(ctx, parent_mod, child, AnalysisEdge::new(true, Some(ident)))?;
+    update_edge(
+        ctx,
+        parent_mod,
+        child,
+        AnalysisEdge::new(EdgeSource::Normal, Some(ident)),
+    )?;
 
     Ok(for variant in &item.variants {
         let variant_node = ctx
@@ -202,7 +232,7 @@ fn process_enum(
             ctx,
             child,
             variant_node,
-            AnalysisEdge::new(true, Some(variant.ident.clone())),
+            AnalysisEdge::new(EdgeSource::Normal, Some(variant.ident.clone())),
         )?;
     })
 }
@@ -217,7 +247,12 @@ fn process_type(
         .graph_mut()
         .add_node(AnalysisEntry::Type(AnalysisType::new(item.clone())));
 
-    update_edge(ctx, parent_mod, child, AnalysisEdge::new(true, Some(ident)))?;
+    update_edge(
+        ctx,
+        parent_mod,
+        child,
+        AnalysisEdge::new(EdgeSource::Normal, Some(ident)),
+    )?;
 
     Ok(())
 }
@@ -232,7 +267,12 @@ fn process_trait(
         .graph_mut()
         .add_node(AnalysisEntry::Trait(AnalysisTrait::new(item.clone())));
 
-    update_edge(ctx, parent_mod, child, AnalysisEdge::new(true, Some(ident)))?;
+    update_edge(
+        ctx,
+        parent_mod,
+        child,
+        AnalysisEdge::new(EdgeSource::Normal, Some(ident)),
+    )?;
 
     Ok(())
 }
@@ -246,7 +286,12 @@ fn process_impl(
         .graph_mut()
         .add_node(AnalysisEntry::Impl(AnalysisImpl::new(item.clone())));
 
-    update_edge(ctx, parent_mod, child, AnalysisEdge::new(true, None))?;
+    update_edge(
+        ctx,
+        parent_mod,
+        child,
+        AnalysisEdge::new(EdgeSource::Normal, None),
+    )?;
 
     Ok(for inner in &item.items {
         match inner {
@@ -261,7 +306,19 @@ fn process_impl(
 
                 if item.trait_.is_some() {}
 
-                update_edge(ctx, child, const_node, AnalysisEdge::new(true, Some(ident)))?;
+                update_edge(
+                    ctx,
+                    child,
+                    const_node,
+                    AnalysisEdge::new(EdgeSource::ImplToImplItem, Some(ident)),
+                )?;
+
+                update_edge(
+                    ctx,
+                    parent_mod,
+                    const_node,
+                    AnalysisEdge::new(EdgeSource::ModToImplItem, None),
+                )?;
             }
             ImplItem::Fn(f) => {
                 let ident = f.sig.ident.clone();
@@ -272,7 +329,19 @@ fn process_impl(
                         item.trait_.is_some(),
                     )));
 
-                update_edge(ctx, child, fn_node, AnalysisEdge::new(true, Some(ident)))?;
+                update_edge(
+                    ctx,
+                    child,
+                    fn_node,
+                    AnalysisEdge::new(EdgeSource::ImplToImplItem, Some(ident)),
+                )?;
+
+                update_edge(
+                    ctx,
+                    parent_mod,
+                    fn_node,
+                    AnalysisEdge::new(EdgeSource::ModToImplItem, None),
+                )?;
             }
             _ => (),
         }
@@ -297,7 +366,11 @@ pub fn link_impls(ctx: &mut Ctx) -> AResult<()> {
             && let Type::Path(path) = *impl_entry.item.self_ty.clone()
             && let Ok(adt) = resolve_path(ctx, impl_node, &path.path)
         {
-            to_add.push((adt, impl_node, AnalysisEdge::new(false, None)));
+            to_add.push((
+                adt,
+                impl_node,
+                AnalysisEdge::new(EdgeSource::LinkToImpl, None),
+            ));
 
             let mut neighbors = ctx.graph().neighbors(impl_node).detach();
             while let Some((edge_index, neighbor)) = neighbors.next(ctx.graph()) {
@@ -309,14 +382,14 @@ pub fn link_impls(ctx: &mut Ctx) -> AResult<()> {
                             to_add.push((
                                 adt,
                                 neighbor,
-                                AnalysisEdge::new(false, Some(name.clone())),
+                                AnalysisEdge::new(EdgeSource::LinkToImplItem, Some(name.clone())),
                             ));
                         }
                         AnalysisEntry::ImplFn(_) => {
                             to_add.push((
                                 adt,
                                 neighbor,
-                                AnalysisEdge::new(false, Some(name.clone())),
+                                AnalysisEdge::new(EdgeSource::LinkToImplItem, Some(name.clone())),
                             ));
                         }
                         _ => (),

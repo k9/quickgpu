@@ -4,7 +4,7 @@ use syn::{Item, PathArguments, PathSegment, UseTree};
 
 use crate::{
     AResult,
-    analysis::{AnalysisEdge, Ctx},
+    analysis::{AnalysisEdge, Ctx, EdgeSource},
     analysis_entry::AnalysisEntry,
     crate_graph::{find_neighbor, update_edge},
     resolve::resolve_next_segment,
@@ -52,7 +52,6 @@ fn process_use_tree(
             if let Ok(next_index) = resolve_next_segment(
                 ctx,
                 to_module,
-                to_module,
                 &PathSegment {
                     ident: use_name.ident.clone(),
                     arguments: PathArguments::None,
@@ -62,7 +61,7 @@ fn process_use_tree(
                     ctx,
                     from_module,
                     next_index,
-                    AnalysisEdge::new(false, Some(use_name.ident.clone())),
+                    AnalysisEdge::new(EdgeSource::Use, Some(use_name.ident.clone())),
                 )?;
             };
         }
@@ -77,7 +76,12 @@ fn process_use_tree(
                     .name
                     .clone();
 
-                update_edge(ctx, from_module, neighbor, AnalysisEdge::new(false, rename))?;
+                update_edge(
+                    ctx,
+                    from_module,
+                    neighbor,
+                    AnalysisEdge::new(EdgeSource::Use, rename),
+                )?;
             }
         }
         syn::UseTree::Rename(use_rename) => {
@@ -86,7 +90,7 @@ fn process_use_tree(
                     ctx,
                     from_module,
                     neighbor,
-                    AnalysisEdge::new(false, Some(use_rename.rename.clone())),
+                    AnalysisEdge::new(EdgeSource::Use, Some(use_rename.rename.clone())),
                 )?;
             }
         }
@@ -103,7 +107,6 @@ fn process_use_path(
 ) -> AResult<()> {
     if let Ok(next_index) = resolve_next_segment(
         ctx,
-        to_module,
         to_module,
         &PathSegment {
             ident: use_path.ident.clone(),

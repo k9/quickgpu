@@ -72,30 +72,30 @@ mod test {
         let mut analysis = Analysis::default();
         let mut ctx = test_workspace(&mut analysis);
 
-        let (_, path) = resolve_full(&mut ctx, None, "abc::ZZ");
+        let (_, path) = resolve_top_level(&mut ctx, None, "abc::ZZ");
         assert_eq!(&path, "test_lib::abc::ZZ");
 
-        let (abc_index, abc) = resolve_full(&mut ctx, None, "crate::abc");
+        let (abc_index, abc) = resolve_top_level(&mut ctx, None, "crate::abc");
         assert_eq!(&abc, "test_lib::abc");
 
-        let (_, resolution) = resolve_full(&mut ctx, Some(abc_index), "super");
+        let (_, resolution) = resolve_top_level(&mut ctx, Some(abc_index), "super");
         assert_eq!(&resolution, "test_lib");
 
-        let (_, resolution) = resolve_full(&mut ctx, Some(abc_index), "crate");
+        let (_, resolution) = resolve_top_level(&mut ctx, Some(abc_index), "crate");
         assert_eq!(&resolution, "test_lib");
 
         assert_eq!(
-            &resolve_full(&mut ctx, Some(abc_index), "super::tlt::counters::CounterA").1,
+            &resolve_public(&mut ctx, Some(abc_index), "super::tlt::counters::CounterA").1,
             "test_lib::tlt::CounterA"
         );
 
         assert_eq!(
-            &resolve_full(&mut ctx, Some(abc_index), "tlt::counters::CounterA").1,
+            &resolve_public(&mut ctx, Some(abc_index), "tlt::counters::CounterA").1,
             "test_lib::tlt::CounterA"
         );
     }
 
-    fn resolve_full(
+    fn resolve_top_level(
         ctx: &Ctx<'_>,
         from: Option<EntryIndex>,
         relative_path: &str,
@@ -103,6 +103,18 @@ mod test {
         let from = from.unwrap_or_else(|| ctx.crate_root.clone());
         let resolution = resolve_path(ctx, from, &path_from_string(&relative_path)).unwrap();
         let path = get_top_level_path(ctx, resolution).unwrap();
+
+        (resolution, path_refs_string(&path))
+    }
+
+    fn resolve_public(
+        ctx: &Ctx<'_>,
+        from: Option<EntryIndex>,
+        relative_path: &str,
+    ) -> (EntryIndex, String) {
+        let from = from.unwrap_or_else(|| ctx.crate_root.clone());
+        let resolution = resolve_path(ctx, from, &path_from_string(&relative_path)).unwrap();
+        let path = get_public_path(ctx, resolution).unwrap();
 
         (resolution, path_refs_string(&path))
     }
@@ -134,26 +146,26 @@ mod test {
         )
         .unwrap();
 
-        let (a_node, path) = resolve_full(&mut ctx, None, "A");
+        let (a_node, path) = resolve_top_level(&mut ctx, None, "A");
         assert_eq!(&path, "base::A");
-        assert_eq!(&resolve_full(&mut ctx, None, "crate::A").1, "base::A");
+        assert_eq!(&resolve_top_level(&mut ctx, None, "crate::A").1, "base::A");
         assert_eq!(
-            &resolve_full(&mut ctx, Some(a_node), "inner").1,
+            &resolve_top_level(&mut ctx, Some(a_node), "inner").1,
             "base::inner"
         );
 
-        let (inner2_node, path) = resolve_full(&mut ctx, Some(a_node), "base::inner::inner2");
+        let (inner2_node, path) = resolve_top_level(&mut ctx, Some(a_node), "base::inner::inner2");
         assert_eq!(path, "base::inner::inner2");
         assert_eq!(
-            &resolve_full(&mut ctx, Some(inner2_node), "super").1,
+            &resolve_top_level(&mut ctx, Some(inner2_node), "super").1,
             "base::inner"
         );
         assert_eq!(
-            &resolve_full(&mut ctx, Some(inner2_node), "E::X").1,
+            &resolve_top_level(&mut ctx, Some(inner2_node), "E::X").1,
             "base::inner3::E::X"
         );
         assert_eq!(
-            &resolve_full(&mut ctx, None, "crate::inner3::inner").1,
+            &resolve_top_level(&mut ctx, None, "crate::inner3::inner").1,
             "base::inner"
         );
     }
@@ -197,7 +209,7 @@ mod test {
         )
         .unwrap();
 
-        let (index, path) = resolve_full(&mut ctx, None, "crate::A");
+        let (index, path) = resolve_top_level(&mut ctx, None, "crate::A");
         assert_eq!(&path, "base::A");
 
         let impl_ = &resolve_impls(&ctx, index).unwrap()[0];
@@ -221,7 +233,7 @@ mod test {
         );
 
         assert_eq!(
-            &resolve_full(&mut ctx, None, "crate::inner::B::Y").1,
+            &resolve_top_level(&mut ctx, None, "crate::inner::B::Y").1,
             "base::inner::B::Y"
         );
     }
@@ -290,9 +302,9 @@ mod test {
         )
         .unwrap();
 
-        assert_eq!(&resolve_full(&ctx, None, "base::ext").1, "base::ext");
+        assert_eq!(&resolve_public(&ctx, None, "base::ext").1, "base::ext");
         assert_eq!(
-            &resolve_full(&ctx, None, "base::ext::B::Inner").1,
+            &resolve_public(&ctx, None, "base::ext::B::Inner").1,
             "base::ext::Inner"
         );
     }
@@ -408,5 +420,40 @@ mod test {
             path_refs_string(&get_public_path(&ctx, type_alias).unwrap()),
             "base::A"
         );
+    }
+
+    #[test]
+    fn resolve_default_self() {
+        let mut analysis = Analysis::default();
+
+        let mut ctx = process_crate(
+            &mut analysis,
+            "base",
+            q!(
+                pub mod a {
+                    pub struct A {}
+                }
+                pub mod b {
+                    const SUPER_CONST: u32 = 5;
+                    pub mod c {
+                        impl crate::a::A {
+                            pub const START: Self = Self {};
+                            pub const OTHER: u32 = super::SUPER_CONST;
+                        }
+                    }
+                }
+            )
+            .to_string(),
+            vec![],
+        )
+        .unwrap();
+
+        print_dot(&ctx).unwrap();
+
+        let (index, _path) = resolve_top_level(&mut ctx, None, "crate::a::A");
+        let impl_ = &resolve_impls(&ctx, index).unwrap()[0];
+        if let ImplItem::Const(c) = &impl_.items[0] {
+            assert!(!q!(#c).to_string().contains("Self"));
+        };
     }
 }

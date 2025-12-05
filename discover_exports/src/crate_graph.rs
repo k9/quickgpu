@@ -8,11 +8,14 @@ use petgraph::{
 use quote::quote as q;
 use syn::Path;
 
-use crate::resolve::{PathType, get_public_path, get_top_level_path};
 use crate::{
     AResult,
     analysis::{AnalysisEdge, Ctx},
     analysis_entry::AnalysisEntry,
+};
+use crate::{
+    analysis::EdgeSource,
+    resolve::{PathType, get_public_path, get_top_level_path},
 };
 
 pub fn filter_map_nodes<T>(
@@ -63,17 +66,13 @@ pub fn for_each_node(
     Ok(())
 }
 
-pub fn find_neighbor<'a>(
-    ctx: &Ctx,
-    entry_tree_node: NodeIndex,
-    ident: &syn::Ident,
-) -> Option<NodeIndex> {
-    let mut neighbors = ctx.graph().neighbors(entry_tree_node).detach();
+pub fn find_neighbor<'a>(ctx: &Ctx, from: NodeIndex, ident: &syn::Ident) -> Option<NodeIndex> {
+    let mut neighbors = ctx.graph().neighbors(from).detach();
     while let Some((edge_index, neighbor)) = neighbors.next(ctx.graph()) {
         if let Some(edge) = ctx.graph().edge_weight(edge_index)
             && let Some(name) = edge.name.as_ref()
         {
-            if name.to_string() == ident.to_string() {
+            if name == ident {
                 return Some(neighbor);
             }
         }
@@ -82,7 +81,25 @@ pub fn find_neighbor<'a>(
     None
 }
 
-pub fn get_super(ctx: &Ctx, node_index: NodeIndex) -> AResult<NodeIndex> {
+// Find the node that `super` and neighbor paths are relative to.
+// Note that this shouldn't be used for Self, which links back to an impl's type.
+pub fn get_path_context(ctx: &Ctx, from: NodeIndex) -> Option<NodeIndex> {
+    if let Some(AnalysisEntry::Mod(_mod)) = ctx.graph().node_weight(from) {
+        Some(from)
+    } else if let Ok(parent) =
+        get_parent(ctx, from, &[EdgeSource::Normal, EdgeSource::ModToImplItem])
+    {
+        Some(parent.1)
+    } else {
+        None
+    }
+}
+
+pub fn get_parent(
+    ctx: &Ctx,
+    node_index: NodeIndex,
+    sources: &[EdgeSource],
+) -> AResult<(EdgeIndex, NodeIndex)> {
     let mut parents = ctx
         .graph()
         .neighbors_directed(node_index, Direction::Incoming)
@@ -92,9 +109,9 @@ pub fn get_super(ctx: &Ctx, node_index: NodeIndex) -> AResult<NodeIndex> {
         parents.next(ctx.graph()).context("Couldn't get parent")
     {
         if let Some(edge) = ctx.graph().edge_weight(edge_index)
-            && edge.from_hierarchy
+            && sources.contains(&edge.source)
         {
-            return Ok(node_index);
+            return Ok((edge_index, node_index));
         }
     }
 
@@ -111,7 +128,7 @@ pub fn update_edge<'a>(
     while let Some(existing_index) = connecting.next() {
         let existing = existing_index.weight();
 
-        if edge.from_hierarchy == existing.from_hierarchy {
+        if edge.source == existing.source {
             log::debug!("already-existing edge type {:?} to {:?}", existing, edge);
             return Ok(existing_index.id());
         }
