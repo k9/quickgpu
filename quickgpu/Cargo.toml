@@ -11,3 +11,7 @@ readme = "../README.md"
 
 [dependencies]
 wgpu = { workspace = true }
+
+[dev-dependencies]
+bytemuck = { workspace = true }
+wgpu = { workspace = true, features = ["noop"] }

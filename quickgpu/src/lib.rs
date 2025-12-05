@@ -11,7 +11,7 @@ use crate::generated::builders::{
     builder_command_encoder_descriptor::CommandEncoderDescriptorBuilder,
     builder_render_pass_descriptor,
     builder_render_pipeline_descriptor::RenderPipelineDescriptorBuilder,
-    common::{Resolve, ResolveOptional},
+    common::{Get, GetOpt},
 };
 
 pub trait Nested<T> {
@@ -44,15 +44,15 @@ impl<
 {
     pub fn create_with(self, device: &Device) -> wgpu::RenderPipeline
     where
-        RLabel: ResolveOptional<wgpu::Label<'a>>,
-        RLayout: ResolveOptional<Option<&'a wgpu::PipelineLayout>>,
-        RVertex: Resolve<wgpu::VertexState<'a>>,
-        RPrimitive: ResolveOptional<wgpu::PrimitiveState>,
-        RDepthStencil: ResolveOptional<Option<wgpu::DepthStencilState>>,
-        RMultisample: ResolveOptional<wgpu::MultisampleState>,
-        RFragment: ResolveOptional<Option<wgpu::FragmentState<'a>>>,
-        RMultiview: ResolveOptional<Option<NonZeroU32>>,
-        RCache: ResolveOptional<Option<&'a wgpu::PipelineCache>>,
+        RLabel: GetOpt<wgpu::Label<'a>>,
+        RLayout: GetOpt<Option<&'a wgpu::PipelineLayout>>,
+        RVertex: Get<wgpu::VertexState<'a>>,
+        RPrimitive: GetOpt<wgpu::PrimitiveState>,
+        RDepthStencil: GetOpt<Option<wgpu::DepthStencilState>>,
+        RMultisample: GetOpt<wgpu::MultisampleState>,
+        RFragment: GetOpt<Option<wgpu::FragmentState<'a>>>,
+        RMultiview: GetOpt<Option<NonZeroU32>>,
+        RCache: GetOpt<Option<&'a wgpu::PipelineCache>>,
     {
         device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: self.label.resolve(),
@@ -73,9 +73,9 @@ impl<'a, RLabel, RContentsValue, RUsageValue>
 {
     pub fn create_with(self, device: &Device) -> wgpu::Buffer
     where
-        RLabel: ResolveOptional<wgpu::Label<'a>>,
-        RContentsValue: Resolve<&'a [u8]>,
-        RUsageValue: Resolve<BufferUsages>,
+        RLabel: GetOpt<wgpu::Label<'a>>,
+        RContentsValue: Get<&'a [u8]>,
+        RUsageValue: Get<BufferUsages>,
     {
         device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: self.label.resolve(),
@@ -88,7 +88,7 @@ impl<'a, RLabel, RContentsValue, RUsageValue>
 impl<RLabel> CommandEncoderDescriptorBuilder<RLabel> {
     pub fn create_with<'a>(self, device: &Device) -> wgpu::CommandEncoder
     where
-        RLabel: ResolveOptional<wgpu::Label<'a>>,
+        RLabel: GetOpt<wgpu::Label<'a>>,
     {
         device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: self.label.resolve(),
@@ -107,12 +107,11 @@ impl<RLabel, RColorAttachments, RDepthStencilAttachment, RTimestampWrites, ROccl
 {
     pub fn begin_with<'a>(self, encoder: &'a mut CommandEncoder) -> wgpu::RenderPass<'a>
     where
-        RLabel: ResolveOptional<wgpu::Label<'a>>,
-        RColorAttachments: ResolveOptional<&'a [Option<wgpu::RenderPassColorAttachment<'a>>]>,
-        RDepthStencilAttachment:
-            ResolveOptional<Option<wgpu::RenderPassDepthStencilAttachment<'a>>>,
-        RTimestampWrites: ResolveOptional<Option<wgpu::RenderPassTimestampWrites<'a>>>,
-        ROcclusionQuerySet: ResolveOptional<Option<&'a wgpu::QuerySet>>,
+        RLabel: GetOpt<wgpu::Label<'a>>,
+        RColorAttachments: GetOpt<&'a [Option<wgpu::RenderPassColorAttachment<'a>>]>,
+        RDepthStencilAttachment: GetOpt<Option<wgpu::RenderPassDepthStencilAttachment<'a>>>,
+        RTimestampWrites: GetOpt<Option<wgpu::RenderPassTimestampWrites<'a>>>,
+        ROcclusionQuerySet: GetOpt<Option<&'a wgpu::QuerySet>>,
     {
         encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: self.label.resolve(),

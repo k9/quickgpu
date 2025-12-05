@@ -34,7 +34,7 @@ pub fn make_setter_impl_generics(
         {
             let upper_camel = upper_camel_ident(&f.field);
             let ident = if f.default_value.is_some() {
-                format_ident!("{}OptionalValue", upper_camel)
+                format_ident!("{}OptValue", upper_camel)
             } else {
                 format_ident!("{}Value", upper_camel)
             };
@@ -50,17 +50,17 @@ pub fn make_setter_impl_generics(
 
             let where_ident = format_ident!("T{}", i);
             let where_constraint = if f.default_value.is_some() {
-                format_ident!("IsUnsetOptional")
+                format_ident!("UnsetOpt")
             } else {
-                format_ident!("IsUnset")
+                format_ident!("Unset")
             };
 
             setter_where_params.push(q!(#where_ident: #where_constraint));
         } else {
             let constraint = if f.default_value.is_some() {
-                format_ident!("IsOptional")
+                format_ident!("Opt")
             } else {
-                format_ident!("IsRequired")
+                format_ident!("Req")
             };
 
             let ident = format_ident!("T{}", i);
@@ -97,9 +97,9 @@ pub fn make_build_impl_generics(
 
         let param = format_ident!("R{}", upper_camel);
         let constraint = if f.default_value.is_some() {
-            q!(ResolveOptional<#ty>)
+            q!(GetOpt<#ty>)
         } else {
-            q!(Resolve<#ty>)
+            q!(Get<#ty>)
         };
 
         build_where.push(parse_quote!(#param: #constraint));

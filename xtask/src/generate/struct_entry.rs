@@ -21,7 +21,7 @@ use crate::{
         builder::{GeneratedBuilder, builder_code},
         nested::BuilderResolve,
     },
-    utils::{OptionType, option_type},
+    utils::{OptionType, option_type, without_args},
 };
 
 use super::SKIP;
@@ -113,28 +113,66 @@ pub(crate) fn output_struct(
     }
 
     for impl_item in &impls {
-        apply_impl(&mut fields, &consts, impl_item);
+        apply_struct_impl(&mut fields, &consts, impl_item);
     }
 
     for field in fields.iter_mut() {
-        let mut has_default_impl = false;
+        let default_impl = get_default_impl(ctx, field);
 
-        if let Type::Path(path) = &field.field.ty
-            && let Ok(field_ty_index) = resolve_path(ctx, ctx.crate_root, &path.path)
-        {
-            let impls = resolve_impls(ctx, field_ty_index).unwrap();
-            if impls
-                .iter()
-                .any(|block| get_default_trait_item(block).is_some())
-            {
-                has_default_impl = true;
+        // If struct doesn't have an overall default, look for field type's default.
+        if field.default_value.is_none() {
+            let is_option = option_type(&field.field) != OptionType::None;
+
+            if default_impl.is_some() || is_option {
+                field.default_value = Some(q!(Default::default()));
             }
         }
 
-        let is_option = option_type(&field.field) != OptionType::None;
+        if field
+            .default_value
+            .as_ref()
+            .is_some_and(|value| value.to_string().ends_with(&q!(::default()).to_string()))
+        {
+            let ty = &field.field.ty;
 
-        if has_default_impl || is_option {
-            field.default_value = Some(q!(Default::default()));
+            if let Type::Path(path) = ty {
+                let path = without_args(&path.path);
+                field.default_value = Some(q!(#path::default()));
+            }
+
+            if option_type(&field.field) != OptionType::None {
+                field.default_value = Some(q!(None));
+            } else {
+                match q!(#ty).to_string().as_str() {
+                    "u32" => {
+                        field.default_value = Some(q!(0u32));
+                    }
+                    "i32" => {
+                        field.default_value = Some(q!(0i32));
+                    }
+                    "f32" => {
+                        field.default_value = Some(q!(0f32));
+                    }
+                    "f64" => {
+                        field.default_value = Some(q!(0f64));
+                    }
+                    "bool" => {
+                        field.default_value = Some(q!(false));
+                    }
+                    _ => {
+                        if let Some(default_impl) = default_impl {
+                            if let Some(expr) = get_default_expr(&default_impl) {
+                                match expr {
+                                    // Don't use literal struct since it's too long for docs
+                                    Expr::Struct(_) => (),
+                                    // For all other defaults, include in docs
+                                    expr => field.default_value = Some(q!(#expr)),
+                                };
+                            }
+                        }
+                    }
+                };
+            };
         }
     }
 
@@ -166,51 +204,63 @@ pub(crate) fn output_struct(
     }
 }
 
-pub fn apply_impl(
+fn get_default_impl(ctx: &Ctx<'_>, field: &mut BuilderField<'_>) -> Option<syn::ItemImpl> {
+    if let Type::Path(path) = &field.field.ty
+        && let Ok(field_ty_index) = resolve_path(ctx, ctx.crate_root, &path.path)
+        && let Ok(impls) = resolve_impls(ctx, field_ty_index)
+    {
+        impls
+            .iter()
+            .find(|item| get_default_trait_item(item).is_some())
+            .map(|item| item.clone())
+    } else {
+        None
+    }
+}
+
+pub fn apply_struct_impl(
     fields: &mut Vec<BuilderField<'_>>,
     consts: &Vec<(Path, syn::ImplItemConst)>,
     impl_item: &syn::ItemImpl,
 ) {
-    if get_default_trait_item(impl_item).is_some() {
-        if impl_item
-            .attrs
-            .iter()
-            .any(|attr| q!(# [automatically_derived]).to_string() == q!(#attr).to_string())
-        {
+    if let Some(expr) = get_default_expr(impl_item) {
+        if let Expr::Path(expr_path) = expr {
+            let const_value = consts
+                .iter()
+                .find(|(path, _)| {
+                    let const_ident = path.segments.last().map(|s| s.ident.to_string());
+                    let expr_ident = expr_path.path.segments.last().map(|s| s.ident.to_string());
+
+                    const_ident.is_some() && const_ident == expr_ident
+                })
+                .context("Couldn't find const")
+                .unwrap();
+
+            let Expr::Struct(expr_struct) = &const_value.1.expr else {
+                panic!("Unsupported default");
+            };
+
             for field in fields.iter_mut() {
-                field.default_value = Some(q!(Default::default()));
+                set_field_default(field, &expr_struct.fields);
             }
-        } else if let ImplItem::Fn(func) = &impl_item.items[0]
-            && let Some(Stmt::Expr(expr, _)) = func.block.stmts.last()
-        {
-            if let Expr::Path(expr_path) = expr {
-                let const_value = consts
-                    .iter()
-                    .find(|(path, _)| {
-                        let const_ident = path.segments.last().map(|s| s.ident.to_string());
-                        let expr_ident =
-                            expr_path.path.segments.last().map(|s| s.ident.to_string());
-
-                        const_ident.is_some() && const_ident == expr_ident
-                    })
-                    .context("Couldn't find const")
-                    .unwrap();
-
-                let Expr::Struct(expr_struct) = &const_value.1.expr else {
-                    panic!("Unsupported default");
-                };
-
+        } else {
+            if let Expr::Struct(expr) = expr {
                 for field in fields.iter_mut() {
-                    set_field_default(field, &expr_struct.fields);
+                    set_field_default(field, &expr.fields);
                 }
-            } else {
-                if let Expr::Struct(expr) = expr {
-                    for field in fields.iter_mut() {
-                        set_field_default(field, &expr.fields);
-                    }
-                };
-            }
+            };
         }
+    }
+}
+
+fn get_default_expr(impl_item: &syn::ItemImpl) -> Option<&Expr> {
+    if get_default_trait_item(impl_item).is_some()
+        && let ImplItem::Fn(func) = &impl_item.items[0]
+        && let Some(Stmt::Expr(expr, _)) = func.block.stmts.last()
+    {
+        Some(expr)
+    } else {
+        None
     }
 }
 

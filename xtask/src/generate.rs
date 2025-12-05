@@ -92,16 +92,16 @@ pub fn generate() -> anyhow::Result<()> {
                 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
 
                 // For required fields
-                pub trait IsRequired {}
-                pub trait IsUnset {}
-                pub trait Resolve<T>: IsRequired {
+                pub trait Req {}
+                pub trait Unset {}
+                pub trait Get<T>: Req {
                     fn resolve(self) -> T;
                 }
 
                 // For optional fields
-                pub trait IsUnsetOptional {}
-                pub trait IsOptional {}
-                pub trait ResolveOptional<T>: IsOptional {
+                pub trait UnsetOpt {}
+                pub trait Opt {}
+                pub trait GetOpt<T>: Opt {
                     fn resolve(self) -> T;
                 }
             }

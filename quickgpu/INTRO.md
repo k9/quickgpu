@@ -16,8 +16,22 @@
 
 
  ```
+# use wgpu::*;
+# use quickgpu::*;
+# use bytemuck::{Pod, Zeroable};
+#
+# let (device, _queue) = wgpu::Device::noop(&wgpu::DeviceDescriptor::default());
+# let shader = device.create_shader_module(include_wgsl!("../example/shaders/base.wgsl"));
+# let format = TextureFormat::R8Unorm;
+#
+# #[derive(Pod, Zeroable, Clone, Copy)]
+# #[repr(C)]
+# pub struct VertexInput {
+#     pub position: [f32; 4],
+#     pub uv: [f32; 2],
+# }
 // Label "Render Pipeline" is passed to builder initializer
-let render_pipeline = render_pipeline_descriptor("Render Pipeline")
+let render_pipeline = render_pipeline_descriptor(Some("Render Pipeline"))
     .vertex(
         vertex_state()
             .module(&shader)
