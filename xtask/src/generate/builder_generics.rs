@@ -6,10 +6,11 @@ use syn::GenericParam;
 use syn::parse_quote;
 use syn::visit::Visit;
 
+use crate::utils::FieldIdent;
+use crate::utils::field_ident;
 use crate::{
     generate::struct_entry::BuilderField,
     type_helpers::{GatherGenerics, UniqueGenerics},
-    utils::upper_camel_ident,
 };
 
 pub struct SetterImplGenerics {
@@ -32,12 +33,7 @@ pub fn make_setter_impl_generics(
             && selected.field.ident.as_ref().unwrap().to_string()
                 == f.field.ident.as_ref().unwrap().to_string()
         {
-            let upper_camel = upper_camel_ident(&f.field);
-            let ident = if f.default_value.is_some() {
-                format_ident!("{}OptValue", upper_camel)
-            } else {
-                format_ident!("{}Value", upper_camel)
-            };
+            let ident = field_ident(f.field, FieldIdent::Value);
 
             let ty = &f.field.ty;
             let mut gather = GatherGenerics::new(struct_generics);
@@ -49,20 +45,10 @@ pub fn make_setter_impl_generics(
             setter_impl_args.push(q!(#ident #impl_args));
 
             let where_ident = format_ident!("T{}", i);
-            let where_constraint = if f.default_value.is_some() {
-                format_ident!("UnsetOpt")
-            } else {
-                format_ident!("Unset")
-            };
-
+            let where_constraint = field_ident(f.field, FieldIdent::Empty);
             setter_where_params.push(q!(#where_ident: #where_constraint));
         } else {
-            let constraint = if f.default_value.is_some() {
-                format_ident!("Opt")
-            } else {
-                format_ident!("Req")
-            };
-
+            let constraint = format_ident!("Field");
             let ident = format_ident!("T{}", i);
             setter_impl_args.push(q!(#ident));
             setter_impl_params.push(q!(#ident: #constraint));
@@ -93,7 +79,7 @@ pub fn make_build_impl_generics(
 
     for f in fields {
         let ty = &f.field.ty;
-        let upper_camel = upper_camel_ident(&f.field);
+        let upper_camel = field_ident(f.field, FieldIdent::UpperCamel);
 
         let param = format_ident!("R{}", upper_camel);
         let constraint = if f.default_value.is_some() {

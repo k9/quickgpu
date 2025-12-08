@@ -60,16 +60,48 @@ pub fn without_args(path: &Path) -> Path {
     path
 }
 
-pub fn upper_camel_ident(field: &Field) -> Ident {
-    format_ident!(
-        "{}",
-        field
-            .ident
-            .as_ref()
-            .unwrap()
-            .to_string()
-            .to_case(Case::UpperCamel)
-    )
+pub enum FieldIdent {
+    Original,
+    UpperCamel,
+    Value,
+    Empty,
+    Set,
+    Optional,
+    SetterFn,
+    SetterMaybeFn,
+}
+
+pub fn field_ident(field: &Field, field_ident: FieldIdent) -> Ident {
+    let ident = field.ident.as_ref().unwrap();
+
+    let upper = format_ident!("{}", ident.to_string().to_case(Case::UpperCamel));
+
+    match field_ident {
+        FieldIdent::Original => ident.clone(),
+        FieldIdent::UpperCamel => upper,
+        FieldIdent::Value => format_ident!("{}Value", upper),
+        FieldIdent::Empty => format_ident!("{}Empty", upper),
+        FieldIdent::Optional => format_ident!("{}Optional", upper),
+        FieldIdent::Set => format_ident!("Set{}", upper),
+        FieldIdent::SetterFn => format_ident!("{}", ident),
+        FieldIdent::SetterMaybeFn => format_ident!("maybe_{}", ident),
+    }
+}
+
+pub enum StructIdent {
+    Builder,
+    BuilderMod,
+    Fn,
+}
+
+pub fn struct_ident(ident: &Ident, struct_ident: StructIdent) -> Ident {
+    let snake = format_ident!("{}", ident.to_string().to_case(Case::Snake));
+
+    match struct_ident {
+        StructIdent::Builder => format_ident!("{}Builder", ident),
+        StructIdent::BuilderMod => format_ident!("{}_builder", snake),
+        StructIdent::Fn => format_ident!("{}", snake),
+    }
 }
 
 pub fn option_argument(ty: &mut Type) -> Option<&mut GenericArgument> {

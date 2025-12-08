@@ -14,6 +14,7 @@ pub mod builder;
 pub mod builder_generics;
 pub mod docs;
 pub mod nested;
+pub mod state;
 mod struct_entry;
 
 const SKIP: &[&str] = &[
@@ -91,19 +92,12 @@ pub fn generate() -> anyhow::Result<()> {
                 pub use crate::Nested;
                 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
 
-                // For required fields
-                pub trait Req {}
-                pub trait Unset {}
-                pub trait Get<T>: Req {
-                    fn resolve(self) -> T;
+                pub trait Field {}
+                pub trait IsEmpty {}
+                pub trait IsSet<T> {
+                    fn get(self) -> T;
                 }
-
-                // For optional fields
-                pub trait UnsetOpt {}
-                pub trait Opt {}
-                pub trait GetOpt<T>: Opt {
-                    fn resolve(self) -> T;
-                }
+                pub trait IsOptional {}
             }
         )
         .to_string(),

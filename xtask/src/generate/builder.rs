@@ -1,6 +1,5 @@
-use convert_case::{Case, Casing};
 use proc_macro2::TokenStream;
-use quote::{ToTokens, format_ident, quote as q};
+use quote::{ToTokens, quote as q};
 use syn::{GenericArgument, GenericParam, Generics, Ident, Path, parse_quote, visit::Visit};
 
 use crate::{
@@ -10,10 +9,14 @@ use crate::{
             make_setter_impl_generics,
         },
         docs::{builder_docs, builder_fn_docs, setter_docs},
+        state::make_typestate,
         struct_entry::{BuilderField, ident_from_path},
     },
     type_helpers::{GatherGenerics, UniqueGenerics},
-    utils::{OptionType, option_argument, option_type, upper_camel_ident},
+    utils::{
+        FieldIdent, OptionType, StructIdent, field_ident, option_argument, option_type,
+        struct_ident,
+    },
 };
 
 pub fn builder_code(
@@ -23,14 +26,14 @@ pub fn builder_code(
     generate_nested_impl: bool,
 ) -> GeneratedBuilder {
     let ident = ident_from_path(path).unwrap();
-    let builder_ident = format_ident!("{}Builder", ident);
-    let fn_ident = format_ident!("{}", ident.to_string().to_case(Case::Snake));
+    let builder_ident = struct_ident(&ident, StructIdent::Builder);
+    let fn_ident = struct_ident(&ident, StructIdent::Fn);
 
     let label = fields
         .iter()
         .find(|f| f.field.ident.as_ref().unwrap().to_string() == "label");
 
-    let builder_mod_ident = format_ident!("builder_{}", ident.to_string().to_case(Case::Snake));
+    let builder_mod_ident = struct_ident(&ident, StructIdent::BuilderMod);
     let struct_generics = UniqueGenerics::new(Some(struct_generics.clone()));
     let SetterImplGenerics {
         setter_impl_args,
@@ -38,19 +41,15 @@ pub fn builder_code(
         ..
     } = make_setter_impl_generics(fields, None, &struct_generics);
 
-    let mut builder_struct_generics = UniqueGenerics::new(None);
     let mut builder_fields = vec![];
-    for (i, f) in fields.iter().enumerate() {
-        let field_ident = &f.field.ident;
-        let param = format_ident!("T{}", i);
-        builder_struct_generics.insert(&parse_quote!(#param));
+    for f in fields.iter() {
+        let ident = field_ident(f.field, FieldIdent::Original);
+        let upper_camel = field_ident(f.field, FieldIdent::UpperCamel);
 
         builder_fields.push(q!(
-            pub(crate) #field_ident: #param
+            pub(crate) #ident: S::#upper_camel
         ));
     }
-
-    let builder_struct_params = builder_struct_generics.as_params();
 
     let mut field_types_list = vec![];
     for f in fields.iter() {
@@ -87,7 +86,20 @@ pub fn builder_code(
     }
 
     let build_impl_params = build_impl_params.as_params_vec();
-    let struct_generic_args = struct_generics.as_args();
+    let args_without_state = struct_generics.as_args();
+
+    let mut generics_with_state = struct_generics.clone();
+    generics_with_state.insert(&parse_quote!(S: State #args_without_state));
+    let args_with_state = generics_with_state.as_args();
+    let params_with_state = generics_with_state.as_params();
+
+    let generics_empty = struct_generics.clone();
+    let params_empty = generics_empty.as_params();
+    let mut args_empty = generics_empty.as_args_vec();
+    args_empty.push(parse_quote!(Empty));
+    let args_empty = args_empty.iter().map(|a| q!(#a,)).collect::<TokenStream>();
+
+    let typestate = make_typestate(fields, &struct_generics, &generics_with_state);
 
     let mut builder_new_generic_params = vec![];
     let mut builder_new_fields = vec![];
@@ -114,11 +126,10 @@ pub fn builder_code(
 
     for f in fields.iter() {
         let ident = &f.field.ident;
-        let upper_camel = upper_camel_ident(&f.field);
         let ty = if f.default_value.is_some() {
-            format_ident!("Unset{}Opt", upper_camel)
+            field_ident(&f.field, FieldIdent::Optional)
         } else {
-            format_ident!("Unset{}", upper_camel)
+            field_ident(&f.field, FieldIdent::Empty)
         };
 
         if f.field.ident.as_ref().unwrap().to_string() == "label" {
@@ -138,7 +149,7 @@ pub fn builder_code(
         &build_impl_params,
         &build_impl_args,
         &build_where,
-        &struct_generic_args,
+        &args_with_state,
         generate_nested_impl,
     );
 
@@ -156,17 +167,17 @@ pub fn builder_code(
                 use super::common::*;
 
                 #[doc = #builder_fn_docs]
-                pub fn #fn_ident #constructor_generic_params (#(#builder_new_params),*) ->
-                    #builder_ident<#(#constructor_return_args),*> {
+                pub fn #fn_ident #params_empty (#(#builder_new_params),*) ->
+                    #builder_ident<#args_empty> {
                     #builder_ident::new() #constructor_calls
                 }
 
                 #[doc = #builder_docs]
-                pub struct #builder_ident #builder_struct_params {
+                pub struct #builder_ident #params_with_state {
                     #(#builder_fields),*
                 }
 
-                impl #builder_ident<#(#builder_new_generic_params),*> {
+                impl #params_empty #builder_ident<#args_empty> {
                     pub fn new() -> Self {
                         Self {
                             #(#builder_new_fields),*
@@ -176,12 +187,14 @@ pub fn builder_code(
 
                 #(#field_types_list)*
 
-                impl <#(#setter_impl_params),*> #builder_ident <#(#setter_impl_args),*> {
+                #typestate
+
+                impl #params_with_state #builder_ident #args_with_state {
                     #(#setters)*
                 }
 
                 impl <#(#build_impl_params),*> #builder_ident <#(#build_impl_args),*> {
-                    pub fn build<#(#build_fn_params),*>(self) -> #path #struct_generic_args
+                    pub fn build<#(#build_fn_params),*>(self) -> #path #args_with_state
                         where #(#build_where),* {
                         #path {
                             #(#build_fields),*
@@ -251,19 +264,19 @@ fn setter(
 
     let setter_generic_params = gather.used.as_params();
 
-    let setter_ident = &f.field.ident;
-
     let SetterImplGenerics {
         setter_impl_args,
         setter_where_params,
         ..
     } = make_setter_impl_generics(&fields, Some(f), struct_generics);
 
+    let ident = field_ident(f.field, FieldIdent::Original);
+
     if option_type(&f.field) == OptionType::Option
         && let Some(arg) = option_argument(&mut ty.clone())
     {
         // Create a "maybe" setter which takes option directly
-        let setter_fn_ident = format_ident!("maybe_{}", setter_ident.as_ref().unwrap());
+        let setter_maybe_fn_ident = field_ident(f.field, FieldIdent::SetterMaybeFn);
         let setter_fields = make_setter_fields(&fields, Some(f), false);
         let nested_ty = if f.nested_ty {
             q!(impl Nested<#ty>)
@@ -271,12 +284,19 @@ fn setter(
             q!(#ty)
         };
 
+        let upper = field_ident(f.field, FieldIdent::UpperCamel);
+        let set = field_ident(f.field, FieldIdent::Set);
+        let set_generics = struct_generics.clone();
+        let mut set_args = set_generics.as_args_vec();
+        set_args.push(parse_quote!(#set<S>));
+        let set_args = set_args.iter().map(|a| q!(#a,)).collect::<TokenStream>();
+
         let setter_docs = setter_docs(path, f);
         setters.push(q!(
             #[doc = #setter_docs]
-            pub fn #setter_fn_ident #setter_generic_params (self, #setter_ident: #nested_ty) ->
-                #builder_ident< #(#setter_impl_args),*>
-                where #(#setter_where_params),*
+            pub fn #setter_maybe_fn_ident (self, #ident: #nested_ty) ->
+                #builder_ident<#set_args>
+                where S::#upper: IsEmpty
                   {
                     #builder_ident {
                         #(#setter_fields),*
@@ -295,10 +315,11 @@ fn setter(
         q!(#ty)
     };
 
+    let setter_fn_ident = field_ident(f.field, FieldIdent::SetterFn);
     let setter_docs = setter_docs(path, f);
     setters.push(q!(
         #[doc = #setter_docs]
-        pub fn #setter_ident #setter_generic_params (self, #setter_ident: #nested_ty) ->
+        pub fn #setter_fn_ident (self, #ident: #nested_ty) ->
             #builder_ident< #(#setter_impl_args),*>
             where #(#setter_where_params),*
               {
@@ -322,12 +343,7 @@ fn make_setter_fields(
                 == f.field.ident.as_ref().unwrap().to_string()
         {
             let ident = &f.field.ident;
-            let upper_camel = upper_camel_ident(&f.field);
-            let value = if f.default_value.is_some() {
-                format_ident!("{}OptValue", upper_camel)
-            } else {
-                format_ident!("{}Value", upper_camel)
-            };
+            let value = field_ident(f.field, FieldIdent::Value);
 
             let expr = if selected.nested_ty {
                 q!(#ident .unnest())
@@ -357,45 +373,40 @@ fn field_types(f: &BuilderField<'_>, struct_generics: &UniqueGenerics) -> proc_m
     let impl_args = gather.used.as_args();
     let impl_params = gather.used.as_params();
 
-    if let Some(default_value) = &f.default_value {
-        let upper_camel = upper_camel_ident(&f.field);
-        let unset_optional = format_ident!("Unset{}Opt", upper_camel);
-        let optional_value = format_ident!("{}OptValue", upper_camel);
+    let empty_types = if let Some(default_value) = &f.default_value {
+        let optional = field_ident(f.field, FieldIdent::Optional);
 
         q!(
-            pub struct #unset_optional;
-            impl Opt for #unset_optional {}
-            impl UnsetOpt for #unset_optional {}
-            impl #impl_params GetOpt<#ty> for #unset_optional {
-                fn resolve(self) -> #ty {
+            pub struct #optional;
+            impl IsOptional for #optional {}
+            impl Field for #optional {}
+            impl #impl_params IsSet<#ty> for #optional {
+                fn get(self) -> #ty {
                     #default_value
-                }
-            }
-
-            pub struct #optional_value #impl_params (pub #ty);
-            impl #impl_params Opt for #optional_value #impl_args {}
-            impl #impl_params GetOpt<#ty> for #optional_value #impl_args {
-                fn resolve(self) -> #ty {
-                    self.0
                 }
             }
         )
     } else {
-        let upper_camel = upper_camel_ident(&f.field);
-        let unset = format_ident!("Unset{}", upper_camel);
-        let value = format_ident!("{}Value", upper_camel);
+        let empty = field_ident(f.field, FieldIdent::Empty);
 
         q!(
-            pub struct #unset;
-            impl Req for #unset {}
-            impl Unset for #unset {}
-            pub struct #value #impl_params (pub #ty);
-            impl #impl_params Req for #value #impl_args {}
-            impl #impl_params Get<#ty> for #value #impl_args {
-                fn resolve(self) -> #ty {
-                    self.0
-                }
-            }
+            pub struct #empty;
+            impl Field for #empty {}
+            impl IsEmpty for #empty {}
         )
-    }
+    };
+
+    let value = field_ident(&f.field, FieldIdent::Value);
+
+    q!(
+        #empty_types
+
+        pub struct #value #impl_params (pub #ty);
+        impl #impl_params Field for #value #impl_args {}
+        impl #impl_params IsSet<#ty> for #value #impl_args {
+            fn get(self) -> #ty {
+                self.0
+            }
+        }
+    )
 }

@@ -5,6 +5,7 @@ use syn::{
     visit::{self, Visit},
 };
 
+#[derive(Clone)]
 pub struct UniqueGenerics {
     inner: Generics,
 }
@@ -71,6 +72,19 @@ impl UniqueGenerics {
         } else {
             quote!()
         }
+    }
+
+    pub fn as_args_vec(&self) -> Vec<GenericArgument> {
+        let inner = self.inner.clone();
+        let mut args = vec![];
+
+        for param in &inner.params {
+            if let Some(arg) = as_arg(param) {
+                args.push(arg);
+            }
+        }
+
+        args
     }
 }
 
