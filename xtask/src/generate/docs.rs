@@ -85,5 +85,5 @@ pub fn setter_docs(path: &syn::Path, field: &BuilderField) -> String {
     let field_ident = field.field.ident.as_ref().unwrap().into_token_stream();
     let path = path.into_token_stream().to_string().replace(" ", "");
 
-    format!("Setter for [{path}::{field_ident}]. {default_string}\n",)
+    format!("Setter for [{path}::{field_ident}]. {default_string}.\n",)
 }

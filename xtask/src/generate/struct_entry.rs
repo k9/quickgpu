@@ -5,7 +5,8 @@ use proc_macro2::TokenStream;
 use quote::{ToTokens, quote as q};
 use syn::{
     Expr, Field, FieldValue, Fields, Ident, ImplItem, ItemStruct, Member, Path, Stmt, Type,
-    TypeParamBound, Visibility, punctuated::Punctuated, token::Comma, visit_mut::VisitMut,
+    TypeParamBound, Visibility, punctuated::Punctuated, token::Comma, visit::Visit,
+    visit_mut::VisitMut,
 };
 
 use discover_exports::{
@@ -21,6 +22,7 @@ use crate::{
         builder::{GeneratedBuilder, builder_code},
         nested::BuilderResolve,
     },
+    type_helpers::{GatherGenerics, UniqueGenerics},
     utils::{OptionType, option_type, without_args},
 };
 
@@ -30,6 +32,7 @@ pub struct BuilderField<'a> {
     pub field: &'a mut Field,
     pub default_value: Option<TokenStream>,
     pub nested_ty: bool,
+    pub generics: UniqueGenerics,
 }
 
 pub struct Output {
@@ -96,6 +99,7 @@ pub(crate) fn output_struct(
             field,
             default_value: None,
             nested_ty: false,
+            generics: UniqueGenerics::new(None),
         })
         .collect::<Vec<_>>();
 
@@ -111,6 +115,8 @@ pub(crate) fn output_struct(
             param.bounds.push(z);
         }
     }
+
+    let generics = UniqueGenerics::new(Some(generics));
 
     for impl_item in &impls {
         apply_struct_impl(&mut fields, &consts, impl_item);
@@ -185,10 +191,9 @@ pub(crate) fn output_struct(
         resolver.visit_field_mut(f.field);
         f.nested_ty = resolver.nested_ty;
 
-        let ident = &f.field.ident;
-        let ty = &f.field.ty;
-
-        log::debug!("    {}", q!(#ident: #ty));
+        let mut gather = GatherGenerics::new(&generics);
+        gather.visit_type(&f.field.ty);
+        f.generics = gather.used;
     }
 
     let comment = "".to_string();

@@ -2,6 +2,7 @@ use proc_macro2::TokenStream;
 use quote::{ToTokens, quote};
 use syn::{
     GenericArgument, GenericParam, Generics, parse_quote,
+    punctuated::Punctuated,
     visit::{self, Visit},
 };
 
@@ -34,6 +35,13 @@ impl UniqueGenerics {
 
     pub fn get(&self, param: &GenericParam) -> Option<&GenericParam> {
         self.inner.params.iter().find(|existing| {
+            as_arg(existing).into_token_stream().to_string()
+                == as_arg(param).into_token_stream().to_string()
+        })
+    }
+
+    pub fn get_mut(&mut self, param: &GenericParam) -> Option<&mut GenericParam> {
+        self.inner.params.iter_mut().find(|existing| {
             as_arg(existing).into_token_stream().to_string()
                 == as_arg(param).into_token_stream().to_string()
         })
@@ -90,7 +98,11 @@ impl UniqueGenerics {
 
 fn as_arg(param: &GenericParam) -> Option<GenericArgument> {
     match param {
-        GenericParam::Lifetime(param) => Some(GenericArgument::Lifetime(parse_quote!(#param))),
+        GenericParam::Lifetime(param) => {
+            let mut param = param.clone();
+            param.bounds = Punctuated::new();
+            Some(GenericArgument::Lifetime(parse_quote!(#param)))
+        }
         GenericParam::Type(param) => {
             let ident = &param.ident;
             Some(GenericArgument::Type(parse_quote!(#ident)))

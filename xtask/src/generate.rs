@@ -10,12 +10,14 @@ use crate::{
     utils::{relative_path, rustfmt, without_args},
 };
 
+pub mod base;
 pub mod builder;
-pub mod builder_generics;
 pub mod docs;
 pub mod nested;
+pub mod setter;
 pub mod state;
 mod struct_entry;
+pub mod types;
 
 const SKIP: &[&str] = &[
     "AdapterInfo",
@@ -91,13 +93,6 @@ pub fn generate() -> anyhow::Result<()> {
             pub(crate) mod common {
                 pub use crate::Nested;
                 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
-
-                pub trait Field {}
-                pub trait IsEmpty {}
-                pub trait IsSet<T> {
-                    fn get(self) -> T;
-                }
-                pub trait IsOptional {}
             }
         )
         .to_string(),

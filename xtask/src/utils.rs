@@ -99,7 +99,7 @@ pub fn struct_ident(ident: &Ident, struct_ident: StructIdent) -> Ident {
 
     match struct_ident {
         StructIdent::Builder => format_ident!("{}Builder", ident),
-        StructIdent::BuilderMod => format_ident!("{}_builder", snake),
+        StructIdent::BuilderMod => format_ident!("builder_{}", snake),
         StructIdent::Fn => format_ident!("{}", snake),
     }
 }
