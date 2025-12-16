@@ -63,11 +63,8 @@ pub fn make_complete(fields: &[BuilderField], struct_generics: &UniqueGenerics) 
 
     let params = struct_generics.as_params();
     let args = struct_generics.as_args();
-    let generics_with_state = add_state_param(
-        fields,
-        struct_generics,
-        &parse_quote!(CurrentState: State #args),
-    );
+    let generics_with_state =
+        add_state_param(fields, struct_generics, &parse_quote!(CS: State #args));
 
     let state_params = generics_with_state.as_params();
 
@@ -88,14 +85,14 @@ pub fn make_complete(fields: &[BuilderField], struct_generics: &UniqueGenerics) 
         let ty = &f.field.ty;
 
         impl_bounds.push(parse_quote!(
-            CurrentState::#upper: IsSet<#ty>
+            CS::#upper: IsSet<#ty>
         ));
     }
 
     quote!(
         pub trait Complete #params: State<#(#details_args),*> {}
 
-        impl #state_params Complete #args for CurrentState
+        impl #state_params Complete #args for CS
         where #(#impl_bounds),*
         {
         }

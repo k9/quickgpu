@@ -1,6 +1,6 @@
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::{Ident, Path, Type, parse_quote};
+use syn::{AngleBracketedGenericArguments, Ident, Path, Type, parse_quote};
 
 use crate::{
     generate::{builder::add_state_param, docs::setter_docs, struct_entry::BuilderField},
@@ -17,30 +17,16 @@ pub fn make_setters(
     fields: &[BuilderField],
     struct_generics: &UniqueGenerics,
 ) -> TokenStream {
-    let args = struct_generics.as_args();
-    let generics_with_state = add_state_param(
-        fields,
-        struct_generics,
-        &parse_quote!(CurrentState: State #args),
-    );
-
-    let state_params = generics_with_state.as_params();
-    let state_args = generics_with_state.as_args();
-
-    let builder = struct_ident(ident, StructIdent::Builder);
-
     let setter_fns = fields
         .iter()
         .map(|f| make_setter(path, ident, f, fields, struct_generics))
         .collect::<TokenStream>();
 
-    let build_fn = make_build(path, fields, struct_generics);
+    let build_fn = make_build(path, ident, fields, struct_generics);
 
     quote!(
-        impl #state_params #builder #state_args {
-            #setter_fns
-            #build_fn
-        }
+        #setter_fns
+        #build_fn
     )
 }
 
@@ -63,12 +49,34 @@ fn make_setter(
     };
 
     let mut set_args = struct_generics.as_args_vec();
-    set_args.push(parse_quote!(#set <CurrentState>));
+    set_args.push(parse_quote!(#set <CS>));
     let set_args = quote!(<#(#set_args),*>);
 
-    let mut code = make_setter_fn(path, ident, f, fields, &option_arg, &ty, &set_args, false);
+    let mut code = make_setter_fn(
+        path,
+        ident,
+        f,
+        fields,
+        struct_generics,
+        &option_arg,
+        &ty,
+        &set_args,
+        false,
+    );
+
     if option_arg.is_some() {
-        let maybe_code = make_setter_fn(path, ident, f, fields, &option_arg, &ty, &set_args, true);
+        let maybe_code = make_setter_fn(
+            path,
+            ident,
+            f,
+            fields,
+            struct_generics,
+            &option_arg,
+            &ty,
+            &set_args,
+            true,
+        );
+
         code = quote!(
             #code
             #maybe_code
@@ -83,6 +91,7 @@ fn make_setter_fn(
     ident: &Ident,
     f: &BuilderField,
     fields: &[BuilderField],
+    struct_generics: &UniqueGenerics,
     option_arg: &Option<syn::GenericArgument>,
     ty: &Type,
     set_args: &TokenStream,
@@ -108,9 +117,27 @@ fn make_setter_fn(
         field_ident(&f.field, FieldIdent::SetterFn)
     };
 
-    let field = field_ident(&f.field, FieldIdent::Original);
     let builder = struct_ident(ident, StructIdent::Builder);
+    let field = field_ident(&f.field, FieldIdent::Original);
     let upper = field_ident(&f.field, FieldIdent::UpperCamel);
+
+    let mut args = struct_generics.as_args_vec();
+
+    if f.default_value.is_some() {
+        let optional = field_ident(&f.field, FieldIdent::Optional);
+        args.push(parse_quote!(#upper = #optional));
+    } else {
+        let empty = field_ident(&f.field, FieldIdent::Empty);
+        args.push(parse_quote!(#upper = #empty));
+    };
+
+    let args: AngleBracketedGenericArguments = parse_quote!(<#(#args),*>);
+
+    let generics_with_state =
+        add_state_param(fields, struct_generics, &parse_quote!(CS: State #args));
+
+    let state_params = generics_with_state.as_params();
+    let state_args = generics_with_state.as_args();
 
     let builder_fields = fields
         .iter()
@@ -137,19 +164,14 @@ fn make_setter_fn(
         })
         .collect::<TokenStream>();
 
-    let bound = if f.default_value.is_some() {
-        quote!(CurrentState::#upper: IsOptional)
-    } else {
-        quote!(CurrentState::#upper: IsEmpty)
-    };
-
     let docs = setter_docs(path, f);
     quote!(
-        #[doc=#docs]
-        pub fn #fn_ident(self, #field: #ty) -> #builder #set_args
-            where #bound {
-            #builder {
-                #builder_fields
+        impl #state_params #builder #state_args {
+            #[doc=#docs]
+            pub fn #fn_ident(self, #field: #ty) -> #builder #set_args {
+                #builder {
+                    #builder_fields
+                }
             }
         }
     )
@@ -157,10 +179,20 @@ fn make_setter_fn(
 
 fn make_build(
     path: &Path,
+    ident: &Ident,
     fields: &[BuilderField],
     struct_generics: &UniqueGenerics,
 ) -> TokenStream {
     let args = struct_generics.as_args();
+    let builder = struct_ident(ident, StructIdent::Builder);
+    let generics_with_state = add_state_param(
+        fields,
+        struct_generics,
+        &parse_quote!(CS: State #args + Complete #args),
+    );
+
+    let state_params = generics_with_state.as_params();
+    let state_args = generics_with_state.as_args();
 
     let struct_fields = fields
         .iter()
@@ -173,17 +205,12 @@ fn make_build(
         })
         .collect::<TokenStream>();
 
-    let bounds = if fields.len() > 0 {
-        quote!(CurrentState: Complete #args)
-    } else {
-        quote!()
-    };
-
     quote!(
-        pub fn build(self) -> #path #args
-            where #bounds {
-            #path {
-                #struct_fields
+        impl #state_params #builder #state_args {
+            pub fn build(self) -> #path #args {
+                #path {
+                    #struct_fields
+                }
             }
         }
     )

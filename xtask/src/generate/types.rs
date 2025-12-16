@@ -12,7 +12,7 @@ pub fn make_set_types(fields: &[BuilderField], struct_generics: &UniqueGenerics)
     let args = struct_generics.as_args();
 
     let mut generics_with_state = struct_generics.clone();
-    generics_with_state.insert(&parse_quote!(CurrentState: State #args));
+    generics_with_state.insert(&parse_quote!(CS: State #args));
 
     fields
         .iter()
@@ -27,7 +27,7 @@ pub fn make_set_types(fields: &[BuilderField], struct_generics: &UniqueGenerics)
                     if f_inner.field == f.field {
                         quote!(type #upper = #value #field_args;)
                     } else {
-                        quote!(type #upper = CurrentState::#upper;)
+                        quote!(type #upper = CS::#upper;)
                     }
                 })
                 .collect::<TokenStream>();
@@ -37,8 +37,8 @@ pub fn make_set_types(fields: &[BuilderField], struct_generics: &UniqueGenerics)
             let params_with_state = generics_with_state.as_params();
 
             quote!(
-                pub struct #set<CurrentState>(CurrentState);
-                impl #params_with_state State #args for #set<CurrentState> {
+                pub struct #set<CS>(CS);
+                impl #params_with_state State #args for #set<CS> {
                     #inner_types
                 }
             )

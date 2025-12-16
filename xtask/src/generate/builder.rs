@@ -107,7 +107,7 @@ fn make_nested(
 
     let mut complete = struct_generics.clone();
     if fields.len() > 0 {
-        complete.insert(&parse_quote!(CurrentState: Complete #args));
+        complete.insert(&parse_quote!(CS: Complete #args));
     }
 
     let state_params = complete.as_params();

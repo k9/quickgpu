@@ -19,11 +19,8 @@ pub fn make_struct(
     struct_generics: &UniqueGenerics,
 ) -> TokenStream {
     let args = struct_generics.as_args();
-    let generics_with_state = add_state_param(
-        fields,
-        struct_generics,
-        &parse_quote!(CurrentState: State #args),
-    );
+    let generics_with_state =
+        add_state_param(fields, struct_generics, &parse_quote!(CS: State #args));
     let state_params = generics_with_state.as_params();
 
     let struct_fields = fields
@@ -33,7 +30,7 @@ pub fn make_struct(
             let upper = field_ident(&f.field, FieldIdent::UpperCamel);
 
             quote!(
-                #field: CurrentState::#upper,
+                #field: CS::#upper,
             )
         })
         .collect::<TokenStream>();
