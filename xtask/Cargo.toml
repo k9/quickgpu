@@ -14,3 +14,4 @@ syn = { workspace = true }
 log = { workspace = true }
 duct = { workspace = true }
 discover_exports = { workspace = true }
+xshell = "0.2.7"

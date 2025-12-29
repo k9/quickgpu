@@ -1,33 +1,30 @@
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::{Ident, Path, parse_quote};
+use syn::parse_quote;
 
-use crate::{
-    generate::{
-        builder::add_state_param,
-        docs::{builder_docs, builder_fn_docs},
-        struct_entry::BuilderField,
-    },
-    type_helpers::UniqueGenerics,
-    utils::{FieldIdent, StructIdent, field_ident, struct_ident},
+use crate::generate::{
+    builder::add_state_param,
+    docs::{builder_docs, builder_fn_docs},
+    struct_entry::{BuilderField, BuilderStruct, FieldIdent, StructIdent},
 };
 
-pub fn make_struct(
-    path: &Path,
-    ident: &Ident,
-    fields: &[BuilderField],
-    struct_generics: &UniqueGenerics,
-) -> TokenStream {
-    let args = struct_generics.as_args();
-    let generics_with_state =
-        add_state_param(fields, struct_generics, &parse_quote!(CS: State #args));
+pub fn make_struct(builder_struct: &BuilderStruct) -> TokenStream {
+    let args = builder_struct.generics.as_args();
+    let generics_with_state = add_state_param(
+        &builder_struct.fields,
+        &builder_struct.generics,
+        &parse_quote!(CS: State #args),
+        false,
+    );
+
     let state_params = generics_with_state.as_params();
 
-    let struct_fields = fields
+    let struct_fields = builder_struct
+        .fields
         .iter()
         .map(|f| {
-            let field = field_ident(&f.field, FieldIdent::Original);
-            let upper = field_ident(&f.field, FieldIdent::UpperCamel);
+            let field = f.ident(FieldIdent::Original);
+            let upper = f.ident(FieldIdent::UpperCamel);
 
             quote!(
                 #field: CS::#upper,
@@ -35,8 +32,8 @@ pub fn make_struct(
         })
         .collect::<TokenStream>();
 
-    let builder = struct_ident(ident, StructIdent::Builder);
-    let docs = builder_docs(path, fields);
+    let builder = builder_struct.ident(StructIdent::Builder);
+    let docs = builder_docs(builder_struct);
     quote!(
         #[doc=#docs]
         pub struct #builder #state_params {
@@ -45,31 +42,29 @@ pub fn make_struct(
     )
 }
 
-pub fn make_new_impl(
-    ident: &Ident,
-    fields: &[BuilderField],
-    struct_generics: &UniqueGenerics,
-) -> TokenStream {
-    let params = struct_generics.as_params();
-    let generics_with_state = add_state_param(fields, struct_generics, &parse_quote!(Empty));
+pub fn make_new_impl(builder_struct: &BuilderStruct) -> TokenStream {
+    let params = builder_struct.generics.as_params();
+    let generics_with_state = add_state_param(
+        &builder_struct.fields,
+        &builder_struct.generics,
+        &parse_quote!(Empty),
+        false,
+    );
+
     let state_args = generics_with_state.as_args();
 
-    let new_fields = fields
+    let new_fields = builder_struct
+        .fields
         .iter()
         .map(|f| {
-            let field = field_ident(&f.field, FieldIdent::Original);
+            let field = f.ident(FieldIdent::Original);
 
-            if f.default_value.is_some() {
-                let optional = field_ident(&f.field, FieldIdent::Optional);
-                quote!(#field: #optional,)
-            } else {
-                let empty = field_ident(&f.field, FieldIdent::Empty);
-                quote!(#field: #empty,)
-            }
+            let empty = f.ident(FieldIdent::Empty);
+            quote!(#field: #empty,)
         })
         .collect::<TokenStream>();
 
-    let builder = struct_ident(ident, StructIdent::Builder);
+    let builder = builder_struct.ident(StructIdent::Builder);
 
     quote!(
         impl #params #builder #state_args {
@@ -82,14 +77,8 @@ pub fn make_new_impl(
     )
 }
 
-pub fn make_fn(
-    path: &Path,
-    ident: &Ident,
-    fields: &[BuilderField],
-    struct_generics: &UniqueGenerics,
-    label: Option<&BuilderField>,
-) -> TokenStream {
-    let params = struct_generics.as_params();
+pub fn make_fn(builder_struct: &BuilderStruct, label: Option<&BuilderField>) -> TokenStream {
+    let params = builder_struct.generics.as_params();
 
     let mut fn_params = quote!();
     let mut label_call = quote!();
@@ -102,16 +91,16 @@ pub fn make_fn(
         return_state = quote!(SetLabel<Empty>);
     }
 
-    let mut state_args = struct_generics.as_args_vec();
-    if fields.len() > 0 {
+    let mut state_args = builder_struct.generics.as_args_vec();
+    if builder_struct.fields.len() > 0 {
         state_args.push(parse_quote!(#return_state));
     }
 
     let state_args = quote!(<#(#state_args),*>);
 
-    let fn_ident = struct_ident(ident, StructIdent::Fn);
-    let builder = struct_ident(ident, StructIdent::Builder);
-    let docs = builder_fn_docs(path, fields);
+    let fn_ident = builder_struct.ident(StructIdent::Fn);
+    let builder = builder_struct.ident(StructIdent::Builder);
+    let docs = builder_fn_docs(builder_struct);
 
     quote!(
         #[doc=#docs]

@@ -1,11 +1,12 @@
 use std::collections::HashMap;
 
 use anyhow::Context;
+use convert_case::{Case, Casing};
 use proc_macro2::TokenStream;
-use quote::{ToTokens, quote as q};
+use quote::{ToTokens, format_ident, quote as q};
 use syn::{
     Expr, Field, FieldValue, Fields, Ident, ImplItem, ItemStruct, Member, Path, Stmt, Type,
-    TypeParamBound, Visibility, punctuated::Punctuated, token::Comma, visit::Visit,
+    TypeParamBound, Visibility, parse_quote, punctuated::Punctuated, token::Comma, visit::Visit,
     visit_mut::VisitMut,
 };
 
@@ -28,6 +29,34 @@ use crate::{
 
 use super::SKIP;
 
+pub struct BuilderStruct<'a> {
+    pub path: Path,
+    pub has_default: bool,
+    pub fields: Vec<BuilderField<'a>>,
+    pub generics: UniqueGenerics,
+    pub generate_nested_impl: bool,
+    pub original_ident: Ident,
+}
+
+pub enum StructIdent {
+    Builder,
+    BuilderMod,
+    Fn,
+}
+
+impl<'a> BuilderStruct<'a> {
+    pub fn ident(&self, struct_ident: StructIdent) -> Ident {
+        let ident = &self.original_ident;
+        let snake = format_ident!("{}", ident.to_string().to_case(Case::Snake));
+
+        match struct_ident {
+            StructIdent::Builder => format_ident!("{}Builder", ident),
+            StructIdent::BuilderMod => format_ident!("{}_builder", snake),
+            StructIdent::Fn => format_ident!("{}", snake),
+        }
+    }
+}
+
 pub struct BuilderField<'a> {
     pub field: &'a mut Field,
     pub default_value: Option<TokenStream>,
@@ -35,9 +64,45 @@ pub struct BuilderField<'a> {
     pub generics: UniqueGenerics,
 }
 
+pub enum FieldIdent {
+    Original,
+    UpperCamel,
+    Value,
+    Empty,
+    IsEmpty,
+    Set,
+    IsSet,
+    Optional,
+    SetterFn,
+    SetterMaybeFn,
+}
+
+impl<'a> BuilderField<'a> {
+    pub fn ident(&self, field_ident: FieldIdent) -> Ident {
+        let ident = self.field.ident.as_ref().unwrap();
+
+        let upper = format_ident!("{}", ident.to_string().to_case(Case::UpperCamel));
+
+        match field_ident {
+            FieldIdent::Original => ident.clone(),
+            FieldIdent::UpperCamel => upper,
+            FieldIdent::Value => format_ident!("{}Value", upper),
+            FieldIdent::Empty => format_ident!("{}Empty", upper),
+            FieldIdent::IsEmpty => format_ident!("{}IsEmpty", upper),
+            FieldIdent::Optional => format_ident!("{}Optional", upper),
+            FieldIdent::Set => format_ident!("Set{}", upper),
+            FieldIdent::IsSet => format_ident!("IsSet{}", upper),
+            FieldIdent::SetterFn => format_ident!("{}", ident),
+            FieldIdent::SetterMaybeFn => format_ident!("maybe_{}", ident),
+        }
+    }
+}
+
 pub struct Output {
+    pub name: String,
     pub comment: String,
     pub use_statement: String,
+    pub builder_mod: String,
     pub code: String,
 }
 
@@ -92,7 +157,7 @@ pub(crate) fn output_struct(
         panic!("Invalid struct");
     };
 
-    let mut fields = fields
+    let fields = fields
         .named
         .iter_mut()
         .map(|field| BuilderField {
@@ -116,13 +181,21 @@ pub(crate) fn output_struct(
         }
     }
 
-    let generics = UniqueGenerics::new(Some(generics));
+    let ident = ident_from_path(&path).unwrap();
+    let mut builder_struct = BuilderStruct {
+        path,
+        original_ident: ident,
+        has_default: false,
+        fields,
+        generics: UniqueGenerics::new(Some(generics)),
+        generate_nested_impl,
+    };
 
     for impl_item in &impls {
-        apply_struct_impl(&mut fields, &consts, impl_item);
+        apply_struct_impl(&mut builder_struct, &consts, impl_item);
     }
 
-    for field in fields.iter_mut() {
+    for field in builder_struct.fields.iter_mut() {
         let default_impl = get_default_impl(ctx, field);
 
         // If struct doesn't have an overall default, look for field type's default.
@@ -182,7 +255,7 @@ pub(crate) fn output_struct(
         }
     }
 
-    for f in fields.iter_mut() {
+    for f in builder_struct.fields.iter_mut() {
         let mut resolver = BuilderResolve {
             builders,
             nested_ty: false,
@@ -191,20 +264,29 @@ pub(crate) fn output_struct(
         resolver.visit_field_mut(f.field);
         f.nested_ty = resolver.nested_ty;
 
-        let mut gather = GatherGenerics::new(&generics);
+        let mut gather = GatherGenerics::new(&builder_struct.generics);
         gather.visit_type(&f.field.ty);
         f.generics = gather.used;
     }
 
+    // Hack to fix lifetime bound issue
+    if let Some(b_lifetime) = builder_struct.generics.get_mut(&parse_quote!('b)) {
+        *b_lifetime = parse_quote!('b: 'a);
+    }
+
     let comment = "".to_string();
     let GeneratedBuilder {
+        name,
         use_statement,
+        builder_mod,
         code,
-    } = builder_code(&path, &fields, &generics, generate_nested_impl);
+    } = builder_code(&builder_struct);
 
     Output {
+        name,
         comment,
         use_statement,
+        builder_mod,
         code,
     }
 }
@@ -224,11 +306,13 @@ fn get_default_impl(ctx: &Ctx<'_>, field: &mut BuilderField<'_>) -> Option<syn::
 }
 
 pub fn apply_struct_impl(
-    fields: &mut Vec<BuilderField<'_>>,
+    builder_struct: &mut BuilderStruct,
     consts: &Vec<(Path, syn::ImplItemConst)>,
     impl_item: &syn::ItemImpl,
 ) {
     if let Some(expr) = get_default_expr(impl_item) {
+        builder_struct.has_default = true;
+
         if let Expr::Path(expr_path) = expr {
             let const_value = consts
                 .iter()
@@ -245,15 +329,17 @@ pub fn apply_struct_impl(
                 panic!("Unsupported default");
             };
 
-            for field in fields.iter_mut() {
+            for field in builder_struct.fields.iter_mut() {
                 set_field_default(field, &expr_struct.fields);
             }
-        } else {
-            if let Expr::Struct(expr) = expr {
-                for field in fields.iter_mut() {
-                    set_field_default(field, &expr.fields);
-                }
-            };
+        } else if let Expr::Struct(expr) = expr {
+            for field in builder_struct.fields.iter_mut() {
+                set_field_default(field, &expr.fields);
+            }
+        } else if q!(#expr).to_string() == q!(wgpu::ShaderRuntimeChecks::checked()).to_string() {
+            for field in builder_struct.fields.iter_mut() {
+                field.default_value = Some(q!(true));
+            }
         }
     }
 }

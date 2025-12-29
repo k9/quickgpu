@@ -1,10 +1,10 @@
-use crate::generate::struct_entry::{BuilderField, ident_from_path};
+use crate::generate::struct_entry::{BuilderField, BuilderStruct, StructIdent, ident_from_path};
 use quote::ToTokens;
 
-pub fn builder_fn_docs(path: &syn::Path, fields: &[BuilderField]) -> String {
-    let ident = ident_from_path(path).into_token_stream();
+pub fn builder_fn_docs(builder_struct: &BuilderStruct) -> String {
+    let ident = ident_from_path(&builder_struct.path).into_token_stream();
     let builder_ident = format!("{ident}Builder");
-    let path_tokens = path.into_token_stream();
+    let path_tokens = (&builder_struct.path).into_token_stream();
     let path_tokens = path_tokens.to_string().replace(" ", "");
 
     let mut top_level_doc = format!(
@@ -13,15 +13,14 @@ Returns [{builder_ident}] for building [`{path_tokens}`]
         "
     );
 
-    top_level_doc.push_str(&table(builder_ident, fields));
+    top_level_doc.push_str(&table(builder_ident, &builder_struct.fields));
 
     top_level_doc
 }
 
-pub fn builder_docs(path: &syn::Path, fields: &[BuilderField]) -> String {
-    let ident = ident_from_path(path).into_token_stream();
-    let builder_ident = format!("{ident}Builder");
-    let path_tokens = path.into_token_stream();
+pub fn builder_docs(builder_struct: &BuilderStruct) -> String {
+    let builder_ident = builder_struct.ident(StructIdent::Builder).to_string();
+    let path_tokens = (&builder_struct.path).into_token_stream();
     let path_tokens = path_tokens.to_string().replace(" ", "");
 
     let mut top_level_doc = format!(
@@ -30,7 +29,7 @@ Builder for [`{path_tokens}`]
         "
     );
 
-    top_level_doc.push_str(&table(builder_ident, fields));
+    top_level_doc.push_str(&table(builder_ident, &builder_struct.fields));
 
     top_level_doc
 }

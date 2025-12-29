@@ -1,18 +1,18 @@
 use crate::{
-    generate::{builder::add_state_param, struct_entry::BuilderField},
+    generate::struct_entry::{BuilderField, BuilderStruct, FieldIdent},
     type_helpers::UniqueGenerics,
-    utils::{FieldIdent, field_ident},
 };
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::parse_quote;
 
-pub fn make_state(fields: &[BuilderField], struct_generics: &UniqueGenerics) -> TokenStream {
-    let params = struct_generics.as_params();
-    let state_fields = fields
+pub fn make_state(builder_struct: &BuilderStruct) -> TokenStream {
+    let params = builder_struct.generics.as_params();
+    let state_fields = builder_struct
+        .fields
         .iter()
         .map(|f| {
-            let upper = field_ident(&f.field, FieldIdent::UpperCamel);
+            let upper = f.ident(FieldIdent::UpperCamel);
             quote!(
                 type #upper: Field;
             )
@@ -26,25 +26,19 @@ pub fn make_state(fields: &[BuilderField], struct_generics: &UniqueGenerics) -> 
     )
 }
 
-pub fn make_empty(fields: &[BuilderField], struct_generics: &UniqueGenerics) -> TokenStream {
-    let params = struct_generics.as_params();
-    let args = struct_generics.as_args();
+pub fn make_empty(builder_struct: &BuilderStruct) -> TokenStream {
+    let params = builder_struct.generics.as_params();
+    let args = builder_struct.generics.as_args();
 
-    let empty_fields = fields
+    let empty_fields = builder_struct
+        .fields
         .iter()
         .map(|f| {
-            let upper = field_ident(&f.field, FieldIdent::UpperCamel);
-            if f.default_value.is_some() {
-                let optional = field_ident(&f.field, FieldIdent::Optional);
-                quote!(
-                    type #upper = #optional;
-                )
-            } else {
-                let empty = field_ident(&f.field, FieldIdent::Empty);
-                quote!(
-                    type #upper = #empty;
-                )
-            }
+            let upper = f.ident(FieldIdent::UpperCamel);
+            let empty = f.ident(FieldIdent::Empty);
+            quote!(
+                type #upper = #empty;
+            )
         })
         .collect::<TokenStream>();
 
@@ -57,44 +51,26 @@ pub fn make_empty(fields: &[BuilderField], struct_generics: &UniqueGenerics) -> 
 }
 
 pub fn make_complete(fields: &[BuilderField], struct_generics: &UniqueGenerics) -> TokenStream {
-    if fields.len() == 0 {
-        return quote!();
-    }
-
     let params = struct_generics.as_params();
     let args = struct_generics.as_args();
-    let generics_with_state =
-        add_state_param(fields, struct_generics, &parse_quote!(CS: State #args));
 
-    let state_params = generics_with_state.as_params();
+    let complete_fields = fields
+        .iter()
+        .map(|f_inner| {
+            let upper = f_inner.ident(FieldIdent::UpperCamel);
+            let value = f_inner.ident(FieldIdent::Value);
+            let field_args = f_inner.generics.as_args();
+            quote!(type #upper = #value #field_args;)
+        })
+        .collect::<TokenStream>();
 
-    let mut details_args = struct_generics.as_args_vec();
-
-    for f in fields {
-        let upper = field_ident(&f.field, FieldIdent::UpperCamel);
-        let ty = &f.field.ty;
-
-        details_args.push(parse_quote!(
-            #upper: IsSet<#ty>
-        ));
-    }
-
-    let mut impl_bounds: Vec<TokenStream> = vec![];
-    for f in fields {
-        let upper = field_ident(&f.field, FieldIdent::UpperCamel);
-        let ty = &f.field.ty;
-
-        impl_bounds.push(parse_quote!(
-            CS::#upper: IsSet<#ty>
-        ));
-    }
+    let mut generics_with_state = struct_generics.clone();
+    generics_with_state.insert(&parse_quote!(CS: State #args));
 
     quote!(
-        pub trait Complete #params: State<#(#details_args),*> {}
-
-        impl #state_params Complete #args for CS
-        where #(#impl_bounds),*
-        {
+        pub struct Complete;
+        impl #params State #args for Complete {
+            #complete_fields
         }
     )
 }

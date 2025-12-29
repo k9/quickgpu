@@ -1,117 +1,115 @@
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::{GenericParam, Ident, Path, parse_quote};
+use syn::{GenericParam, parse_quote};
 
 use crate::{
     generate::{
         base::{make_fn, make_new_impl, make_struct},
         setter::make_setters,
-        state::{make_complete, make_empty, make_state},
-        struct_entry::{BuilderField, ident_from_path},
+        state::{make_empty, make_state},
+        struct_entry::{BuilderField, BuilderStruct, FieldIdent, StructIdent},
+        tests::builder_tests,
         types::{make_field_types, make_set_types},
     },
     type_helpers::UniqueGenerics,
-    utils::{FieldIdent, StructIdent, field_ident, struct_ident},
 };
 
 pub struct GeneratedBuilder {
+    pub name: String,
     pub use_statement: String,
+    pub builder_mod: String,
     pub code: String,
 }
 
-pub fn builder_code(
-    path: &Path,
-    fields: &[BuilderField],
-    struct_generics: &UniqueGenerics,
-    generate_nested_impl: bool,
-) -> GeneratedBuilder {
-    // Hack to fix lifetime bound issue
-    let struct_generics = &mut struct_generics.clone();
-    if let Some(b_lifetime) = struct_generics.get_mut(&parse_quote!('b)) {
-        *b_lifetime = parse_quote!('b: 'a);
-    }
-
-    let label = fields
+pub fn builder_code(builder_struct: &BuilderStruct) -> GeneratedBuilder {
+    let label = builder_struct
+        .fields
         .iter()
         .find(|f| f.field.ident.as_ref().unwrap().to_string() == "label");
 
-    let field_types = fields.iter().map(make_field_types).collect::<TokenStream>();
-    let ident = ident_from_path(path).unwrap();
-    let state = make_state(fields, struct_generics);
-    let empty = make_empty(fields, struct_generics);
-    let complete = make_complete(fields, struct_generics);
-    let set_types = make_set_types(fields, struct_generics);
+    let field_types = builder_struct
+        .fields
+        .iter()
+        .map(make_field_types)
+        .collect::<TokenStream>();
 
-    let module = struct_ident(&ident, StructIdent::BuilderMod);
-    let fn_ident = struct_ident(&ident, StructIdent::Fn);
+    let state = make_state(&builder_struct);
+    let empty = make_empty(&builder_struct);
+    let set_types = make_set_types(&builder_struct);
 
-    let builder_struct = make_struct(&path, &ident, fields, &struct_generics);
-    let new_impl = make_new_impl(&ident, fields, &struct_generics);
-    let builder_fn = make_fn(&path, &ident, fields, &struct_generics, label);
-    let setters = make_setters(path, &ident, fields, &struct_generics);
+    let module = builder_struct.ident(StructIdent::BuilderMod);
+    let fn_ident = builder_struct.ident(StructIdent::Fn);
 
-    let nested_impl = if generate_nested_impl {
-        make_nested(path, &ident, fields, &struct_generics)
+    let struct_definition = make_struct(&builder_struct);
+    let new_impl = make_new_impl(builder_struct);
+    let builder_fn = make_fn(builder_struct, label);
+    let setters = make_setters(builder_struct);
+
+    let nested_impl = if builder_struct.generate_nested_impl {
+        make_nested(builder_struct)
     } else {
         quote!()
     };
 
+    let tests = builder_tests(&builder_struct, label.is_some());
+
     let code = quote!(
-        pub mod #module {
-            pub trait Field {}
-            pub trait IsEmpty {}
-            pub trait IsSet<T> {
-                fn get(self) -> T;
-            }
-            pub trait IsOptional {}
+        pub use crate::Nested;
+        pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
 
-            #[allow(unused_imports)]
-            use crate::builders::common::*;
+        pub trait Field {}
+        pub trait IsOptional {}
 
-            #builder_struct
-            #new_impl
-            #builder_fn
+        #struct_definition
+        #new_impl
+        #builder_fn
 
-            #field_types
-            #state
-            #empty
-            #complete
-            #set_types
-            #setters
+        #field_types
+        #state
+        #empty
+        #set_types
+        #setters
 
-            #nested_impl
-        }
+        #nested_impl
+
+        #tests
     )
     .to_string();
 
     let use_statement = quote!(
+        #[doc(inline)]
         pub use builders::#module::#fn_ident;
     )
     .to_string();
 
+    let builder_mod = quote!(
+        pub mod #module;
+    )
+    .to_string();
+
     GeneratedBuilder {
+        name: module.to_string(),
         use_statement,
+        builder_mod,
         code,
     }
 }
 
-fn make_nested(
-    path: &Path,
-    ident: &Ident,
-    fields: &[BuilderField],
-    struct_generics: &UniqueGenerics,
-) -> TokenStream {
-    let builder = struct_ident(ident, StructIdent::Builder);
-    let params = struct_generics.as_params();
-    let args = struct_generics.as_args();
+fn make_nested(builder_struct: &BuilderStruct) -> TokenStream {
+    let builder = builder_struct.ident(StructIdent::Builder);
+    let params = builder_struct.generics.as_params();
+    let args = builder_struct.generics.as_args();
 
-    let mut complete = struct_generics.clone();
-    if fields.len() > 0 {
-        complete.insert(&parse_quote!(CS: Complete #args));
-    }
+    let generics_with_state = add_state_param(
+        &builder_struct.fields,
+        &builder_struct.generics,
+        &parse_quote!(CS:Complete #args),
+        false,
+    );
 
-    let state_params = complete.as_params();
-    let state_args = complete.as_args();
+    let state_params = generics_with_state.as_params();
+    let state_args = generics_with_state.as_args();
+    let path = &builder_struct.path;
 
     quote!(
         impl #params Nested<#path #args> for #path #args {
@@ -132,42 +130,41 @@ pub fn add_state_param(
     fields: &[BuilderField<'_>],
     struct_generics: &UniqueGenerics,
     param: &GenericParam,
+    add_with_zero_fields: bool,
 ) -> UniqueGenerics {
     let mut generics_with_state = struct_generics.clone();
-    if fields.len() > 0 {
+    if add_with_zero_fields || fields.len() > 0 {
         generics_with_state.insert(param);
     }
 
     generics_with_state
 }
 
-pub fn make_build_impl(
-    path: &Path,
-    ident: &Ident,
-    fields: &[BuilderField],
-    struct_generics: &UniqueGenerics,
-) -> TokenStream {
-    let params = struct_generics.as_params();
-    let args = struct_generics.as_args();
-    let mut state_args = struct_generics.as_args_vec();
-    if fields.len() > 0 {
+pub fn make_build_impl(builder_struct: &BuilderStruct) -> TokenStream {
+    let params = builder_struct.generics.as_params();
+    let args = builder_struct.generics.as_args();
+    let mut state_args = builder_struct.generics.as_args_vec();
+    if builder_struct.fields.len() > 0 {
         state_args.push(parse_quote!(Complete));
     }
 
     let state_args = quote!(<#(#state_args),*>);
 
-    let struct_fields = fields
+    let struct_fields = builder_struct
+        .fields
         .iter()
         .map(|f| {
-            let field = field_ident(&f.field, FieldIdent::Original);
+            let field = f.ident(FieldIdent::Original);
+            let is_set = f.ident(FieldIdent::IsSet);
 
             quote!(
-                #field: IsSet::get(self.#field),
+                #field: #is_set::get(self.#field),
             )
         })
         .collect::<TokenStream>();
 
-    let builder = struct_ident(ident, StructIdent::Builder);
+    let builder = builder_struct.ident(StructIdent::Builder);
+    let path = &builder_struct.path;
 
     quote!(
         impl #params #builder #state_args {
