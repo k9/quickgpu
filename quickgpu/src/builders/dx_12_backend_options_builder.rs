@@ -5,7 +5,7 @@ pub use crate::Nested;
 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
 pub trait Field {}
 pub trait IsOptional {}
-#[doc = "\nBuilder for [`wgpu::Dx12BackendOptions`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder fields:\n  - [shader_compiler](Dx12BackendOptionsBuilder::shader_compiler) Optional, defaults to [wgpu::Dx12Compiler::Fxc]\n  - [presentation_system](Dx12BackendOptionsBuilder::presentation_system) Optional, defaults to [wgpu::wgt::Dx12SwapchainKind::DxgiFromHwnd]\n  - [latency_waitable_object](Dx12BackendOptionsBuilder::latency_waitable_object) Optional, defaults to [wgpu::wgt::Dx12UseFrameLatencyWaitableObject::Wait]\n"]
+#[doc = "\nBuilder for [`wgpu::Dx12BackendOptions`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder fields:\n  - [shader_compiler](Dx12BackendOptionsBuilder::shader_compiler) Optional, defaults to [wgpu::Dx12Compiler::Fxc]\n  - [presentation_system](Dx12BackendOptionsBuilder::presentation_system) Optional, defaults to [wgpu::Dx12SwapchainKind::DxgiFromHwnd]\n  - [latency_waitable_object](Dx12BackendOptionsBuilder::latency_waitable_object) Optional, defaults to [wgpu::Dx12UseFrameLatencyWaitableObject::Wait]\n"]
 pub struct Dx12BackendOptionsBuilder<CS: State> {
     shader_compiler: CS::ShaderCompiler,
     presentation_system: CS::PresentationSystem,
@@ -20,7 +20,7 @@ impl Dx12BackendOptionsBuilder<Empty> {
         }
     }
 }
-#[doc = "\nReturns [Dx12BackendOptionsBuilder] for building [`wgpu::Dx12BackendOptions`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder fields:\n  - [shader_compiler](Dx12BackendOptionsBuilder::shader_compiler) Optional, defaults to [wgpu::Dx12Compiler::Fxc]\n  - [presentation_system](Dx12BackendOptionsBuilder::presentation_system) Optional, defaults to [wgpu::wgt::Dx12SwapchainKind::DxgiFromHwnd]\n  - [latency_waitable_object](Dx12BackendOptionsBuilder::latency_waitable_object) Optional, defaults to [wgpu::wgt::Dx12UseFrameLatencyWaitableObject::Wait]\n"]
+#[doc = "\nReturns [Dx12BackendOptionsBuilder] for building [`wgpu::Dx12BackendOptions`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder fields:\n  - [shader_compiler](Dx12BackendOptionsBuilder::shader_compiler) Optional, defaults to [wgpu::Dx12Compiler::Fxc]\n  - [presentation_system](Dx12BackendOptionsBuilder::presentation_system) Optional, defaults to [wgpu::Dx12SwapchainKind::DxgiFromHwnd]\n  - [latency_waitable_object](Dx12BackendOptionsBuilder::latency_waitable_object) Optional, defaults to [wgpu::Dx12UseFrameLatencyWaitableObject::Wait]\n"]
 pub fn dx_12_backend_options() -> Dx12BackendOptionsBuilder<Empty> {
     Dx12BackendOptionsBuilder::new()
 }
@@ -48,17 +48,17 @@ impl Field for PresentationSystemEmpty {}
 pub trait PresentationSystemIsEmpty {}
 impl PresentationSystemIsEmpty for PresentationSystemEmpty {}
 pub trait IsSetPresentationSystem {
-    fn get(self) -> wgpu::wgt::Dx12SwapchainKind;
+    fn get(self) -> wgpu::Dx12SwapchainKind;
 }
 impl IsSetPresentationSystem for PresentationSystemEmpty {
-    fn get(self) -> wgpu::wgt::Dx12SwapchainKind {
-        wgpu::wgt::Dx12SwapchainKind::DxgiFromHwnd
+    fn get(self) -> wgpu::Dx12SwapchainKind {
+        wgpu::Dx12SwapchainKind::DxgiFromHwnd
     }
 }
-pub struct PresentationSystemValue(pub wgpu::wgt::Dx12SwapchainKind);
+pub struct PresentationSystemValue(pub wgpu::Dx12SwapchainKind);
 impl Field for PresentationSystemValue {}
 impl IsSetPresentationSystem for PresentationSystemValue {
-    fn get(self) -> wgpu::wgt::Dx12SwapchainKind {
+    fn get(self) -> wgpu::Dx12SwapchainKind {
         self.0
     }
 }
@@ -67,17 +67,17 @@ impl Field for LatencyWaitableObjectEmpty {}
 pub trait LatencyWaitableObjectIsEmpty {}
 impl LatencyWaitableObjectIsEmpty for LatencyWaitableObjectEmpty {}
 pub trait IsSetLatencyWaitableObject {
-    fn get(self) -> wgpu::wgt::Dx12UseFrameLatencyWaitableObject;
+    fn get(self) -> wgpu::Dx12UseFrameLatencyWaitableObject;
 }
 impl IsSetLatencyWaitableObject for LatencyWaitableObjectEmpty {
-    fn get(self) -> wgpu::wgt::Dx12UseFrameLatencyWaitableObject {
-        wgpu::wgt::Dx12UseFrameLatencyWaitableObject::Wait
+    fn get(self) -> wgpu::Dx12UseFrameLatencyWaitableObject {
+        wgpu::Dx12UseFrameLatencyWaitableObject::Wait
     }
 }
-pub struct LatencyWaitableObjectValue(pub wgpu::wgt::Dx12UseFrameLatencyWaitableObject);
+pub struct LatencyWaitableObjectValue(pub wgpu::Dx12UseFrameLatencyWaitableObject);
 impl Field for LatencyWaitableObjectValue {}
 impl IsSetLatencyWaitableObject for LatencyWaitableObjectValue {
-    fn get(self) -> wgpu::wgt::Dx12UseFrameLatencyWaitableObject {
+    fn get(self) -> wgpu::Dx12UseFrameLatencyWaitableObject {
         self.0
     }
 }
@@ -125,10 +125,10 @@ impl<CS: State> Dx12BackendOptionsBuilder<CS> {
             latency_waitable_object: self.latency_waitable_object,
         }
     }
-    #[doc = "Setter for [wgpu::Dx12BackendOptions::presentation_system]. Optional, defaults to [wgpu::wgt::Dx12SwapchainKind::DxgiFromHwnd].\n"]
+    #[doc = "Setter for [wgpu::Dx12BackendOptions::presentation_system]. Optional, defaults to [wgpu::Dx12SwapchainKind::DxgiFromHwnd].\n"]
     pub fn presentation_system(
         self,
-        presentation_system: wgpu::wgt::Dx12SwapchainKind,
+        presentation_system: wgpu::Dx12SwapchainKind,
     ) -> Dx12BackendOptionsBuilder<SetPresentationSystem<CS>>
     where
         CS::PresentationSystem: PresentationSystemIsEmpty,
@@ -139,10 +139,10 @@ impl<CS: State> Dx12BackendOptionsBuilder<CS> {
             latency_waitable_object: self.latency_waitable_object,
         }
     }
-    #[doc = "Setter for [wgpu::Dx12BackendOptions::latency_waitable_object]. Optional, defaults to [wgpu::wgt::Dx12UseFrameLatencyWaitableObject::Wait].\n"]
+    #[doc = "Setter for [wgpu::Dx12BackendOptions::latency_waitable_object]. Optional, defaults to [wgpu::Dx12UseFrameLatencyWaitableObject::Wait].\n"]
     pub fn latency_waitable_object(
         self,
-        latency_waitable_object: wgpu::wgt::Dx12UseFrameLatencyWaitableObject,
+        latency_waitable_object: wgpu::Dx12UseFrameLatencyWaitableObject,
     ) -> Dx12BackendOptionsBuilder<SetLatencyWaitableObject<CS>>
     where
         CS::LatencyWaitableObject: LatencyWaitableObjectIsEmpty,

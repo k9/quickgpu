@@ -5,20 +5,22 @@ pub use crate::Nested;
 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
 pub trait Field {}
 pub trait IsOptional {}
-#[doc = "\nBuilder for [`wgpu::ShaderRuntimeChecks`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder fields:\n  - [bounds_checks](ShaderRuntimeChecksBuilder::bounds_checks) Optional, defaults to `true`\n  - [force_loop_bounding](ShaderRuntimeChecksBuilder::force_loop_bounding) Optional, defaults to `true`\n"]
+#[doc = "\nBuilder for [`wgpu::ShaderRuntimeChecks`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder fields:\n  - [bounds_checks](ShaderRuntimeChecksBuilder::bounds_checks) Optional, defaults to `true`\n  - [force_loop_bounding](ShaderRuntimeChecksBuilder::force_loop_bounding) Optional, defaults to `true`\n  - [ray_query_initialization_tracking](ShaderRuntimeChecksBuilder::ray_query_initialization_tracking) Optional, defaults to `true`\n"]
 pub struct ShaderRuntimeChecksBuilder<CS: State> {
     bounds_checks: CS::BoundsChecks,
     force_loop_bounding: CS::ForceLoopBounding,
+    ray_query_initialization_tracking: CS::RayQueryInitializationTracking,
 }
 impl ShaderRuntimeChecksBuilder<Empty> {
     pub fn new() -> ShaderRuntimeChecksBuilder<Empty> {
         ShaderRuntimeChecksBuilder {
             bounds_checks: BoundsChecksEmpty,
             force_loop_bounding: ForceLoopBoundingEmpty,
+            ray_query_initialization_tracking: RayQueryInitializationTrackingEmpty,
         }
     }
 }
-#[doc = "\nReturns [ShaderRuntimeChecksBuilder] for building [`wgpu::ShaderRuntimeChecks`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder fields:\n  - [bounds_checks](ShaderRuntimeChecksBuilder::bounds_checks) Optional, defaults to `true`\n  - [force_loop_bounding](ShaderRuntimeChecksBuilder::force_loop_bounding) Optional, defaults to `true`\n"]
+#[doc = "\nReturns [ShaderRuntimeChecksBuilder] for building [`wgpu::ShaderRuntimeChecks`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder fields:\n  - [bounds_checks](ShaderRuntimeChecksBuilder::bounds_checks) Optional, defaults to `true`\n  - [force_loop_bounding](ShaderRuntimeChecksBuilder::force_loop_bounding) Optional, defaults to `true`\n  - [ray_query_initialization_tracking](ShaderRuntimeChecksBuilder::ray_query_initialization_tracking) Optional, defaults to `true`\n"]
 pub fn shader_runtime_checks() -> ShaderRuntimeChecksBuilder<Empty> {
     ShaderRuntimeChecksBuilder::new()
 }
@@ -60,24 +62,53 @@ impl IsSetForceLoopBounding for ForceLoopBoundingValue {
         self.0
     }
 }
+pub struct RayQueryInitializationTrackingEmpty;
+impl Field for RayQueryInitializationTrackingEmpty {}
+pub trait RayQueryInitializationTrackingIsEmpty {}
+impl RayQueryInitializationTrackingIsEmpty for RayQueryInitializationTrackingEmpty {}
+pub trait IsSetRayQueryInitializationTracking {
+    fn get(self) -> bool;
+}
+impl IsSetRayQueryInitializationTracking for RayQueryInitializationTrackingEmpty {
+    fn get(self) -> bool {
+        true
+    }
+}
+pub struct RayQueryInitializationTrackingValue(pub bool);
+impl Field for RayQueryInitializationTrackingValue {}
+impl IsSetRayQueryInitializationTracking for RayQueryInitializationTrackingValue {
+    fn get(self) -> bool {
+        self.0
+    }
+}
 pub trait State {
     type BoundsChecks: Field;
     type ForceLoopBounding: Field;
+    type RayQueryInitializationTracking: Field;
 }
 pub struct Empty;
 impl State for Empty {
     type BoundsChecks = BoundsChecksEmpty;
     type ForceLoopBounding = ForceLoopBoundingEmpty;
+    type RayQueryInitializationTracking = RayQueryInitializationTrackingEmpty;
 }
 pub struct SetBoundsChecks<CS>(CS);
 impl<CS: State> State for SetBoundsChecks<CS> {
     type BoundsChecks = BoundsChecksValue;
     type ForceLoopBounding = CS::ForceLoopBounding;
+    type RayQueryInitializationTracking = CS::RayQueryInitializationTracking;
 }
 pub struct SetForceLoopBounding<CS>(CS);
 impl<CS: State> State for SetForceLoopBounding<CS> {
     type BoundsChecks = CS::BoundsChecks;
     type ForceLoopBounding = ForceLoopBoundingValue;
+    type RayQueryInitializationTracking = CS::RayQueryInitializationTracking;
+}
+pub struct SetRayQueryInitializationTracking<CS>(CS);
+impl<CS: State> State for SetRayQueryInitializationTracking<CS> {
+    type BoundsChecks = CS::BoundsChecks;
+    type ForceLoopBounding = CS::ForceLoopBounding;
+    type RayQueryInitializationTracking = RayQueryInitializationTrackingValue;
 }
 impl<CS: State> ShaderRuntimeChecksBuilder<CS> {
     #[doc = "Setter for [wgpu::ShaderRuntimeChecks::bounds_checks]. Optional, defaults to `true`.\n"]
@@ -91,6 +122,7 @@ impl<CS: State> ShaderRuntimeChecksBuilder<CS> {
         ShaderRuntimeChecksBuilder {
             bounds_checks: BoundsChecksValue(bounds_checks),
             force_loop_bounding: self.force_loop_bounding,
+            ray_query_initialization_tracking: self.ray_query_initialization_tracking,
         }
     }
     #[doc = "Setter for [wgpu::ShaderRuntimeChecks::force_loop_bounding]. Optional, defaults to `true`.\n"]
@@ -104,15 +136,41 @@ impl<CS: State> ShaderRuntimeChecksBuilder<CS> {
         ShaderRuntimeChecksBuilder {
             bounds_checks: self.bounds_checks,
             force_loop_bounding: ForceLoopBoundingValue(force_loop_bounding),
+            ray_query_initialization_tracking: self.ray_query_initialization_tracking,
+        }
+    }
+    #[doc = "Setter for [wgpu::ShaderRuntimeChecks::ray_query_initialization_tracking]. Optional, defaults to `true`.\n"]
+    pub fn ray_query_initialization_tracking(
+        self,
+        ray_query_initialization_tracking: bool,
+    ) -> ShaderRuntimeChecksBuilder<SetRayQueryInitializationTracking<CS>>
+    where
+        CS::RayQueryInitializationTracking: RayQueryInitializationTrackingIsEmpty,
+    {
+        ShaderRuntimeChecksBuilder {
+            bounds_checks: self.bounds_checks,
+            force_loop_bounding: self.force_loop_bounding,
+            ray_query_initialization_tracking: RayQueryInitializationTrackingValue(
+                ray_query_initialization_tracking,
+            ),
         }
     }
 }
 pub trait Complete:
-    State<BoundsChecks: IsSetBoundsChecks, ForceLoopBounding: IsSetForceLoopBounding>
+    State<
+    BoundsChecks: IsSetBoundsChecks,
+    ForceLoopBounding: IsSetForceLoopBounding,
+    RayQueryInitializationTracking: IsSetRayQueryInitializationTracking,
+>
 {
 }
-impl<CS: State<BoundsChecks: IsSetBoundsChecks, ForceLoopBounding: IsSetForceLoopBounding>> Complete
-    for CS
+impl<
+        CS: State<
+            BoundsChecks: IsSetBoundsChecks,
+            ForceLoopBounding: IsSetForceLoopBounding,
+            RayQueryInitializationTracking: IsSetRayQueryInitializationTracking,
+        >,
+    > Complete for CS
 {
 }
 impl<CS: Complete> ShaderRuntimeChecksBuilder<CS> {
@@ -120,6 +178,9 @@ impl<CS: Complete> ShaderRuntimeChecksBuilder<CS> {
         wgpu::ShaderRuntimeChecks {
             bounds_checks: IsSetBoundsChecks::get(self.bounds_checks),
             force_loop_bounding: IsSetForceLoopBounding::get(self.force_loop_bounding),
+            ray_query_initialization_tracking: IsSetRayQueryInitializationTracking::get(
+                self.ray_query_initialization_tracking,
+            ),
         }
     }
 }

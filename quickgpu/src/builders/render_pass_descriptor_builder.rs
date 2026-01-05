@@ -5,13 +5,14 @@ pub use crate::Nested;
 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
 pub trait Field {}
 pub trait IsOptional {}
-#[doc = "\nBuilder for [`wgpu::RenderPassDescriptor`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder fields:\n  - [color_attachments](RenderPassDescriptorBuilder::color_attachments) Optional, defaults to [::core::default::Default::default()]\n  - [depth_stencil_attachment](RenderPassDescriptorBuilder::depth_stencil_attachment) Optional, defaults to `None`\n  - [timestamp_writes](RenderPassDescriptorBuilder::timestamp_writes) Optional, defaults to `None`\n  - [occlusion_query_set](RenderPassDescriptorBuilder::occlusion_query_set) Optional, defaults to `None`\n"]
+#[doc = "\nBuilder for [`wgpu::RenderPassDescriptor`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder fields:\n  - [color_attachments](RenderPassDescriptorBuilder::color_attachments) Optional, defaults to [::core::default::Default::default()]\n  - [depth_stencil_attachment](RenderPassDescriptorBuilder::depth_stencil_attachment) Optional, defaults to `None`\n  - [timestamp_writes](RenderPassDescriptorBuilder::timestamp_writes) Optional, defaults to `None`\n  - [occlusion_query_set](RenderPassDescriptorBuilder::occlusion_query_set) Optional, defaults to `None`\n  - [multiview_mask](RenderPassDescriptorBuilder::multiview_mask) Optional, defaults to `None`\n"]
 pub struct RenderPassDescriptorBuilder<'a, CS: State<'a>> {
     label: CS::Label,
     color_attachments: CS::ColorAttachments,
     depth_stencil_attachment: CS::DepthStencilAttachment,
     timestamp_writes: CS::TimestampWrites,
     occlusion_query_set: CS::OcclusionQuerySet,
+    multiview_mask: CS::MultiviewMask,
 }
 impl<'a> RenderPassDescriptorBuilder<'a, Empty> {
     pub fn new() -> RenderPassDescriptorBuilder<'a, Empty> {
@@ -21,10 +22,11 @@ impl<'a> RenderPassDescriptorBuilder<'a, Empty> {
             depth_stencil_attachment: DepthStencilAttachmentEmpty,
             timestamp_writes: TimestampWritesEmpty,
             occlusion_query_set: OcclusionQuerySetEmpty,
+            multiview_mask: MultiviewMaskEmpty,
         }
     }
 }
-#[doc = "\nReturns [RenderPassDescriptorBuilder] for building [`wgpu::RenderPassDescriptor`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder fields:\n  - [color_attachments](RenderPassDescriptorBuilder::color_attachments) Optional, defaults to [::core::default::Default::default()]\n  - [depth_stencil_attachment](RenderPassDescriptorBuilder::depth_stencil_attachment) Optional, defaults to `None`\n  - [timestamp_writes](RenderPassDescriptorBuilder::timestamp_writes) Optional, defaults to `None`\n  - [occlusion_query_set](RenderPassDescriptorBuilder::occlusion_query_set) Optional, defaults to `None`\n"]
+#[doc = "\nReturns [RenderPassDescriptorBuilder] for building [`wgpu::RenderPassDescriptor`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder fields:\n  - [color_attachments](RenderPassDescriptorBuilder::color_attachments) Optional, defaults to [::core::default::Default::default()]\n  - [depth_stencil_attachment](RenderPassDescriptorBuilder::depth_stencil_attachment) Optional, defaults to `None`\n  - [timestamp_writes](RenderPassDescriptorBuilder::timestamp_writes) Optional, defaults to `None`\n  - [occlusion_query_set](RenderPassDescriptorBuilder::occlusion_query_set) Optional, defaults to `None`\n  - [multiview_mask](RenderPassDescriptorBuilder::multiview_mask) Optional, defaults to `None`\n"]
 pub fn render_pass_descriptor<'a>(
     label: wgpu::Label<'a>,
 ) -> RenderPassDescriptorBuilder<'a, SetLabel<Empty>> {
@@ -125,12 +127,32 @@ impl<'a> IsSetOcclusionQuerySet<'a> for OcclusionQuerySetValue<'a> {
         self.0
     }
 }
+pub struct MultiviewMaskEmpty;
+impl Field for MultiviewMaskEmpty {}
+pub trait MultiviewMaskIsEmpty {}
+impl MultiviewMaskIsEmpty for MultiviewMaskEmpty {}
+pub trait IsSetMultiviewMask {
+    fn get(self) -> Option<NonZeroU32>;
+}
+impl IsSetMultiviewMask for MultiviewMaskEmpty {
+    fn get(self) -> Option<NonZeroU32> {
+        None
+    }
+}
+pub struct MultiviewMaskValue(pub Option<NonZeroU32>);
+impl Field for MultiviewMaskValue {}
+impl IsSetMultiviewMask for MultiviewMaskValue {
+    fn get(self) -> Option<NonZeroU32> {
+        self.0
+    }
+}
 pub trait State<'a> {
     type Label: Field;
     type ColorAttachments: Field;
     type DepthStencilAttachment: Field;
     type TimestampWrites: Field;
     type OcclusionQuerySet: Field;
+    type MultiviewMask: Field;
 }
 pub struct Empty;
 impl<'a> State<'a> for Empty {
@@ -139,6 +161,7 @@ impl<'a> State<'a> for Empty {
     type DepthStencilAttachment = DepthStencilAttachmentEmpty;
     type TimestampWrites = TimestampWritesEmpty;
     type OcclusionQuerySet = OcclusionQuerySetEmpty;
+    type MultiviewMask = MultiviewMaskEmpty;
 }
 pub struct SetLabel<CS>(CS);
 impl<'a, CS: State<'a>> State<'a> for SetLabel<CS> {
@@ -147,6 +170,7 @@ impl<'a, CS: State<'a>> State<'a> for SetLabel<CS> {
     type DepthStencilAttachment = CS::DepthStencilAttachment;
     type TimestampWrites = CS::TimestampWrites;
     type OcclusionQuerySet = CS::OcclusionQuerySet;
+    type MultiviewMask = CS::MultiviewMask;
 }
 pub struct SetColorAttachments<CS>(CS);
 impl<'a, CS: State<'a>> State<'a> for SetColorAttachments<CS> {
@@ -155,6 +179,7 @@ impl<'a, CS: State<'a>> State<'a> for SetColorAttachments<CS> {
     type DepthStencilAttachment = CS::DepthStencilAttachment;
     type TimestampWrites = CS::TimestampWrites;
     type OcclusionQuerySet = CS::OcclusionQuerySet;
+    type MultiviewMask = CS::MultiviewMask;
 }
 pub struct SetDepthStencilAttachment<CS>(CS);
 impl<'a, CS: State<'a>> State<'a> for SetDepthStencilAttachment<CS> {
@@ -163,6 +188,7 @@ impl<'a, CS: State<'a>> State<'a> for SetDepthStencilAttachment<CS> {
     type DepthStencilAttachment = DepthStencilAttachmentValue<'a>;
     type TimestampWrites = CS::TimestampWrites;
     type OcclusionQuerySet = CS::OcclusionQuerySet;
+    type MultiviewMask = CS::MultiviewMask;
 }
 pub struct SetTimestampWrites<CS>(CS);
 impl<'a, CS: State<'a>> State<'a> for SetTimestampWrites<CS> {
@@ -171,6 +197,7 @@ impl<'a, CS: State<'a>> State<'a> for SetTimestampWrites<CS> {
     type DepthStencilAttachment = CS::DepthStencilAttachment;
     type TimestampWrites = TimestampWritesValue<'a>;
     type OcclusionQuerySet = CS::OcclusionQuerySet;
+    type MultiviewMask = CS::MultiviewMask;
 }
 pub struct SetOcclusionQuerySet<CS>(CS);
 impl<'a, CS: State<'a>> State<'a> for SetOcclusionQuerySet<CS> {
@@ -179,6 +206,16 @@ impl<'a, CS: State<'a>> State<'a> for SetOcclusionQuerySet<CS> {
     type DepthStencilAttachment = CS::DepthStencilAttachment;
     type TimestampWrites = CS::TimestampWrites;
     type OcclusionQuerySet = OcclusionQuerySetValue<'a>;
+    type MultiviewMask = CS::MultiviewMask;
+}
+pub struct SetMultiviewMask<CS>(CS);
+impl<'a, CS: State<'a>> State<'a> for SetMultiviewMask<CS> {
+    type Label = CS::Label;
+    type ColorAttachments = CS::ColorAttachments;
+    type DepthStencilAttachment = CS::DepthStencilAttachment;
+    type TimestampWrites = CS::TimestampWrites;
+    type OcclusionQuerySet = CS::OcclusionQuerySet;
+    type MultiviewMask = MultiviewMaskValue;
 }
 impl<'a, CS: State<'a>> RenderPassDescriptorBuilder<'a, CS> {
     #[doc = "Setter for [wgpu::RenderPassDescriptor::label]. Optional, defaults to `None`.\n"]
@@ -192,6 +229,7 @@ impl<'a, CS: State<'a>> RenderPassDescriptorBuilder<'a, CS> {
             depth_stencil_attachment: self.depth_stencil_attachment,
             timestamp_writes: self.timestamp_writes,
             occlusion_query_set: self.occlusion_query_set,
+            multiview_mask: self.multiview_mask,
         }
     }
     #[doc = "Setter for [wgpu::RenderPassDescriptor::color_attachments]. Optional, defaults to [::core::default::Default::default()].\n"]
@@ -208,6 +246,7 @@ impl<'a, CS: State<'a>> RenderPassDescriptorBuilder<'a, CS> {
             depth_stencil_attachment: self.depth_stencil_attachment,
             timestamp_writes: self.timestamp_writes,
             occlusion_query_set: self.occlusion_query_set,
+            multiview_mask: self.multiview_mask,
         }
     }
     #[doc = "Setter for [wgpu::RenderPassDescriptor::depth_stencil_attachment]. Optional, defaults to `None`.\n"]
@@ -226,6 +265,7 @@ impl<'a, CS: State<'a>> RenderPassDescriptorBuilder<'a, CS> {
             ))),
             timestamp_writes: self.timestamp_writes,
             occlusion_query_set: self.occlusion_query_set,
+            multiview_mask: self.multiview_mask,
         }
     }
     #[doc = "Setter for [wgpu::RenderPassDescriptor::depth_stencil_attachment]. Optional, defaults to `None`.\n"]
@@ -244,6 +284,7 @@ impl<'a, CS: State<'a>> RenderPassDescriptorBuilder<'a, CS> {
             )),
             timestamp_writes: self.timestamp_writes,
             occlusion_query_set: self.occlusion_query_set,
+            multiview_mask: self.multiview_mask,
         }
     }
     #[doc = "Setter for [wgpu::RenderPassDescriptor::timestamp_writes]. Optional, defaults to `None`.\n"]
@@ -260,6 +301,7 @@ impl<'a, CS: State<'a>> RenderPassDescriptorBuilder<'a, CS> {
             depth_stencil_attachment: self.depth_stencil_attachment,
             timestamp_writes: TimestampWritesValue(Some(Nested::unnest(timestamp_writes))),
             occlusion_query_set: self.occlusion_query_set,
+            multiview_mask: self.multiview_mask,
         }
     }
     #[doc = "Setter for [wgpu::RenderPassDescriptor::timestamp_writes]. Optional, defaults to `None`.\n"]
@@ -276,6 +318,7 @@ impl<'a, CS: State<'a>> RenderPassDescriptorBuilder<'a, CS> {
             depth_stencil_attachment: self.depth_stencil_attachment,
             timestamp_writes: TimestampWritesValue(Nested::unnest(timestamp_writes)),
             occlusion_query_set: self.occlusion_query_set,
+            multiview_mask: self.multiview_mask,
         }
     }
     #[doc = "Setter for [wgpu::RenderPassDescriptor::occlusion_query_set]. Optional, defaults to `None`.\n"]
@@ -292,6 +335,7 @@ impl<'a, CS: State<'a>> RenderPassDescriptorBuilder<'a, CS> {
             depth_stencil_attachment: self.depth_stencil_attachment,
             timestamp_writes: self.timestamp_writes,
             occlusion_query_set: OcclusionQuerySetValue(Some(occlusion_query_set)),
+            multiview_mask: self.multiview_mask,
         }
     }
     #[doc = "Setter for [wgpu::RenderPassDescriptor::occlusion_query_set]. Optional, defaults to `None`.\n"]
@@ -308,6 +352,41 @@ impl<'a, CS: State<'a>> RenderPassDescriptorBuilder<'a, CS> {
             depth_stencil_attachment: self.depth_stencil_attachment,
             timestamp_writes: self.timestamp_writes,
             occlusion_query_set: OcclusionQuerySetValue(occlusion_query_set),
+            multiview_mask: self.multiview_mask,
+        }
+    }
+    #[doc = "Setter for [wgpu::RenderPassDescriptor::multiview_mask]. Optional, defaults to `None`.\n"]
+    pub fn multiview_mask(
+        self,
+        multiview_mask: NonZeroU32,
+    ) -> RenderPassDescriptorBuilder<'a, SetMultiviewMask<CS>>
+    where
+        CS::MultiviewMask: MultiviewMaskIsEmpty,
+    {
+        RenderPassDescriptorBuilder {
+            label: self.label,
+            color_attachments: self.color_attachments,
+            depth_stencil_attachment: self.depth_stencil_attachment,
+            timestamp_writes: self.timestamp_writes,
+            occlusion_query_set: self.occlusion_query_set,
+            multiview_mask: MultiviewMaskValue(Some(multiview_mask)),
+        }
+    }
+    #[doc = "Setter for [wgpu::RenderPassDescriptor::multiview_mask]. Optional, defaults to `None`.\n"]
+    pub fn maybe_multiview_mask(
+        self,
+        multiview_mask: Option<NonZeroU32>,
+    ) -> RenderPassDescriptorBuilder<'a, SetMultiviewMask<CS>>
+    where
+        CS::MultiviewMask: MultiviewMaskIsEmpty,
+    {
+        RenderPassDescriptorBuilder {
+            label: self.label,
+            color_attachments: self.color_attachments,
+            depth_stencil_attachment: self.depth_stencil_attachment,
+            timestamp_writes: self.timestamp_writes,
+            occlusion_query_set: self.occlusion_query_set,
+            multiview_mask: MultiviewMaskValue(multiview_mask),
         }
     }
 }
@@ -319,6 +398,7 @@ pub trait Complete<'a>:
     DepthStencilAttachment: IsSetDepthStencilAttachment<'a>,
     TimestampWrites: IsSetTimestampWrites<'a>,
     OcclusionQuerySet: IsSetOcclusionQuerySet<'a>,
+    MultiviewMask: IsSetMultiviewMask,
 >
 {
 }
@@ -331,6 +411,7 @@ impl<
             DepthStencilAttachment: IsSetDepthStencilAttachment<'a>,
             TimestampWrites: IsSetTimestampWrites<'a>,
             OcclusionQuerySet: IsSetOcclusionQuerySet<'a>,
+            MultiviewMask: IsSetMultiviewMask,
         >,
     > Complete<'a> for CS
 {
@@ -345,6 +426,7 @@ impl<'a, CS: Complete<'a>> RenderPassDescriptorBuilder<'a, CS> {
             ),
             timestamp_writes: IsSetTimestampWrites::get(self.timestamp_writes),
             occlusion_query_set: IsSetOcclusionQuerySet::get(self.occlusion_query_set),
+            multiview_mask: IsSetMultiviewMask::get(self.multiview_mask),
         }
     }
 }

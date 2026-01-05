@@ -9,8 +9,8 @@ use quickgpu::{
     texture_view_descriptor, vertex_state,
 };
 use wgpu::{
-    BindingResource, BindingType, BlendState, CommandBuffer, Device, FilterMode, Queue,
-    ShaderStages, TextureFormat, include_wgsl, util::DeviceExt,
+    BindingResource, BindingType, BlendState, CommandBuffer, Device, FilterMode, MipmapFilterMode,
+    Queue, ShaderStages, TextureFormat, include_wgsl, util::DeviceExt,
 };
 
 use crate::app::RenderTextures;
@@ -155,7 +155,6 @@ impl Scene {
         let pipeline_layout = device.create_pipeline_layout(
             &pipeline_layout_descriptor(None)
                 .bind_group_layouts(&[&global_bind_group_layout, &local_bind_group_layout])
-                .push_constant_ranges(&[])
                 .build(),
         );
 
@@ -226,7 +225,7 @@ impl Scene {
             &sampler_descriptor(None)
                 .mag_filter(FilterMode::Linear)
                 .min_filter(FilterMode::Nearest)
-                .mipmap_filter(FilterMode::Nearest)
+                .mipmap_filter(MipmapFilterMode::Nearest)
                 .build(),
         );
 

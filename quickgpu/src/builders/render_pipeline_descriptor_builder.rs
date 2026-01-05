@@ -5,7 +5,7 @@ pub use crate::Nested;
 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
 pub trait Field {}
 pub trait IsOptional {}
-#[doc = "\nBuilder for [`wgpu::RenderPipelineDescriptor`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder fields:\n  - [layout](RenderPipelineDescriptorBuilder::layout) Optional, defaults to `None`\n  - [vertex](RenderPipelineDescriptorBuilder::vertex) Required\n  - [primitive](RenderPipelineDescriptorBuilder::primitive) Optional, defaults to [wgpu::PrimitiveState::default()]\n  - [depth_stencil](RenderPipelineDescriptorBuilder::depth_stencil) Optional, defaults to `None`\n  - [multisample](RenderPipelineDescriptorBuilder::multisample) Optional, defaults to [wgpu::MultisampleState::default()]\n  - [fragment](RenderPipelineDescriptorBuilder::fragment) Optional, defaults to `None`\n  - [multiview](RenderPipelineDescriptorBuilder::multiview) Optional, defaults to `None`\n  - [cache](RenderPipelineDescriptorBuilder::cache) Optional, defaults to `None`\n"]
+#[doc = "\nBuilder for [`wgpu::RenderPipelineDescriptor`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder fields:\n  - [layout](RenderPipelineDescriptorBuilder::layout) Optional, defaults to `None`\n  - [vertex](RenderPipelineDescriptorBuilder::vertex) Required\n  - [primitive](RenderPipelineDescriptorBuilder::primitive) Optional, defaults to [wgpu::PrimitiveState::default()]\n  - [depth_stencil](RenderPipelineDescriptorBuilder::depth_stencil) Optional, defaults to `None`\n  - [multisample](RenderPipelineDescriptorBuilder::multisample) Optional, defaults to [wgpu::MultisampleState::default()]\n  - [fragment](RenderPipelineDescriptorBuilder::fragment) Optional, defaults to `None`\n  - [multiview_mask](RenderPipelineDescriptorBuilder::multiview_mask) Optional, defaults to `None`\n  - [cache](RenderPipelineDescriptorBuilder::cache) Optional, defaults to `None`\n"]
 pub struct RenderPipelineDescriptorBuilder<'a, CS: State<'a>> {
     label: CS::Label,
     layout: CS::Layout,
@@ -14,7 +14,7 @@ pub struct RenderPipelineDescriptorBuilder<'a, CS: State<'a>> {
     depth_stencil: CS::DepthStencil,
     multisample: CS::Multisample,
     fragment: CS::Fragment,
-    multiview: CS::Multiview,
+    multiview_mask: CS::MultiviewMask,
     cache: CS::Cache,
 }
 impl<'a> RenderPipelineDescriptorBuilder<'a, Empty> {
@@ -27,12 +27,12 @@ impl<'a> RenderPipelineDescriptorBuilder<'a, Empty> {
             depth_stencil: DepthStencilEmpty,
             multisample: MultisampleEmpty,
             fragment: FragmentEmpty,
-            multiview: MultiviewEmpty,
+            multiview_mask: MultiviewMaskEmpty,
             cache: CacheEmpty,
         }
     }
 }
-#[doc = "\nReturns [RenderPipelineDescriptorBuilder] for building [`wgpu::RenderPipelineDescriptor`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder fields:\n  - [layout](RenderPipelineDescriptorBuilder::layout) Optional, defaults to `None`\n  - [vertex](RenderPipelineDescriptorBuilder::vertex) Required\n  - [primitive](RenderPipelineDescriptorBuilder::primitive) Optional, defaults to [wgpu::PrimitiveState::default()]\n  - [depth_stencil](RenderPipelineDescriptorBuilder::depth_stencil) Optional, defaults to `None`\n  - [multisample](RenderPipelineDescriptorBuilder::multisample) Optional, defaults to [wgpu::MultisampleState::default()]\n  - [fragment](RenderPipelineDescriptorBuilder::fragment) Optional, defaults to `None`\n  - [multiview](RenderPipelineDescriptorBuilder::multiview) Optional, defaults to `None`\n  - [cache](RenderPipelineDescriptorBuilder::cache) Optional, defaults to `None`\n"]
+#[doc = "\nReturns [RenderPipelineDescriptorBuilder] for building [`wgpu::RenderPipelineDescriptor`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder fields:\n  - [layout](RenderPipelineDescriptorBuilder::layout) Optional, defaults to `None`\n  - [vertex](RenderPipelineDescriptorBuilder::vertex) Required\n  - [primitive](RenderPipelineDescriptorBuilder::primitive) Optional, defaults to [wgpu::PrimitiveState::default()]\n  - [depth_stencil](RenderPipelineDescriptorBuilder::depth_stencil) Optional, defaults to `None`\n  - [multisample](RenderPipelineDescriptorBuilder::multisample) Optional, defaults to [wgpu::MultisampleState::default()]\n  - [fragment](RenderPipelineDescriptorBuilder::fragment) Optional, defaults to `None`\n  - [multiview_mask](RenderPipelineDescriptorBuilder::multiview_mask) Optional, defaults to `None`\n  - [cache](RenderPipelineDescriptorBuilder::cache) Optional, defaults to `None`\n"]
 pub fn render_pipeline_descriptor<'a>(
     label: wgpu::Label<'a>,
 ) -> RenderPipelineDescriptorBuilder<'a, SetLabel<Empty>> {
@@ -166,21 +166,21 @@ impl<'a> IsSetFragment<'a> for FragmentValue<'a> {
         self.0
     }
 }
-pub struct MultiviewEmpty;
-impl Field for MultiviewEmpty {}
-pub trait MultiviewIsEmpty {}
-impl MultiviewIsEmpty for MultiviewEmpty {}
-pub trait IsSetMultiview {
+pub struct MultiviewMaskEmpty;
+impl Field for MultiviewMaskEmpty {}
+pub trait MultiviewMaskIsEmpty {}
+impl MultiviewMaskIsEmpty for MultiviewMaskEmpty {}
+pub trait IsSetMultiviewMask {
     fn get(self) -> Option<NonZeroU32>;
 }
-impl IsSetMultiview for MultiviewEmpty {
+impl IsSetMultiviewMask for MultiviewMaskEmpty {
     fn get(self) -> Option<NonZeroU32> {
         None
     }
 }
-pub struct MultiviewValue(pub Option<NonZeroU32>);
-impl Field for MultiviewValue {}
-impl IsSetMultiview for MultiviewValue {
+pub struct MultiviewMaskValue(pub Option<NonZeroU32>);
+impl Field for MultiviewMaskValue {}
+impl IsSetMultiviewMask for MultiviewMaskValue {
     fn get(self) -> Option<NonZeroU32> {
         self.0
     }
@@ -212,7 +212,7 @@ pub trait State<'a> {
     type DepthStencil: Field;
     type Multisample: Field;
     type Fragment: Field;
-    type Multiview: Field;
+    type MultiviewMask: Field;
     type Cache: Field;
 }
 pub struct Empty;
@@ -224,7 +224,7 @@ impl<'a> State<'a> for Empty {
     type DepthStencil = DepthStencilEmpty;
     type Multisample = MultisampleEmpty;
     type Fragment = FragmentEmpty;
-    type Multiview = MultiviewEmpty;
+    type MultiviewMask = MultiviewMaskEmpty;
     type Cache = CacheEmpty;
 }
 pub struct SetLabel<CS>(CS);
@@ -236,7 +236,7 @@ impl<'a, CS: State<'a>> State<'a> for SetLabel<CS> {
     type DepthStencil = CS::DepthStencil;
     type Multisample = CS::Multisample;
     type Fragment = CS::Fragment;
-    type Multiview = CS::Multiview;
+    type MultiviewMask = CS::MultiviewMask;
     type Cache = CS::Cache;
 }
 pub struct SetLayout<CS>(CS);
@@ -248,7 +248,7 @@ impl<'a, CS: State<'a>> State<'a> for SetLayout<CS> {
     type DepthStencil = CS::DepthStencil;
     type Multisample = CS::Multisample;
     type Fragment = CS::Fragment;
-    type Multiview = CS::Multiview;
+    type MultiviewMask = CS::MultiviewMask;
     type Cache = CS::Cache;
 }
 pub struct SetVertex<CS>(CS);
@@ -260,7 +260,7 @@ impl<'a, CS: State<'a>> State<'a> for SetVertex<CS> {
     type DepthStencil = CS::DepthStencil;
     type Multisample = CS::Multisample;
     type Fragment = CS::Fragment;
-    type Multiview = CS::Multiview;
+    type MultiviewMask = CS::MultiviewMask;
     type Cache = CS::Cache;
 }
 pub struct SetPrimitive<CS>(CS);
@@ -272,7 +272,7 @@ impl<'a, CS: State<'a>> State<'a> for SetPrimitive<CS> {
     type DepthStencil = CS::DepthStencil;
     type Multisample = CS::Multisample;
     type Fragment = CS::Fragment;
-    type Multiview = CS::Multiview;
+    type MultiviewMask = CS::MultiviewMask;
     type Cache = CS::Cache;
 }
 pub struct SetDepthStencil<CS>(CS);
@@ -284,7 +284,7 @@ impl<'a, CS: State<'a>> State<'a> for SetDepthStencil<CS> {
     type DepthStencil = DepthStencilValue;
     type Multisample = CS::Multisample;
     type Fragment = CS::Fragment;
-    type Multiview = CS::Multiview;
+    type MultiviewMask = CS::MultiviewMask;
     type Cache = CS::Cache;
 }
 pub struct SetMultisample<CS>(CS);
@@ -296,7 +296,7 @@ impl<'a, CS: State<'a>> State<'a> for SetMultisample<CS> {
     type DepthStencil = CS::DepthStencil;
     type Multisample = MultisampleValue;
     type Fragment = CS::Fragment;
-    type Multiview = CS::Multiview;
+    type MultiviewMask = CS::MultiviewMask;
     type Cache = CS::Cache;
 }
 pub struct SetFragment<CS>(CS);
@@ -308,11 +308,11 @@ impl<'a, CS: State<'a>> State<'a> for SetFragment<CS> {
     type DepthStencil = CS::DepthStencil;
     type Multisample = CS::Multisample;
     type Fragment = FragmentValue<'a>;
-    type Multiview = CS::Multiview;
+    type MultiviewMask = CS::MultiviewMask;
     type Cache = CS::Cache;
 }
-pub struct SetMultiview<CS>(CS);
-impl<'a, CS: State<'a>> State<'a> for SetMultiview<CS> {
+pub struct SetMultiviewMask<CS>(CS);
+impl<'a, CS: State<'a>> State<'a> for SetMultiviewMask<CS> {
     type Label = CS::Label;
     type Layout = CS::Layout;
     type Vertex = CS::Vertex;
@@ -320,7 +320,7 @@ impl<'a, CS: State<'a>> State<'a> for SetMultiview<CS> {
     type DepthStencil = CS::DepthStencil;
     type Multisample = CS::Multisample;
     type Fragment = CS::Fragment;
-    type Multiview = MultiviewValue;
+    type MultiviewMask = MultiviewMaskValue;
     type Cache = CS::Cache;
 }
 pub struct SetCache<CS>(CS);
@@ -332,7 +332,7 @@ impl<'a, CS: State<'a>> State<'a> for SetCache<CS> {
     type DepthStencil = CS::DepthStencil;
     type Multisample = CS::Multisample;
     type Fragment = CS::Fragment;
-    type Multiview = CS::Multiview;
+    type MultiviewMask = CS::MultiviewMask;
     type Cache = CacheValue<'a>;
 }
 impl<'a, CS: State<'a>> RenderPipelineDescriptorBuilder<'a, CS> {
@@ -349,7 +349,7 @@ impl<'a, CS: State<'a>> RenderPipelineDescriptorBuilder<'a, CS> {
             depth_stencil: self.depth_stencil,
             multisample: self.multisample,
             fragment: self.fragment,
-            multiview: self.multiview,
+            multiview_mask: self.multiview_mask,
             cache: self.cache,
         }
     }
@@ -369,7 +369,7 @@ impl<'a, CS: State<'a>> RenderPipelineDescriptorBuilder<'a, CS> {
             depth_stencil: self.depth_stencil,
             multisample: self.multisample,
             fragment: self.fragment,
-            multiview: self.multiview,
+            multiview_mask: self.multiview_mask,
             cache: self.cache,
         }
     }
@@ -389,7 +389,7 @@ impl<'a, CS: State<'a>> RenderPipelineDescriptorBuilder<'a, CS> {
             depth_stencil: self.depth_stencil,
             multisample: self.multisample,
             fragment: self.fragment,
-            multiview: self.multiview,
+            multiview_mask: self.multiview_mask,
             cache: self.cache,
         }
     }
@@ -409,7 +409,7 @@ impl<'a, CS: State<'a>> RenderPipelineDescriptorBuilder<'a, CS> {
             depth_stencil: self.depth_stencil,
             multisample: self.multisample,
             fragment: self.fragment,
-            multiview: self.multiview,
+            multiview_mask: self.multiview_mask,
             cache: self.cache,
         }
     }
@@ -429,7 +429,7 @@ impl<'a, CS: State<'a>> RenderPipelineDescriptorBuilder<'a, CS> {
             depth_stencil: self.depth_stencil,
             multisample: self.multisample,
             fragment: self.fragment,
-            multiview: self.multiview,
+            multiview_mask: self.multiview_mask,
             cache: self.cache,
         }
     }
@@ -449,7 +449,7 @@ impl<'a, CS: State<'a>> RenderPipelineDescriptorBuilder<'a, CS> {
             depth_stencil: DepthStencilValue(Some(Nested::unnest(depth_stencil))),
             multisample: self.multisample,
             fragment: self.fragment,
-            multiview: self.multiview,
+            multiview_mask: self.multiview_mask,
             cache: self.cache,
         }
     }
@@ -469,7 +469,7 @@ impl<'a, CS: State<'a>> RenderPipelineDescriptorBuilder<'a, CS> {
             depth_stencil: DepthStencilValue(Nested::unnest(depth_stencil)),
             multisample: self.multisample,
             fragment: self.fragment,
-            multiview: self.multiview,
+            multiview_mask: self.multiview_mask,
             cache: self.cache,
         }
     }
@@ -489,7 +489,7 @@ impl<'a, CS: State<'a>> RenderPipelineDescriptorBuilder<'a, CS> {
             depth_stencil: self.depth_stencil,
             multisample: MultisampleValue(Nested::unnest(multisample)),
             fragment: self.fragment,
-            multiview: self.multiview,
+            multiview_mask: self.multiview_mask,
             cache: self.cache,
         }
     }
@@ -509,7 +509,7 @@ impl<'a, CS: State<'a>> RenderPipelineDescriptorBuilder<'a, CS> {
             depth_stencil: self.depth_stencil,
             multisample: self.multisample,
             fragment: FragmentValue(Some(Nested::unnest(fragment))),
-            multiview: self.multiview,
+            multiview_mask: self.multiview_mask,
             cache: self.cache,
         }
     }
@@ -529,17 +529,17 @@ impl<'a, CS: State<'a>> RenderPipelineDescriptorBuilder<'a, CS> {
             depth_stencil: self.depth_stencil,
             multisample: self.multisample,
             fragment: FragmentValue(Nested::unnest(fragment)),
-            multiview: self.multiview,
+            multiview_mask: self.multiview_mask,
             cache: self.cache,
         }
     }
-    #[doc = "Setter for [wgpu::RenderPipelineDescriptor::multiview]. Optional, defaults to `None`.\n"]
-    pub fn multiview(
+    #[doc = "Setter for [wgpu::RenderPipelineDescriptor::multiview_mask]. Optional, defaults to `None`.\n"]
+    pub fn multiview_mask(
         self,
-        multiview: NonZeroU32,
-    ) -> RenderPipelineDescriptorBuilder<'a, SetMultiview<CS>>
+        multiview_mask: NonZeroU32,
+    ) -> RenderPipelineDescriptorBuilder<'a, SetMultiviewMask<CS>>
     where
-        CS::Multiview: MultiviewIsEmpty,
+        CS::MultiviewMask: MultiviewMaskIsEmpty,
     {
         RenderPipelineDescriptorBuilder {
             label: self.label,
@@ -549,17 +549,17 @@ impl<'a, CS: State<'a>> RenderPipelineDescriptorBuilder<'a, CS> {
             depth_stencil: self.depth_stencil,
             multisample: self.multisample,
             fragment: self.fragment,
-            multiview: MultiviewValue(Some(multiview)),
+            multiview_mask: MultiviewMaskValue(Some(multiview_mask)),
             cache: self.cache,
         }
     }
-    #[doc = "Setter for [wgpu::RenderPipelineDescriptor::multiview]. Optional, defaults to `None`.\n"]
-    pub fn maybe_multiview(
+    #[doc = "Setter for [wgpu::RenderPipelineDescriptor::multiview_mask]. Optional, defaults to `None`.\n"]
+    pub fn maybe_multiview_mask(
         self,
-        multiview: Option<NonZeroU32>,
-    ) -> RenderPipelineDescriptorBuilder<'a, SetMultiview<CS>>
+        multiview_mask: Option<NonZeroU32>,
+    ) -> RenderPipelineDescriptorBuilder<'a, SetMultiviewMask<CS>>
     where
-        CS::Multiview: MultiviewIsEmpty,
+        CS::MultiviewMask: MultiviewMaskIsEmpty,
     {
         RenderPipelineDescriptorBuilder {
             label: self.label,
@@ -569,7 +569,7 @@ impl<'a, CS: State<'a>> RenderPipelineDescriptorBuilder<'a, CS> {
             depth_stencil: self.depth_stencil,
             multisample: self.multisample,
             fragment: self.fragment,
-            multiview: MultiviewValue(multiview),
+            multiview_mask: MultiviewMaskValue(multiview_mask),
             cache: self.cache,
         }
     }
@@ -589,7 +589,7 @@ impl<'a, CS: State<'a>> RenderPipelineDescriptorBuilder<'a, CS> {
             depth_stencil: self.depth_stencil,
             multisample: self.multisample,
             fragment: self.fragment,
-            multiview: self.multiview,
+            multiview_mask: self.multiview_mask,
             cache: CacheValue(Some(cache)),
         }
     }
@@ -609,7 +609,7 @@ impl<'a, CS: State<'a>> RenderPipelineDescriptorBuilder<'a, CS> {
             depth_stencil: self.depth_stencil,
             multisample: self.multisample,
             fragment: self.fragment,
-            multiview: self.multiview,
+            multiview_mask: self.multiview_mask,
             cache: CacheValue(cache),
         }
     }
@@ -624,7 +624,7 @@ pub trait Complete<'a>:
     DepthStencil: IsSetDepthStencil,
     Multisample: IsSetMultisample,
     Fragment: IsSetFragment<'a>,
-    Multiview: IsSetMultiview,
+    MultiviewMask: IsSetMultiviewMask,
     Cache: IsSetCache<'a>,
 >
 {
@@ -640,7 +640,7 @@ impl<
             DepthStencil: IsSetDepthStencil,
             Multisample: IsSetMultisample,
             Fragment: IsSetFragment<'a>,
-            Multiview: IsSetMultiview,
+            MultiviewMask: IsSetMultiviewMask,
             Cache: IsSetCache<'a>,
         >,
     > Complete<'a> for CS
@@ -656,7 +656,7 @@ impl<'a, CS: Complete<'a>> RenderPipelineDescriptorBuilder<'a, CS> {
             depth_stencil: IsSetDepthStencil::get(self.depth_stencil),
             multisample: IsSetMultisample::get(self.multisample),
             fragment: IsSetFragment::get(self.fragment),
-            multiview: IsSetMultiview::get(self.multiview),
+            multiview_mask: IsSetMultiviewMask::get(self.multiview_mask),
             cache: IsSetCache::get(self.cache),
         }
     }
@@ -710,7 +710,10 @@ mod tests {
             format!("{:#?}", Option::<wgpu::FragmentState>::default()),
         );
         assert_eq!(
-            format!("{:#?}", super::IsSetMultiview::get(super::MultiviewEmpty)),
+            format!(
+                "{:#?}",
+                super::IsSetMultiviewMask::get(super::MultiviewMaskEmpty)
+            ),
             format!("{:#?}", Option::<NonZeroU32>::default()),
         );
         assert_eq!(

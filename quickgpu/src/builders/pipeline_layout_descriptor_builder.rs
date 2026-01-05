@@ -5,22 +5,22 @@ pub use crate::Nested;
 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
 pub trait Field {}
 pub trait IsOptional {}
-#[doc = "\nBuilder for [`wgpu::PipelineLayoutDescriptor`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder fields:\n  - [bind_group_layouts](PipelineLayoutDescriptorBuilder::bind_group_layouts) Optional, defaults to [::core::default::Default::default()]\n  - [push_constant_ranges](PipelineLayoutDescriptorBuilder::push_constant_ranges) Optional, defaults to [::core::default::Default::default()]\n"]
+#[doc = "\nBuilder for [`wgpu::PipelineLayoutDescriptor`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder fields:\n  - [bind_group_layouts](PipelineLayoutDescriptorBuilder::bind_group_layouts) Optional, defaults to [::core::default::Default::default()]\n  - [immediate_size](PipelineLayoutDescriptorBuilder::immediate_size) Optional, defaults to `0u32`\n"]
 pub struct PipelineLayoutDescriptorBuilder<'a, CS: State<'a>> {
     label: CS::Label,
     bind_group_layouts: CS::BindGroupLayouts,
-    push_constant_ranges: CS::PushConstantRanges,
+    immediate_size: CS::ImmediateSize,
 }
 impl<'a> PipelineLayoutDescriptorBuilder<'a, Empty> {
     pub fn new() -> PipelineLayoutDescriptorBuilder<'a, Empty> {
         PipelineLayoutDescriptorBuilder {
             label: LabelEmpty,
             bind_group_layouts: BindGroupLayoutsEmpty,
-            push_constant_ranges: PushConstantRangesEmpty,
+            immediate_size: ImmediateSizeEmpty,
         }
     }
 }
-#[doc = "\nReturns [PipelineLayoutDescriptorBuilder] for building [`wgpu::PipelineLayoutDescriptor`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder fields:\n  - [bind_group_layouts](PipelineLayoutDescriptorBuilder::bind_group_layouts) Optional, defaults to [::core::default::Default::default()]\n  - [push_constant_ranges](PipelineLayoutDescriptorBuilder::push_constant_ranges) Optional, defaults to [::core::default::Default::default()]\n"]
+#[doc = "\nReturns [PipelineLayoutDescriptorBuilder] for building [`wgpu::PipelineLayoutDescriptor`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder fields:\n  - [bind_group_layouts](PipelineLayoutDescriptorBuilder::bind_group_layouts) Optional, defaults to [::core::default::Default::default()]\n  - [immediate_size](PipelineLayoutDescriptorBuilder::immediate_size) Optional, defaults to `0u32`\n"]
 pub fn pipeline_layout_descriptor<'a>(
     label: wgpu::Label<'a>,
 ) -> PipelineLayoutDescriptorBuilder<'a, SetLabel<Empty>> {
@@ -64,53 +64,53 @@ impl<'a> IsSetBindGroupLayouts<'a> for BindGroupLayoutsValue<'a> {
         self.0
     }
 }
-pub struct PushConstantRangesEmpty;
-impl Field for PushConstantRangesEmpty {}
-pub trait PushConstantRangesIsEmpty {}
-impl PushConstantRangesIsEmpty for PushConstantRangesEmpty {}
-pub trait IsSetPushConstantRanges<'a> {
-    fn get(self) -> &'a [wgpu::PushConstantRange];
+pub struct ImmediateSizeEmpty;
+impl Field for ImmediateSizeEmpty {}
+pub trait ImmediateSizeIsEmpty {}
+impl ImmediateSizeIsEmpty for ImmediateSizeEmpty {}
+pub trait IsSetImmediateSize {
+    fn get(self) -> u32;
 }
-impl<'a> IsSetPushConstantRanges<'a> for PushConstantRangesEmpty {
-    fn get(self) -> &'a [wgpu::PushConstantRange] {
-        ::core::default::Default::default()
+impl IsSetImmediateSize for ImmediateSizeEmpty {
+    fn get(self) -> u32 {
+        0u32
     }
 }
-pub struct PushConstantRangesValue<'a>(pub &'a [wgpu::PushConstantRange]);
-impl<'a> Field for PushConstantRangesValue<'a> {}
-impl<'a> IsSetPushConstantRanges<'a> for PushConstantRangesValue<'a> {
-    fn get(self) -> &'a [wgpu::PushConstantRange] {
+pub struct ImmediateSizeValue(pub u32);
+impl Field for ImmediateSizeValue {}
+impl IsSetImmediateSize for ImmediateSizeValue {
+    fn get(self) -> u32 {
         self.0
     }
 }
 pub trait State<'a> {
     type Label: Field;
     type BindGroupLayouts: Field;
-    type PushConstantRanges: Field;
+    type ImmediateSize: Field;
 }
 pub struct Empty;
 impl<'a> State<'a> for Empty {
     type Label = LabelEmpty;
     type BindGroupLayouts = BindGroupLayoutsEmpty;
-    type PushConstantRanges = PushConstantRangesEmpty;
+    type ImmediateSize = ImmediateSizeEmpty;
 }
 pub struct SetLabel<CS>(CS);
 impl<'a, CS: State<'a>> State<'a> for SetLabel<CS> {
     type Label = LabelValue<'a>;
     type BindGroupLayouts = CS::BindGroupLayouts;
-    type PushConstantRanges = CS::PushConstantRanges;
+    type ImmediateSize = CS::ImmediateSize;
 }
 pub struct SetBindGroupLayouts<CS>(CS);
 impl<'a, CS: State<'a>> State<'a> for SetBindGroupLayouts<CS> {
     type Label = CS::Label;
     type BindGroupLayouts = BindGroupLayoutsValue<'a>;
-    type PushConstantRanges = CS::PushConstantRanges;
+    type ImmediateSize = CS::ImmediateSize;
 }
-pub struct SetPushConstantRanges<CS>(CS);
-impl<'a, CS: State<'a>> State<'a> for SetPushConstantRanges<CS> {
+pub struct SetImmediateSize<CS>(CS);
+impl<'a, CS: State<'a>> State<'a> for SetImmediateSize<CS> {
     type Label = CS::Label;
     type BindGroupLayouts = CS::BindGroupLayouts;
-    type PushConstantRanges = PushConstantRangesValue<'a>;
+    type ImmediateSize = ImmediateSizeValue;
 }
 impl<'a, CS: State<'a>> PipelineLayoutDescriptorBuilder<'a, CS> {
     #[doc = "Setter for [wgpu::PipelineLayoutDescriptor::label]. Optional, defaults to `None`.\n"]
@@ -121,7 +121,7 @@ impl<'a, CS: State<'a>> PipelineLayoutDescriptorBuilder<'a, CS> {
         PipelineLayoutDescriptorBuilder {
             label: LabelValue(label),
             bind_group_layouts: self.bind_group_layouts,
-            push_constant_ranges: self.push_constant_ranges,
+            immediate_size: self.immediate_size,
         }
     }
     #[doc = "Setter for [wgpu::PipelineLayoutDescriptor::bind_group_layouts]. Optional, defaults to [::core::default::Default::default()].\n"]
@@ -135,21 +135,21 @@ impl<'a, CS: State<'a>> PipelineLayoutDescriptorBuilder<'a, CS> {
         PipelineLayoutDescriptorBuilder {
             label: self.label,
             bind_group_layouts: BindGroupLayoutsValue(bind_group_layouts),
-            push_constant_ranges: self.push_constant_ranges,
+            immediate_size: self.immediate_size,
         }
     }
-    #[doc = "Setter for [wgpu::PipelineLayoutDescriptor::push_constant_ranges]. Optional, defaults to [::core::default::Default::default()].\n"]
-    pub fn push_constant_ranges(
+    #[doc = "Setter for [wgpu::PipelineLayoutDescriptor::immediate_size]. Optional, defaults to `0u32`.\n"]
+    pub fn immediate_size(
         self,
-        push_constant_ranges: &'a [wgpu::PushConstantRange],
-    ) -> PipelineLayoutDescriptorBuilder<'a, SetPushConstantRanges<CS>>
+        immediate_size: u32,
+    ) -> PipelineLayoutDescriptorBuilder<'a, SetImmediateSize<CS>>
     where
-        CS::PushConstantRanges: PushConstantRangesIsEmpty,
+        CS::ImmediateSize: ImmediateSizeIsEmpty,
     {
         PipelineLayoutDescriptorBuilder {
             label: self.label,
             bind_group_layouts: self.bind_group_layouts,
-            push_constant_ranges: PushConstantRangesValue(push_constant_ranges),
+            immediate_size: ImmediateSizeValue(immediate_size),
         }
     }
 }
@@ -158,7 +158,7 @@ pub trait Complete<'a>:
     'a,
     Label: IsSetLabel<'a>,
     BindGroupLayouts: IsSetBindGroupLayouts<'a>,
-    PushConstantRanges: IsSetPushConstantRanges<'a>,
+    ImmediateSize: IsSetImmediateSize,
 >
 {
 }
@@ -168,7 +168,7 @@ impl<
             'a,
             Label: IsSetLabel<'a>,
             BindGroupLayouts: IsSetBindGroupLayouts<'a>,
-            PushConstantRanges: IsSetPushConstantRanges<'a>,
+            ImmediateSize: IsSetImmediateSize,
         >,
     > Complete<'a> for CS
 {
@@ -178,7 +178,7 @@ impl<'a, CS: Complete<'a>> PipelineLayoutDescriptorBuilder<'a, CS> {
         wgpu::PipelineLayoutDescriptor {
             label: IsSetLabel::get(self.label),
             bind_group_layouts: IsSetBindGroupLayouts::get(self.bind_group_layouts),
-            push_constant_ranges: IsSetPushConstantRanges::get(self.push_constant_ranges),
+            immediate_size: IsSetImmediateSize::get(self.immediate_size),
         }
     }
 }
