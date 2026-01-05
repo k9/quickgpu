@@ -1,10 +1,8 @@
 use std::path::PathBuf;
 
 use anyhow::Context;
-use convert_case::{Case, Casing};
 use duct::cmd;
-use quote::format_ident;
-use syn::{Field, GenericArgument, Ident, Path, PathArguments, Type};
+use syn::{Field, GenericArgument, Path, PathArguments, Type};
 
 use crate::AResult;
 
@@ -58,18 +56,6 @@ pub fn without_args(path: &Path) -> Path {
     }
 
     path
-}
-
-pub fn upper_camel_ident(field: &Field) -> Ident {
-    format_ident!(
-        "{}",
-        field
-            .ident
-            .as_ref()
-            .unwrap()
-            .to_string()
-            .to_case(Case::UpperCamel)
-    )
 }
 
 pub fn option_argument(ty: &mut Type) -> Option<&mut GenericArgument> {
