@@ -1,6 +1,6 @@
 [package]
 name = "quickgpu"
-version = "0.0.6"
+version = "0.0.7"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 description = "quickgpu wraps the wgpu API allowing users to write shorter, clearer code"
