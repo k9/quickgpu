@@ -11,9 +11,8 @@
  initializer.
 
  If a builder's field accepts a single value of a type which also has a builder, you
- can nest builders, and skip calling `build()` on the inner builder. However, you
- can't skip `build()` for elements of a slice even when they are nested.
-
+ can nest builders, and skip calling `build()` on the inner builder. In order to skip
+ calling `build()` on the elements of a slice, use the [custom::builders] helper function.
 
  ```
 # use wgpu::*;
@@ -36,26 +35,21 @@ let render_pipeline = render_pipeline_descriptor(Some("Render Pipeline"))
         vertex_state()
             .module(&shader)
             .entry_point("vs_main")
-            .buffers(&[vertex_buffer_layout()
+            // Use builders() to convert builders to values before passing as a slice
+            .buffers(&builders([vertex_buffer_layout()
                 .array_stride(size_of::<VertexInput>() as wgpu::BufferAddress)
-                .attributes(&[
+                .attributes(&builders([
                     vertex_attribute()
                         .format(VertexFormat::Float32x4)
                         .offset(0u64)
                         .shader_location(0u32)
-                        // Even though this is nested,
-                        // build() must be called since it's inside a slice
-                        .build()
-                ])
-                .build()]),
+                ]))])),
     )
     .fragment(
         fragment_state()
             .module(&shader)
             .entry_point("fs_main")
             .targets(&[Some(format.into())])
-             // Since fragment_state is a nested builder,
-             // we don't need to call build()
     )
     .build(); // Return the wgpu struct
  ```

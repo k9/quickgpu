@@ -1,3 +1,5 @@
+/// Nested is implemented on builder types to enable passing them directly
+/// into other builders without needing to call build().
 pub trait Nested<T> {
     fn unnest(self) -> T;
 }
@@ -6,6 +8,12 @@ impl<T, N: Nested<T>> Nested<Option<T>> for Option<N> {
     fn unnest(self) -> Option<T> {
         self.map(|o| o.unnest())
     }
+}
+
+/// Builds an array of builders into an array of values.
+/// Useful when passing a slice of wgpu values into another builder.
+pub fn builders<T, N: Nested<T>, const COUNT: usize>(a: [N; COUNT]) -> Vec<T> {
+    a.into_iter().map(|item| item.unnest()).collect()
 }
 
 mod render_builder {

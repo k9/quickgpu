@@ -49,21 +49,18 @@ impl Scene {
                 vertex_state()
                     .module(&shader)
                     .entry_point("vs_main")
-                    .buffers(&[vertex_buffer_layout()
+                    .buffers(&builders([vertex_buffer_layout()
                         .array_stride(size_of::<VertexInput>() as wgpu::BufferAddress)
-                        .attributes(&[
+                        .attributes(&builders([
                             vertex_attribute()
                                 .format(VertexFormat::Float32x4)
                                 .offset(0u64)
-                                .shader_location(0u32)
-                                .build(),
+                                .shader_location(0u32),
                             vertex_attribute()
                                 .format(VertexFormat::Float32x2)
                                 .offset(4 * 4u64)
-                                .shader_location(1u32)
-                                .build(),
-                        ])
-                        .build()]),
+                                .shader_location(1u32),
+                        ]))])),
             )
             .fragment(
                 fragment_state()
@@ -104,16 +101,15 @@ impl Scene {
         let mut encoder = command_encoder_descriptor(None).create_with(device);
 
         {
-            let color_attachments = &[Some(
+            let color_attachments = builders([Some(
                 render_pass_color_attachment()
                     .view(render_textures.view)
                     .maybe_resolve_target(render_textures.resolve_target)
-                    .ops(operations().load(LoadOp::Clear(Color::WHITE)))
-                    .build(),
-            )];
+                    .ops(operations().load(LoadOp::Clear(Color::WHITE))),
+            )]);
 
             let mut render_pass = render_pass_descriptor(Some("Render Pass"))
-                .color_attachments(color_attachments)
+                .color_attachments(&color_attachments)
                 .begin_with(&mut encoder);
 
             render_pass.set_pipeline(&self.render_pipeline);
