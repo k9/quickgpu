@@ -111,7 +111,7 @@ pub fn cargo_toml(version: Version) -> String {
         r#"
 [package]
 name = "{package_name}"
-version = "0.0.8"
+version = "0.0.9"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 description = "quickgpu wraps the wgpu API allowing users to write shorter, clearer code"

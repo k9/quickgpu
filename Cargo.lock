@@ -1610,7 +1610,7 @@ dependencies = [
 
 [[package]]
 name = "quickgpu"
-version = "0.0.8"
+version = "0.0.9"
 dependencies = [
  "bytemuck",
  "wgpu 28.0.0",
@@ -1618,7 +1618,7 @@ dependencies = [
 
 [[package]]
 name = "quickgpu27"
-version = "0.0.8"
+version = "0.0.9"
 dependencies = [
  "bytemuck",
  "wgpu 27.0.1",
