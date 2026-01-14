@@ -72,8 +72,10 @@ Internal / example crates:
 ### Building
 
 To run `example`, `cd` into `example` and run `cargo run`.
+
 To run the `bunnymark` benchmark,
 `cd` into `bunnymark` and run `cargo run`.
 Press space to create more bunnies.
+
 To re-generate quickgpu bindings, run `cargo xtask build`
 from the repo root.
