@@ -1649,8 +1649,8 @@ dependencies = [
  "env_logger",
  "log",
  "pollster",
- "quickgpu",
- "wgpu 28.0.0",
+ "quickgpu27",
+ "wgpu 27.0.1",
  "winit",
 ]
 
