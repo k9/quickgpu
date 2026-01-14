@@ -27,7 +27,7 @@ If you use `quickgpu27`, and don't want to type the "27" in your code,
 you can rename the dependency to `quickgpu`:
 in your Cargo.toml:
 ```ignore
-quickgpu = { name = "quickgpu27", version = "..." };
+quickgpu = { package = "quickgpu27", version = "..." }
 ```
 
 # Using builders
