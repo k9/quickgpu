@@ -8,6 +8,6 @@ bytemuck = { workspace = true }
 env_logger = { workspace = true }
 log = { workspace = true }
 pollster = { workspace = true }
-wgpu = { workspace = true }
+wgpu = "^28.0.0"
 winit = { workspace = true }
-quickgpu = { workspace = true }
+quickgpu = { path = "../quickgpu" }

@@ -95,6 +95,8 @@ pub fn builder_tests(builder_struct: &BuilderStruct, has_label: bool) -> TokenSt
         #[cfg(test)]
         mod tests {
             #[allow(unused_imports)]
+
+            #[allow(unused_imports)]
             use std::num::NonZeroU32;
 
             #[test]

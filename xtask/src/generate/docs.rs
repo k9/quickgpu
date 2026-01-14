@@ -44,7 +44,7 @@ pub fn table(builder_ident: String, fields: &[BuilderField]) -> String {
             "
 Set all required fields and any optional fields, then call `build()`.
 
-Builder fields:
+Builder field setters:
 "
         )
     } else {

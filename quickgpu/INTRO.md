@@ -1,18 +1,48 @@
+
 <!-- intro that gets used in README and in crate docs -->
 
- `quickgpu` wraps the [wgpu] API allowing users to write shorter, clearer code.
- It consists of builders for wgpu structs. As a wrapper library, quickgpu doesn't
- manage or own any state after a builder is done building. There's no need to convert
- all of your code to quickgpu, you can just use it where it's helpful.
+`quickgpu` wraps the [wgpu] API allowing users to write shorter, clearer code.
+It consists of builders for wgpu structs. As a wrapper library, quickgpu doesn't
+manage or own any state after a builder is done building. There's no need to convert
+all of your code to quickgpu, you can just use it where it's helpful.
 
- After setting fields in a builder, call `build()`, which will return the wgpu struct.
- Many wgpu structs take an optional `wgpu::Label` to identify the struct.
- In quickgpu, the label field will always be the only parameter of the builder
- initializer.
+quickgpu's goal is that for any wgpu struct SomeStruct,
+as long at doesn't contain private fields,
+you can call the function `quickgpu::some_struct`,
+and it will return a builder. When you're done setting
+fields, call `build()`, and a wgpu struct will be returned.
 
- If a builder's field accepts a single value of a type which also has a builder, you
- can nest builders, and skip calling `build()` on the inner builder. In order to skip
- calling `build()` on the elements of a slice, use the [custom::builders] helper function.
+Even structs with zero or one fields have builders.
+These are not particularly useful, but are included
+so that developers don't have to memorize which structs have builders.
+
+# WGPU Versions
+
+There are different quickgpu crates for different wgpu major versions:
+
+- `quickgpu` supports `wgpu` version 28
+- `quickgpu27` supports `wgpu` version 27
+
+If you use `quickgpu27`, and don't want to type the "27" in your code,
+you can rename the dependency to `quickgpu`:
+in your Cargo.toml:
+```ignore
+quickgpu = { name = "quickgpu27", version = "..." };
+```
+
+# Using builders
+
+To create a builder for [wgpu::FragmentState], you can call the
+`fragment_state()` helper function, which returns a `FragmentStateBuilder`.
+Alternatively, you can create a `FragmentStateBuilder` directly.
+
+Many wgpu structs take an optional `wgpu::Label` to identify the struct.
+In quickgpu, the label field will always be the only parameter to the helper
+function (see the `render_pipeline_descriptor` call in the example below).
+
+If a builder field setter accepts a single value of a type which also has a builder, you
+can nest builders, and skip calling `build()` on the inner builder. In order to skip
+calling `build()` on the elements of a slice, use the `builders` helper function.
 
  ```
 # use wgpu::*;

@@ -54,7 +54,7 @@ pub fn builder_code(builder_struct: &BuilderStruct) -> GeneratedBuilder {
     let tests = builder_tests(&builder_struct, label.is_some());
 
     let code = quote!(
-        pub use crate::Nested;
+        pub use super::super::Nested;
         pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
 
         pub trait Field {}

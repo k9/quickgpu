@@ -1,3 +1,6 @@
-[submodule "wgpu"]
-	path = wgpu
+[submodule "wgpu_v27"]
+	path = wgpu_v27
+	url = https://github.com/gfx-rs/wgpu.git
+[submodule "wgpu_v28"]
+	path = wgpu_v28
 	url = https://github.com/gfx-rs/wgpu.git
