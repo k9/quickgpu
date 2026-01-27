@@ -1,5 +1,5 @@
 use clap::ValueEnum;
-use quote::quote as q;
+use quote::{ToTokens, quote as q};
 use std::collections::HashMap;
 use xshell::Shell;
 
@@ -137,7 +137,21 @@ pub fn generate(version: Version) -> anyhow::Result<()> {
     )
     .unwrap();
 
-    for (_, (index, path)) in builder_entries.iter() {
+    let mut builder_entries_sorted = builder_entries
+        .iter()
+        .map(|(_, (index, path))| (index, path))
+        .collect::<Vec<_>>();
+
+    builder_entries_sorted.sort_by(|(_, a_path), (_, b_path)| {
+        a_path
+            .segments
+            .last()
+            .into_token_stream()
+            .to_string()
+            .cmp(&b_path.segments.last().into_token_stream().to_string())
+    });
+
+    for (index, path) in builder_entries_sorted {
         builders.push(output_struct(&wgpu, *index, path.clone(), &builder_entries));
     }
 
