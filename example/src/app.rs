@@ -165,6 +165,7 @@ pub fn redraw(app: &mut App) {
     let scene_commands = app.scene.render(GPUState {
         render_textures,
         device: &app.device,
+        queue: &app.queue,
     });
 
     app.queue.submit([scene_commands]);

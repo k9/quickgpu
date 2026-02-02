@@ -8,6 +8,8 @@ struct VertexOutput {
     @location(0) uv: vec2<f32>,
 };
 
+@group(0) @binding(0) var<uniform> green: f32;
+
 @vertex
 fn vs_main(
     model: VertexInput,
@@ -22,7 +24,7 @@ fn vs_main(
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     return vec4<f32>(
         in.uv,
-        1.0,
+        green,
         1.0
     );
 }

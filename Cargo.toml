@@ -1,5 +1,13 @@
 [workspace]
-members = ["xtask", "quickgpu", "quickgpu27", "discover_exports", "example", "bunnymark"]
+members = [
+  "xtask",
+  "quickgpu",
+  "quickgpu27",
+  "discover_exports",
+  "example",
+  "bunnymark",
+  "binder",
+]
 exclude = ["discover_exports/test_workspace", "wgpu"]
 resolver = "2"
 
@@ -11,7 +19,7 @@ syn = { version = "2.0.113", features = [
   "visit-mut",
 ] }
 anyhow = "1.0.100"
-bytemuck = "1.24.0"
+bytemuck = { version = "1.24.0", features = ["must_cast"] }
 clap = "4.5.54"
 convert_case = "0.10.0"
 discover_exports = { path = "discover_exports" }
@@ -30,6 +38,9 @@ nanorand = "0.8.0"
 png = "0.18.0"
 web-time = "1.1.0"
 xshell = "0.2.7"
+mint = "0.5.9"
+naga = "28.0.0"
+prettyplease = "0.2.37"
 
 # Enable a small amount of optimization in the dev profile.
 [profile.dev]
