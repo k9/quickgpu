@@ -21,7 +21,8 @@ pub struct Scene {
     vertex_buffer: Buffer,
     index_buffer: Buffer,
     render_pipeline: RenderPipeline,
-    group: GreenGroup,
+    group: BindGroup,
+    resources: GreenResources,
 }
 
 #[derive(Pod, Zeroable, Clone, Copy)]
@@ -105,15 +106,14 @@ impl Scene {
         );
 
         let bgl = Green::layout(device);
-        let group = Green::bind_group(
-            device,
-            &bgl,
-            &GreenSlices {
-                red: &[5],
-                green: &[0.5],
-                blue: &[0.5],
-            },
-        );
+        let data = GreenData {
+            red: vec![0],
+            green: vec![0.0],
+            blue: vec![0.0],
+        };
+
+        let resources = Green::resources(device, &data.slices());
+        let group = Green::bind_group(device, &bgl, &resources);
 
         let layout = device.create_pipeline_layout(
             &pipeline_layout_descriptor(Some("Layout"))
@@ -166,6 +166,7 @@ impl Scene {
             vertex_buffer,
             index_buffer,
             group,
+            resources,
         }
     }
 
@@ -178,7 +179,7 @@ impl Scene {
             queue,
         }: GPUState,
     ) -> CommandBuffer {
-        self.group.write_red(queue, &[5]);
+        self.resources.write_red(queue, &[10]);
 
         let mut encoder = command_encoder_descriptor(None).create_with(device);
 
@@ -194,7 +195,7 @@ impl Scene {
                 .color_attachments(&color_attachments)
                 .begin_with(&mut encoder);
 
-            render_pass.set_bind_group(0, Some(&self.group.bind_group), &[]);
+            render_pass.set_bind_group(0, Some(&self.group), &[]);
             render_pass.set_pipeline(&self.render_pipeline);
             render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
             render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);

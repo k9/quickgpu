@@ -1,6 +1,8 @@
 use proc_macro::TokenStream;
 use syn::{DeriveInput, parse_macro_input};
 
+mod bind_group_code;
+mod field;
 mod inner;
 mod utils;
 
