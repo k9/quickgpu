@@ -5,6 +5,7 @@ members = [
   "quickgpu27",
   "discover_exports",
   "example",
+  "uniforms",
   "bunnymark",
   "binder",
 ]

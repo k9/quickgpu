@@ -7,7 +7,7 @@ edition = "2024"
 proc-macro = true
 
 [dependencies]
-derive_more = { version = "2.1.1", features = ["debug"] }
+derive_more = { version = "2.1.1", features = ["debug", "display"] }
 env_logger.workspace = true
 glam = { version = "0.31.0", features = ["mint"] }
 log.workspace = true

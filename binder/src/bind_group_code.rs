@@ -52,9 +52,6 @@ pub fn bind_group_code(input: DeriveInput) -> Result<TokenStream, TokenStream> {
     let bind_group_entries = field_entries.iter().map(|f| &f.bind_group_entry);
     let ident_resources = format_ident!("{}Resources", ident);
     let resource_fields = field_entries.iter().map(|f| &f.resource_field);
-    let ident_data = format_ident!("{}Data", ident);
-    let data_fields = field_entries.iter().map(|f| &f.data_field);
-    let slice_of_data_fields = field_entries.iter().map(|f| &f.slice_of_data_field);
     let ident_slices = format_ident!("{}Slices", ident);
     let slice_fields = field_entries.iter().map(|f| &f.slice_field);
     let resource_inits = field_entries.iter().map(|f| &f.resource_init);
@@ -62,71 +59,69 @@ pub fn bind_group_code(input: DeriveInput) -> Result<TokenStream, TokenStream> {
     let resource_write_fns = field_entries.iter().map(|f| &f.resource_write_fn);
 
     let code = quote! {
-        pub struct #ident_resources {
-            #(#resource_fields),*
-        }
+        mod mod_ident {
+            use wgpu::*;
+            use quickgpu::*;
+            use quickgpu::builders::bind_group_layout_descriptor_builder::*;
+            use super::#ident;
 
-        impl #ident_resources {
-            pub fn write(&self, queue: &Queue, slices: #ident_slices) {
-                #(#resource_writes);*
+            pub struct #ident_resources {
+                #(#resource_fields),*
             }
 
-            #(#resource_write_fns)*
-        }
+            impl #ident_resources {
+                pub fn write(&self, queue: &Queue, data: #ident) {
+                    #(#resource_writes);*
+                }
 
-        pub struct #ident_data {
-            #(#data_fields),*
-        }
+                #(#resource_write_fns)*
+            }
 
-        impl #ident_data {
-            pub fn slices<'a>(&'a self) -> #ident_slices<'a> {
-                #ident_slices {
-                    #(#slice_of_data_fields),*
+            pub struct #ident_slices<'a> {
+                #(#slice_fields),*
+            }
+
+            impl #ident {
+                pub const WGSL: &str = #bindings;
+
+                pub fn layout_entries() -> Vec<BindGroupLayoutEntry> {
+                    builders([
+                        #(#bind_group_layout_entries),*
+                    ])
+                }
+
+                pub fn bind_group<'a>(
+                    device: &Device,
+                    label: Option<&'a str>,
+                    bgl: &wgpu::BindGroupLayout,
+                    resources: &#ident_resources
+                ) -> wgpu::BindGroup {
+                    device.create_bind_group(
+                        &bind_group_descriptor(label)
+                            .layout(&bgl)
+                            .entries(&builders([
+                                #(#bind_group_entries),*
+                            ]))
+                            .build(),
+                    )
+                }
+
+                pub fn resources(
+                    device: &Device,
+                    data: &#ident,
+                ) -> #ident_resources {
+                    #ident_resources {
+                        #(#resource_inits),*
+                    }
                 }
             }
         }
 
-        pub struct #ident_slices<'a> {
-            #(#slice_fields),*
-        }
-
-        impl #ident {
-            pub const WGSL: &str = #bindings;
-
-            pub fn layout(device: &Device) -> wgpu::BindGroupLayout {
-                device.create_bind_group_layout(
-                    &bind_group_layout_descriptor(Some("bgl0"))
-                        .entries(&builders([
-                            #(#bind_group_layout_entries),*
-                        ]))
-                        .build(),
-                )
-            }
-
-            pub fn bind_group(
-                device: &Device,
-                bgl: &wgpu::BindGroupLayout,
-                resources: &#ident_resources
-            ) -> wgpu::BindGroup {
-                device.create_bind_group(
-                    &bind_group_descriptor(Some("bg"))
-                        .layout(&bgl)
-                        .entries(&builders([
-                            #(#bind_group_entries),*
-                        ]))
-                        .build(),
-                )
-            }
-
-            pub fn resources(
-                device: &Device,
-                slices: &#ident_slices,
-            ) -> #ident_resources {
-                #ident_resources {
-                    #(#resource_inits),*
-                }
-            }
-        }
+        pub use mod_ident::{
+            #ident_resources,
+            #ident_slices
+        };
     };
+
     Ok(code)
 }

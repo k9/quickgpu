@@ -1,9 +1,10 @@
 [package]
-name = "quickgpu_example"
+name = "quickgpu_uniforms"
 version = "0.0.1"
 edition = "2024"
 
 [dependencies]
+binder = { path= "../binder" }
 bytemuck = { workspace = true }
 env_logger = { workspace = true }
 log = { workspace = true }

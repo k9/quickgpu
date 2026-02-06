@@ -28,7 +28,7 @@ mod render_builder {
 
 mod buffer_init_builder {
     use super::super::builders::buffer_init_descriptor_builder::*;
-    use wgpu::{util::DeviceExt, Device};
+    use wgpu::{Device, util::DeviceExt};
 
     impl<'a, CS: Complete<'a>> BufferInitDescriptorBuilder<'a, CS> {
         pub fn create_with(self, device: &Device) -> wgpu::Buffer {

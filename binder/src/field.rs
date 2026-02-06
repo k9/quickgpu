@@ -4,36 +4,43 @@ use syn::parenthesized;
 
 use crate::utils::err;
 
-#[derive(derive_more::Debug)]
 pub struct FieldEntry {
-    #[debug("binding {binding}")]
     pub binding: String,
-    #[debug("bind_group_layout_entry {bind_group_layout_entry}")]
     pub bind_group_layout_entry: TokenStream,
-    #[debug("bind_group_entry {bind_group_entry}")]
     pub bind_group_entry: TokenStream,
-    #[debug("resource_field {resource_field}")]
     pub resource_field: TokenStream,
-    #[debug("data_field {data_field}")]
-    pub data_field: TokenStream,
-    #[debug("slice_field {slice_field}")]
     pub slice_field: TokenStream,
-    #[debug("slice_of_data_field {slice_of_data_field}")]
-    pub slice_of_data_field: TokenStream,
-    #[debug("resource_write {resource_write}")]
     pub resource_write: TokenStream,
-    #[debug("buffer_write_fn {resource_write_fn}")]
     pub resource_write_fn: TokenStream,
-    #[debug("resource_init {resource_init}")]
     pub resource_init: TokenStream,
+}
+
+impl std::fmt::Debug for FieldEntry {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("FieldEntry")
+            .field("binding", &self.binding.to_string())
+            .field(
+                "bind_group_layout_entry",
+                &self.bind_group_layout_entry.to_string(),
+            )
+            .field("bind_group_entry", &self.bind_group_entry.to_string())
+            .field("resource_field", &self.resource_field.to_string())
+            .field("slice_field", &self.slice_field.to_string())
+            .field("resource_write", &self.resource_write.to_string())
+            .field("resource_write_fn", &self.resource_write_fn.to_string())
+            .field("resource_init", &self.resource_init.to_string())
+            .finish()
+    }
 }
 
 pub fn process_field(
     f: &mut syn::Field,
     next_binding: &mut u32,
 ) -> Result<Option<FieldEntry>, TokenStream> {
-    let mut binding = "".to_string();
     let mut ty = None;
+    let mut stages: Option<TokenStream> = None;
+    let mut usage: Option<TokenStream> = None;
+    let mut binding_type: Option<TokenStream> = None;
     let field_ident = f.ident.clone().unwrap();
 
     let attr_index = f
@@ -59,12 +66,28 @@ pub fn process_field(
             *next_binding = content;
         }
 
-        binding = format!("@binding({})", *next_binding);
-
         if meta.path.is_ident("ty") {
             let content;
             parenthesized!(content in meta.input);
             ty = Some(format!("{}", content))
+        }
+
+        if meta.path.is_ident("stages") {
+            let content;
+            parenthesized!(content in meta.input);
+            stages = Some(content.parse().unwrap())
+        }
+
+        if meta.path.is_ident("usage") {
+            let content;
+            parenthesized!(content in meta.input);
+            usage = Some(content.parse().unwrap())
+        }
+
+        if meta.path.is_ident("binding_type") {
+            let content;
+            parenthesized!(content in meta.input);
+            binding_type = Some(content.parse().unwrap());
         }
 
         Ok(())
@@ -77,15 +100,32 @@ pub fn process_field(
         ));
     };
 
+    let Some(stages) = stages else {
+        return Err(err(
+            Span::call_site(),
+            &format!("Must specify 'stages' on field '{}'", field_ident),
+        ));
+    };
+
+    let Some(usage) = usage else {
+        return Err(err(
+            Span::call_site(),
+            &format!("Must specify 'usage' on field '{}'", field_ident),
+        ));
+    };
+
+    let Some(binding_type) = binding_type else {
+        return Err(err(
+            Span::call_site(),
+            &format!("Must specify 'binding_type' on field '{}'", field_ident),
+        ));
+    };
+
     let bind_group_layout_entry = quote! {
         bind_group_layout_entry()
             .binding(#next_binding)
-            .visibility(ShaderStages::FRAGMENT)
-            .ty(wgpu::BindingType::Buffer {
-                ty: BufferBindingType::Uniform,
-                has_dynamic_offset: false,
-                min_binding_size: None,
-            })
+            .visibility(#stages)
+            .ty(#binding_type)
     };
 
     let bind_group_entry = quote! {
@@ -102,33 +142,25 @@ pub fn process_field(
 
     let field_ty = &f.ty;
 
-    let data_field = quote! {
-        #field_ident: Vec<#field_ty>
-    };
-
-    let slice_of_data_field = quote! {
-        #field_ident: &self.#field_ident
-    };
-
     let slice_field = quote! {
         #field_ident: &'a [#field_ty]
     };
 
     let resource_init = quote! {
         #field_ident: buffer_init_descriptor(None)
-            .contents(bytemuck::cast_slice(slices.#field_ident))
-            .usage(BufferUsages::UNIFORM | BufferUsages::COPY_DST)
+            .contents(bytemuck::cast_slice(std::slice::from_ref(&data.#field_ident)))
+            .usage(#usage)
             .create_with(device)
     };
 
     let resource_write = quote! {
-        queue.write_buffer(&self.#field_ident, 0, bytemuck::cast_slice(slices.#field_ident))
+        queue.write_buffer(&self.#field_ident, 0, bytemuck::cast_slice(std::slice::from_ref(&data.#field_ident)))
     };
 
     let resource_write_fn_ident = format_ident!("write_{}", field_ident);
     let resource_write_fn = quote! {
-        pub fn #resource_write_fn_ident(&self, queue: &Queue, data: &[#field_ty]) {
-            queue.write_buffer(&self.#field_ident, 0, bytemuck::cast_slice(data))
+        pub fn #resource_write_fn_ident(&self, queue: &Queue, data: &#field_ty) {
+            queue.write_buffer(&self.#field_ident, 0, bytemuck::cast_slice(std::slice::from_ref(data)))
         }
     };
 
@@ -139,9 +171,7 @@ pub fn process_field(
         bind_group_layout_entry,
         bind_group_entry,
         resource_field,
-        data_field,
         slice_field,
-        slice_of_data_field,
         resource_write,
         resource_write_fn,
         resource_init,

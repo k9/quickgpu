@@ -1,12 +1,8 @@
-use std::borrow::Cow;
-
-use binder::QBind;
-use bytemuck::{NoUninit, Pod, Zeroable};
+use bytemuck::{Pod, Zeroable};
 use quickgpu::*;
 use wgpu::{
-    BindGroup, BindingResource, Buffer, BufferBindingType, BufferUsages, Color, CommandBuffer,
-    Device, LoadOp, PipelineCompilationOptions, Queue, RenderPipeline, ShaderSource, ShaderStages,
-    TextureFormat, VertexFormat,
+    Buffer, Color, CommandBuffer, Device, LoadOp, PipelineCompilationOptions, RenderPipeline,
+    TextureFormat, VertexFormat, include_wgsl,
 };
 
 use crate::app::RenderTextures;
@@ -14,15 +10,12 @@ use crate::app::RenderTextures;
 pub struct GPUState<'a> {
     pub render_textures: RenderTextures<'a>,
     pub device: &'a Device,
-    pub queue: &'a Queue,
 }
 
 pub struct Scene {
     vertex_buffer: Buffer,
     index_buffer: Buffer,
     render_pipeline: RenderPipeline,
-    group: BindGroup,
-    resources: GreenResources,
 }
 
 #[derive(Pod, Zeroable, Clone, Copy)]
@@ -47,82 +40,11 @@ const VERTICES: &[VertexInput] = &[
 
 const INDICES: &[u16] = &[0, 1, 2, 0, 2, 3];
 
-#[derive(QBind, Clone, Copy, NoUninit)]
-#[repr(C)]
-pub struct Green {
-    #[qbind(ty(u32))]
-    pub red: u32,
-    #[qbind(ty(f32))]
-    pub green: f32,
-    #[qbind(ty(f32))]
-    pub blue: f32,
-}
-
-pub fn shader_source() -> String {
-    let green_wgsl = Green::WGSL;
-    format!(
-        "
-{green_wgsl}
-
-struct VertexInput {{
-    @location(0) position: vec3<f32>,
-    @location(1) uv: vec2<f32>,
-}};
-
-struct VertexOutput {{
-    @builtin(position) clip_position: vec4<f32>,
-    @location(0) uv: vec2<f32>,
-}};
-
-@vertex
-fn vs_main(
-    model: VertexInput,
-) -> VertexOutput {{
-    var out: VertexOutput;
-    out.uv = model.uv;
-    out.clip_position = vec4<f32>(model.position, 1.0);
-    return out;
-}}
-
-@fragment
-fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {{
-    return vec4<f32>(
-        f32(red) / 10.0,
-        green,
-        blue,
-        1.0
-    );
-}}
-"
-    )
-}
-
 impl Scene {
     pub fn new(device: &Device, format: TextureFormat, sample_count: u32) -> Self {
-        let shader = device.create_shader_module(
-            shader_module_descriptor(None)
-                .source(ShaderSource::Wgsl(Cow::Owned(shader_source())))
-                .build(),
-        );
-
-        let bgl = Green::layout(device);
-        let data = GreenData {
-            red: vec![0],
-            green: vec![0.0],
-            blue: vec![0.0],
-        };
-
-        let resources = Green::resources(device, &data.slices());
-        let group = Green::bind_group(device, &bgl, &resources);
-
-        let layout = device.create_pipeline_layout(
-            &pipeline_layout_descriptor(Some("Layout"))
-                .bind_group_layouts(&[&bgl])
-                .build(),
-        );
+        let shader = device.create_shader_module(include_wgsl!("../shaders/base.wgsl"));
 
         let render_pipeline = render_pipeline_descriptor(Some("Render Pipeline"))
-            .layout(&layout)
             .vertex(
                 vertex_state()
                     .module(&shader)
@@ -165,8 +87,6 @@ impl Scene {
             render_pipeline,
             vertex_buffer,
             index_buffer,
-            group,
-            resources,
         }
     }
 
@@ -176,11 +96,8 @@ impl Scene {
         GPUState {
             render_textures,
             device,
-            queue,
         }: GPUState,
     ) -> CommandBuffer {
-        self.resources.write_red(queue, &[10]);
-
         let mut encoder = command_encoder_descriptor(None).create_with(device);
 
         {
@@ -195,7 +112,6 @@ impl Scene {
                 .color_attachments(&color_attachments)
                 .begin_with(&mut encoder);
 
-            render_pass.set_bind_group(0, Some(&self.group), &[]);
             render_pass.set_pipeline(&self.render_pipeline);
             render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
             render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);

@@ -62,8 +62,7 @@ impl App {
                 required_features: wgpu::Features::empty(),
                 // Make sure we use the texture resolution limits from the adapter,
                 // so we can support images the size of the swapchain.
-                required_limits: wgpu::Limits::downlevel_webgl2_defaults()
-                    .using_resolution(adapter.limits()),
+                required_limits: wgpu::Limits::defaults().using_resolution(adapter.limits()),
                 memory_hints: wgpu::MemoryHints::Performance,
                 trace: wgpu::Trace::Off,
             })
@@ -165,6 +164,7 @@ pub fn redraw(app: &mut App) {
     let scene_commands = app.scene.render(GPUState {
         render_textures,
         device: &app.device,
+        queue: &app.queue,
     });
 
     app.queue.submit([scene_commands]);

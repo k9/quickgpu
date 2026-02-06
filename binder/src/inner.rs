@@ -33,9 +33,19 @@ mod tests {
             prettyprint(entry_point(parse_quote! {
                 #[derive(QBind)]
                 struct A {
-                    #[qbind(ty(vec4<f32>))]
+                    #[qbind(
+                        ty(vec4<f32>),
+                        stages(ShaderStages::VERTEX),
+                        usage(a),
+                        binding_type(4)
+                    )]
                     pub x: Vector4<f32>,
-                    #[qbind(ty(u32))]
+                    #[qbind(
+                        ty(u32),
+                        stages(ShaderStages::VERTEX),
+                        usage(b),
+                        binding_type(45)
+                    )]
                     pub yyy: u32
                 }
             }))
