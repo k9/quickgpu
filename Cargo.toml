@@ -42,6 +42,11 @@ xshell = "0.2.7"
 mint = "0.5.9"
 naga = "28.0.0"
 prettyplease = "0.2.37"
+console_error_panic_hook = "0.1.7"
+console_log = "1.0.0"
+wasm-bindgen = "0.2.113"
+wasm-bindgen-futures = "0.4.63"
+web-sys = "0.3.90"
 
 # Enable a small amount of optimization in the dev profile.
 [profile.dev]

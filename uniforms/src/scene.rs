@@ -4,8 +4,8 @@ use binder::QBind;
 use bytemuck::NoUninit;
 use quickgpu::*;
 use wgpu::{
-    BindGroup, BindingType, BufferUsages, Color, CommandBuffer, Device, LoadOp, Queue,
-    RenderPipeline, ShaderSource, ShaderStages, TextureFormat,
+    BindGroup, Color, CommandBuffer, Device, LoadOp, Queue, RenderPipeline, ShaderSource,
+    TextureFormat,
 };
 
 use crate::app::RenderTextures;
