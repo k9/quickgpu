@@ -11,6 +11,7 @@ use wgpu::{
 use crate::{
     app::RenderTextures,
     bind::{Bind, BufferBind, buffer::BoundBuffer},
+    math::{cubic, graph, linear},
 };
 
 pub struct GPUState<'a> {
@@ -80,11 +81,13 @@ impl Scene {
 
         let offset_buffers = [
             gr_layout.offset.make_buffer(
+                None,
                 [1.0; 2],
                 BufferUsages::UNIFORM | BufferUsages::COPY_DST,
                 device,
             ),
             gr_layout.offset.make_buffer(
+                None,
                 [1.0; 2],
                 BufferUsages::UNIFORM | BufferUsages::COPY_DST,
                 device,
@@ -92,6 +95,7 @@ impl Scene {
         ];
 
         let size_buffer = gr_layout.size.make_buffer(
+            None,
             SIZE as u32,
             BufferUsages::UNIFORM | BufferUsages::COPY_DST,
             device,
@@ -134,6 +138,22 @@ impl Scene {
                     size: &size_buffer,
                     pattern: &pattern_views[0],
                 },
+                BgBindingEntries {
+                    offset: |binding, buffer| {
+                        bind_group_entry()
+                            .binding(binding)
+                            .resource(wgpu::BindingResource::Buffer(
+                                buffer_binding().buffer(buffer).offset(0).build(),
+                            ))
+                    },
+                    size: |binding, buffer| {
+                        bind_group_entry()
+                            .binding(binding)
+                            .resource(wgpu::BindingResource::Buffer(
+                                buffer_binding().buffer(buffer).offset(0).build(),
+                            ))
+                    },
+                },
                 None,
                 device,
             ),
@@ -143,6 +163,22 @@ impl Scene {
                     offset: &offset_buffers[1],
                     size: &size_buffer,
                     pattern: &pattern_views[1],
+                },
+                BgBindingEntries {
+                    offset: |binding, buffer| {
+                        bind_group_entry()
+                            .binding(binding)
+                            .resource(wgpu::BindingResource::Buffer(
+                                buffer_binding().buffer(buffer).offset(0).build(),
+                            ))
+                    },
+                    size: |binding, buffer| {
+                        bind_group_entry()
+                            .binding(binding)
+                            .resource(wgpu::BindingResource::Buffer(
+                                buffer_binding().buffer(buffer).offset(0).build(),
+                            ))
+                    },
                 },
                 None,
                 device,
@@ -205,24 +241,50 @@ impl Scene {
         let elapsed = self.start.elapsed().as_secs_f32();
         let t = (elapsed * 0.5).fract();
 
-        self.gr_layout
-            .offset
-            .write(queue, &self.offset_buffers[0], &[-1.25, linear(t) - 1.0]);
+        let BgHelper {
+            offset,
+            size,
+            pattern,
+            ..
+        } = &self.gr_layout;
 
-        self.gr_layout
-            .offset
-            .write(queue, &self.offset_buffers[1], &[0.25, cubic(t) - 1.0]);
+        offset.write(
+            queue,
+            &self.offset_buffers[0],
+            None,
+            &[-1.25, linear(t) - 1.0],
+        );
+        offset.write(
+            queue,
+            &self.offset_buffers[1],
+            None,
+            &[0.25, cubic(t) - 1.0],
+        );
+        size.write(queue, &self.size_buffer, None, &(SIZE as u32));
 
-        self.gr_layout
-            .size
-            .write(queue, &self.size_buffer, &(SIZE as u32));
+        graph(&mut self.texels[0], t, cubic, SIZE);
+        pattern.write(
+            queue,
+            &self.textures[0],
+            texel_copy_texture_info()
+                .texture(&self.textures[0])
+                .mip_level(0)
+                .build(),
+            &self.texels[0],
+            None,
+        );
 
-        self.graph(queue, 0, t, cubic);
-        self.graph(queue, 1, t, linear);
-
-        self.gr_layout
-            .pattern
-            .write(queue, &self.textures[0], &self.texels[0]);
+        graph(&mut self.texels[1], t, linear, SIZE);
+        pattern.write(
+            queue,
+            &self.textures[1],
+            texel_copy_texture_info()
+                .texture(&self.textures[1])
+                .mip_level(0)
+                .build(),
+            &self.texels[1],
+            None,
+        );
 
         let mut encoder = command_encoder_descriptor(None).create_with(device);
 
@@ -248,42 +310,6 @@ impl Scene {
         }
 
         encoder.finish()
-    }
-
-    fn graph(&mut self, queue: &Queue, index: usize, t: f32, f: fn(f32) -> f32) {
-        for x_base in 0..SIZE {
-            let fsize = SIZE as f32;
-
-            for offset in [-0.325, -0.25, -0.125, 0.0, 0.125, 0.25, 0.325] {
-                let x = x_base as f32 + offset;
-                let texture_t = (x as f32) / (fsize - 1.0);
-                let y = ((f(texture_t) * fsize) as usize).min(SIZE - 1);
-
-                self.texels[index][y * SIZE + x_base] = if (t - texture_t).abs() < 0.005 {
-                    255
-                } else {
-                    100
-                };
-            }
-        }
-
-        self.gr_layout
-            .pattern
-            .write(queue, &self.textures[index], &self.texels[index]);
-    }
-}
-
-pub fn linear(t: f32) -> f32 {
-    let value = t * 2.0;
-    if value < 1.0 { value } else { 2.0 - value }
-}
-
-pub fn cubic(t: f32) -> f32 {
-    let t = linear(t);
-    if t < 0.5 {
-        4.0 * t * t * t
-    } else {
-        1.0 - (-2.0 * t + 2.0).powi(3) / 2.0
     }
 }
 

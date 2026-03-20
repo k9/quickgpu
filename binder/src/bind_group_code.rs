@@ -42,17 +42,38 @@ pub fn bind_group_code(input: DeriveInput) -> Result<TokenStream, TokenStream> {
     let helper_layout_descriptor_entries = field_entries
         .iter()
         .map(|f| &f.helper_layout_descriptor_entry);
-    let helper_descriptor_entries = field_entries.iter().map(|f| &f.helper_descriptor_entry);
 
     let buffer_fields = field_entries.iter().map(|f| &f.resource_field);
+
+    let binding_entry_fields = field_entries
+        .iter()
+        .filter_map(|f| f.binding_entry.as_ref().map(|f| f.field.clone()))
+        .collect::<Vec<_>>();
+
+    let binding_entry_constraints = field_entries
+        .iter()
+        .filter_map(|f| f.binding_entry.as_ref().map(|f| f.constraint.clone()))
+        .collect::<Vec<_>>();
+
+    let binding_entry_params = field_entries
+        .iter()
+        .map(|f| f.binding_entry.as_ref().map(|f| f.param.clone()))
+        .filter_map(|f| f)
+        .collect::<Vec<_>>();
+
+    let binding_entry_makes = field_entries
+        .iter()
+        .filter_map(|f| f.binding_entry.as_ref().map(|f| f.make.clone()))
+        .collect::<Vec<_>>();
+
     let offset_fields = field_entries.iter().map(|f| &f.offset_field);
     let declaration_fields = field_entries.iter().map(|f| &f.declaration_field);
     let declaration_return_fields = field_entries.iter().map(|f| &f.declaration_return_field);
 
     let code = quote! {
         mod #mod_ident {
-            use quickgpu::{bind_group_descriptor, bind_group_layout_descriptor};
-            use wgpu::{BindGroup, BindGroupLayout, BufferAddress, Device, Label};
+            use quickgpu::{Nested, bind_group_descriptor, bind_group_layout_descriptor, builders};
+            use wgpu::*;
 
             use crate::bind::*;
 
@@ -65,6 +86,10 @@ pub fn bind_group_code(input: DeriveInput) -> Result<TokenStream, TokenStream> {
                 #(#buffer_fields),*
             }
 
+            pub struct BgBindingEntries<#(#binding_entry_params),*> {
+                #(#binding_entry_fields),*
+            }
+
             #[derive(Copy, Clone)]
             pub struct BgOffsets {
                 #(#offset_fields),*
@@ -74,17 +99,17 @@ pub fn bind_group_code(input: DeriveInput) -> Result<TokenStream, TokenStream> {
                 #(#declaration_fields),*
             }
 
-            impl<'a> BgHelper {
-                pub fn new(
+            impl BgHelper {
+                pub fn new<'a>(
                     label: Label<'a>,
                     device: &Device,
                     #(#helper_new_args),*
                 ) -> Self {
                     let layout = device.create_bind_group_layout(
                         &bind_group_layout_descriptor(label)
-                            .entries(&[
+                            .entries(&builders([
                                 #(#helper_layout_descriptor_entries),*
-                            ])
+                            ]))
                             .build(),
                     );
 
@@ -94,17 +119,18 @@ pub fn bind_group_code(input: DeriveInput) -> Result<TokenStream, TokenStream> {
                     }
                 }
 
-                pub fn group(
+                pub fn group<'a, #(#binding_entry_constraints),*>(
                     &self,
                     label: Label<'a>,
-                    buffers: BgBuffers,
+                    buffers: BgBuffers<'a>,
+                    entries: BgBindingEntries<#(#binding_entry_params),*>,
                     offsets: Option<BgOffsets>,
                     device: &Device
                 ) -> BindGroup {
                     device.create_bind_group(
                         &bind_group_descriptor(label)
                             .entries(&[
-                                #(#helper_descriptor_entries),*
+                                #(#binding_entry_makes),*
                             ])
                             .layout(&self.layout)
                             .build(),

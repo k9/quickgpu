@@ -2,6 +2,7 @@ pub mod app;
 pub mod app_loader;
 pub mod bind;
 pub mod group;
+pub mod math;
 pub mod scene;
 
 use winit::event_loop::EventLoop;
