@@ -1,6 +1,5 @@
 use proc_macro2::{Span, TokenStream};
 use quote::{format_ident, quote};
-use syn::Ident;
 
 use crate::utils::err;
 
@@ -13,19 +12,24 @@ pub struct FieldEntry {
     pub offset_field: TokenStream,
     pub declaration_field: TokenStream,
     pub declaration_return_field: TokenStream,
-    pub binding_entry: Option<BindingEntry>,
+    pub binding_entry: BindingEntry,
 }
 
-pub struct BindingEntry {
-    pub field: TokenStream,
-    pub make: TokenStream,
-    pub constraint: TokenStream,
-    pub param: TokenStream,
+pub enum BindingEntry {
+    Buffer {
+        field: TokenStream,
+        make: TokenStream,
+        constraint: TokenStream,
+        param: TokenStream,
+    },
+    Texture {
+        entry: TokenStream,
+    },
 }
 
 pub struct ResourceSpecific {
-    pub bound_ident: Ident,
-    pub binding_entry: Option<BindingEntry>,
+    pub binding_entry: BindingEntry,
+    pub resource_field: TokenStream,
 }
 
 impl std::fmt::Debug for FieldEntry {
@@ -51,6 +55,7 @@ pub fn process_field(f: &mut syn::Field, binding: u32) -> Result<Option<FieldEnt
         let helper_field = quote! {
             pub #field_ident: #ty
         };
+
         let helper_return_field = quote! {
             #field_ident
         };
@@ -67,8 +72,8 @@ pub fn process_field(f: &mut syn::Field, binding: u32) -> Result<Option<FieldEnt
         let fn_return_param = format_ident!("R{binding}");
 
         let ResourceSpecific {
-            bound_ident,
             binding_entry,
+            resource_field,
         } = if last.ident.to_string().starts_with("Buffer") {
             let constraint = quote! {
                 #fn_return_param: Nested<BindGroupEntry<'a>>,
@@ -81,26 +86,41 @@ pub fn process_field(f: &mut syn::Field, binding: u32) -> Result<Option<FieldEnt
                 (entries.#field_ident)(#binding, &buffers.#field_ident.buffer).unnest()
             };
 
+            let bound_ident = format_ident!("BoundBuffer");
+
+            let resource_field = quote! {
+                pub #field_ident: &'a #bound_ident<#inner_ty>
+            };
+
             ResourceSpecific {
-                bound_ident: format_ident!("BoundBuffer"),
-                binding_entry: Some(BindingEntry {
+                resource_field,
+                binding_entry: BindingEntry::Buffer {
                     field,
                     make,
                     constraint,
                     param,
-                }),
+                },
             }
         } else if last.ident.to_string().starts_with("Texture") {
+            let make = quote! {
+                BindGroupEntry {
+                    binding: #binding,
+                    resource: BindingResource::TextureView(&buffers.#field_ident.texture_view)
+                }
+            };
+
+            let bound_ident = format_ident!("BoundTextureView");
+
+            let resource_field = quote! {
+                pub #field_ident: &'a #bound_ident<#inner_ty>
+            };
+
             ResourceSpecific {
-                bound_ident: format_ident!("BoundTextureView"),
-                binding_entry: None,
+                resource_field,
+                binding_entry: BindingEntry::Texture { entry: make },
             }
         } else {
             return Err(err(Span::call_site(), "Unsupported bind type"));
-        };
-
-        let resource_field = quote! {
-            pub #field_ident: &'a #bound_ident<#inner_ty>
         };
 
         let offset_field = quote! {

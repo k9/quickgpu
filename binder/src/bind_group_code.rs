@@ -2,7 +2,11 @@ use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::{Data, DeriveInput, Fields, spanned::Spanned};
 
-use crate::{field::process_field, inner::PUBLIC_NAMED, utils::err};
+use crate::{
+    field::{BindingEntry, process_field},
+    inner::PUBLIC_NAMED,
+    utils::err,
+};
 
 pub fn bind_group_code(input: DeriveInput) -> Result<TokenStream, TokenStream> {
     let ident = &input.ident;
@@ -47,23 +51,34 @@ pub fn bind_group_code(input: DeriveInput) -> Result<TokenStream, TokenStream> {
 
     let binding_entry_fields = field_entries
         .iter()
-        .filter_map(|f| f.binding_entry.as_ref().map(|f| f.field.clone()))
+        .filter_map(|f| match &f.binding_entry {
+            BindingEntry::Buffer { field, .. } => Some(field),
+            BindingEntry::Texture { .. } => None,
+        })
         .collect::<Vec<_>>();
 
     let binding_entry_constraints = field_entries
         .iter()
-        .filter_map(|f| f.binding_entry.as_ref().map(|f| f.constraint.clone()))
+        .filter_map(|f| match &f.binding_entry {
+            BindingEntry::Buffer { constraint, .. } => Some(constraint),
+            BindingEntry::Texture { .. } => None,
+        })
         .collect::<Vec<_>>();
 
     let binding_entry_params = field_entries
         .iter()
-        .map(|f| f.binding_entry.as_ref().map(|f| f.param.clone()))
-        .filter_map(|f| f)
+        .filter_map(|f| match &f.binding_entry {
+            BindingEntry::Buffer { param, .. } => Some(param),
+            BindingEntry::Texture { .. } => None,
+        })
         .collect::<Vec<_>>();
 
     let binding_entry_makes = field_entries
         .iter()
-        .filter_map(|f| f.binding_entry.as_ref().map(|f| f.make.clone()))
+        .filter_map(|f| match &f.binding_entry {
+            BindingEntry::Buffer { make, .. } => Some(make),
+            BindingEntry::Texture { make, .. } => Some(make),
+        })
         .collect::<Vec<_>>();
 
     let offset_fields = field_entries.iter().map(|f| &f.offset_field);

@@ -10,7 +10,7 @@ use wgpu::{
 
 use crate::{
     app::RenderTextures,
-    bind::{Bind, BufferBind, buffer::BoundBuffer},
+    bind::{BufferBind, TextureBind, buffer::BoundBuffer},
     math::{cubic, graph, linear},
 };
 
@@ -20,7 +20,7 @@ pub struct GPUState<'a> {
     pub queue: &'a Queue,
 }
 
-static SIZE: usize = 256;
+static SIZE: usize = 512;
 
 type Offset = [f32; 2];
 
@@ -57,7 +57,7 @@ impl Scene {
                 "vec2<f32>",
                 "offset",
             ),
-            Bind::new(
+            BufferBind::new(
                 BindingType::Buffer {
                     ty: BufferBindingType::Uniform,
                     has_dynamic_offset: false,
@@ -67,7 +67,7 @@ impl Scene {
                 "u32",
                 "size",
             ),
-            Bind::new(
+            TextureBind::new(
                 BindingType::Texture {
                     sample_type: wgpu::TextureSampleType::Float { filterable: true },
                     view_dimension: TextureViewDimension::D2,
