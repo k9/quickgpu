@@ -25,6 +25,9 @@ pub enum BindingEntry {
     Texture {
         entry: TokenStream,
     },
+    Sampler {
+        entry: TokenStream,
+    },
 }
 
 pub struct ResourceSpecific {
@@ -47,10 +50,13 @@ pub fn process_field(f: &mut syn::Field, binding: u32) -> Result<Option<FieldEnt
     if let syn::Type::Path(inner) = ty
         && let Some(last) = inner.path.segments.last()
         && last.ident.to_string().ends_with("Bind")
-        && let syn::PathArguments::AngleBracketed(args) = &last.arguments
-        && args.args.len() == 1
     {
-        let inner_ty = &args.args[0];
+        let mut inner_ty = None;
+        if let syn::PathArguments::AngleBracketed(args) = &last.arguments
+            && args.args.len() == 1
+        {
+            inner_ty = Some(&args.args[0]);
+        }
 
         let helper_field = quote! {
             pub #field_ident: #ty
@@ -86,10 +92,8 @@ pub fn process_field(f: &mut syn::Field, binding: u32) -> Result<Option<FieldEnt
                 (entries.#field_ident)(#binding, &buffers.#field_ident.buffer).unnest()
             };
 
-            let bound_ident = format_ident!("BoundBuffer");
-
             let resource_field = quote! {
-                pub #field_ident: &'a #bound_ident<#inner_ty>
+                pub #field_ident: &'a BoundBuffer<#inner_ty>
             };
 
             ResourceSpecific {
@@ -102,22 +106,36 @@ pub fn process_field(f: &mut syn::Field, binding: u32) -> Result<Option<FieldEnt
                 },
             }
         } else if last.ident.to_string().starts_with("Texture") {
-            let make = quote! {
+            let entry = quote! {
                 BindGroupEntry {
                     binding: #binding,
                     resource: BindingResource::TextureView(&buffers.#field_ident.texture_view)
                 }
             };
 
-            let bound_ident = format_ident!("BoundTextureView");
-
             let resource_field = quote! {
-                pub #field_ident: &'a #bound_ident<#inner_ty>
+                pub #field_ident: &'a BoundTextureView<#inner_ty>
             };
 
             ResourceSpecific {
                 resource_field,
-                binding_entry: BindingEntry::Texture { entry: make },
+                binding_entry: BindingEntry::Texture { entry },
+            }
+        } else if last.ident.to_string().starts_with("Sampler") {
+            let entry = quote! {
+                BindGroupEntry {
+                    binding: #binding,
+                    resource: BindingResource::Sampler(&buffers.#field_ident.sampler)
+                }
+            };
+
+            let resource_field = quote! {
+                pub #field_ident: &'a BoundSampler<#inner_ty>
+            };
+
+            ResourceSpecific {
+                resource_field,
+                binding_entry: BindingEntry::Sampler { entry },
             }
         } else {
             return Err(err(Span::call_site(), "Unsupported bind type"));
@@ -151,6 +169,9 @@ pub fn process_field(f: &mut syn::Field, binding: u32) -> Result<Option<FieldEnt
 
         Ok(Some(entry))
     } else {
-        Err(err(Span::call_site(), "All fields on struct must be Bind"))
+        Err(err(
+            Span::call_site(),
+            &format!("All fields on struct must be Bind {:?}", ty),
+        ))
     }
 }

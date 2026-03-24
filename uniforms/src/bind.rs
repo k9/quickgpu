@@ -1,7 +1,9 @@
 pub mod buffer;
+pub mod sampler;
 pub mod texture;
 
 pub use buffer::*;
+pub use sampler::*;
 pub use texture::*;
 
 use bytemuck::NoUninit;
@@ -50,6 +52,8 @@ pub struct BufferResource;
 impl Resourcelike for BufferResource {}
 pub struct TextureResource;
 impl Resourcelike for TextureResource {}
+pub struct SamplerResource;
+impl Resourcelike for SamplerResource {}
 
 pub trait Declarable {
     fn wgsl_declaration(&self, group: u32, binding: u32) -> String;

@@ -53,6 +53,7 @@ pub fn bind_group_code(input: DeriveInput) -> Result<TokenStream, TokenStream> {
         .iter()
         .filter_map(|f| match &f.binding_entry {
             BindingEntry::Buffer { field, .. } => Some(field),
+            BindingEntry::Sampler { .. } => None,
             BindingEntry::Texture { .. } => None,
         })
         .collect::<Vec<_>>();
@@ -61,6 +62,7 @@ pub fn bind_group_code(input: DeriveInput) -> Result<TokenStream, TokenStream> {
         .iter()
         .filter_map(|f| match &f.binding_entry {
             BindingEntry::Buffer { constraint, .. } => Some(constraint),
+            BindingEntry::Sampler { .. } => None,
             BindingEntry::Texture { .. } => None,
         })
         .collect::<Vec<_>>();
@@ -69,6 +71,7 @@ pub fn bind_group_code(input: DeriveInput) -> Result<TokenStream, TokenStream> {
         .iter()
         .filter_map(|f| match &f.binding_entry {
             BindingEntry::Buffer { param, .. } => Some(param),
+            BindingEntry::Sampler { .. } => None,
             BindingEntry::Texture { .. } => None,
         })
         .collect::<Vec<_>>();
@@ -77,7 +80,8 @@ pub fn bind_group_code(input: DeriveInput) -> Result<TokenStream, TokenStream> {
         .iter()
         .filter_map(|f| match &f.binding_entry {
             BindingEntry::Buffer { make, .. } => Some(make),
-            BindingEntry::Texture { make, .. } => Some(make),
+            BindingEntry::Texture { entry, .. } => Some(entry),
+            BindingEntry::Sampler { entry, .. } => Some(entry),
         })
         .collect::<Vec<_>>();
 

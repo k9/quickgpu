@@ -4,13 +4,13 @@ use binder::bind_group_helper;
 use quickgpu::*;
 use wgpu::{
     BindGroup, BindingType, BufferBindingType, BufferUsages, Color, CommandBuffer, Device, LoadOp,
-    Queue, RenderPipeline, ShaderSource, ShaderStages, Texture, TextureDimension, TextureFormat,
-    TextureUsages, TextureViewDimension,
+    Queue, RenderPipeline, SamplerBindingType, ShaderSource, ShaderStages, Texture,
+    TextureDimension, TextureFormat, TextureUsages, TextureViewDimension,
 };
 
 use crate::{
     app::RenderTextures,
-    bind::{BufferBind, TextureBind, buffer::BoundBuffer},
+    bind::{BufferBind, SamplerBind, TextureBind, buffer::BoundBuffer},
     math::{cubic, graph, linear},
 };
 
@@ -20,7 +20,7 @@ pub struct GPUState<'a> {
     pub queue: &'a Queue,
 }
 
-static SIZE: usize = 512;
+static SIZE: usize = 128;
 
 type Offset = [f32; 2];
 
@@ -40,6 +40,7 @@ pub struct BgHelper {
     pub offset: BufferBind<[f32; 2]>,
     pub size: BufferBind<u32>,
     pub pattern: TextureBind<[u8; super::SIZE * super::SIZE]>,
+    pub pattern_sampler: SamplerBind,
 }
 
 impl Scene {
@@ -76,6 +77,12 @@ impl Scene {
                 ShaderStages::VERTEX_FRAGMENT,
                 "texture_2d<f32>",
                 "pattern",
+            ),
+            SamplerBind::new(
+                BindingType::Sampler(SamplerBindingType::Filtering),
+                ShaderStages::VERTEX_FRAGMENT,
+                "sampler",
+                "pattern_sampler",
             ),
         );
 
@@ -130,6 +137,15 @@ impl Scene {
                 .make_view(&textures[1], &texture_view_descriptor(None).build()),
         ];
 
+        let pattern_sampler = gr_layout.pattern_sampler.make_sampler(
+            device.create_sampler(
+                &sampler_descriptor(None)
+                    .address_mode_u(wgpu::AddressMode::Repeat)
+                    .address_mode_v(wgpu::AddressMode::Repeat)
+                    .build(),
+            ),
+        );
+
         let groups = [
             gr_layout.group(
                 None,
@@ -137,6 +153,7 @@ impl Scene {
                     offset: &offset_buffers[0],
                     size: &size_buffer,
                     pattern: &pattern_views[0],
+                    pattern_sampler: &pattern_sampler,
                 },
                 BgBindingEntries {
                     offset: |binding, buffer| {
@@ -163,6 +180,7 @@ impl Scene {
                     offset: &offset_buffers[1],
                     size: &size_buffer,
                     pattern: &pattern_views[1],
+                    pattern_sampler: &pattern_sampler,
                 },
                 BgBindingEntries {
                     offset: |binding, buffer| {
@@ -252,13 +270,13 @@ impl Scene {
             queue,
             &self.offset_buffers[0],
             None,
-            &[-1.25, linear(t) - 1.0],
+            &[-1.25, cubic(t) - 1.0],
         );
         offset.write(
             queue,
             &self.offset_buffers[1],
             None,
-            &[0.25, cubic(t) - 1.0],
+            &[0.25, linear(t) - 1.0],
         );
         size.write(queue, &self.size_buffer, None, &(SIZE as u32));
 
@@ -293,7 +311,12 @@ impl Scene {
                 render_pass_color_attachment()
                     .view(render_textures.view)
                     .maybe_resolve_target(render_textures.resolve_target)
-                    .ops(operations().load(LoadOp::Clear(Color::WHITE))),
+                    .ops(operations().load(LoadOp::Clear(Color {
+                        r: 0.95,
+                        g: 0.95,
+                        b: 0.95,
+                        a: 1.0,
+                    }))),
             )]);
 
             let mut render_pass = render_pass_descriptor(Some("Render Pass"))
@@ -318,6 +341,7 @@ pub fn shader_source(
         offset,
         size,
         pattern,
+        pattern_sampler,
     }: BgDeclarations,
 ) -> String {
     format!(
@@ -325,6 +349,7 @@ pub fn shader_source(
 {offset}
 {size}
 {pattern}
+{pattern_sampler}
 
 struct VertexOutput {{
     @location(0) uv: vec2<f32>,
@@ -354,12 +379,12 @@ fn vs_main(
 
 @fragment
 fn fs_main(vertex: VertexOutput) -> @location(0) vec4<f32> {{
-    let tex = textureLoad(pattern, vec2<i32>(vertex.uv * f32(size)), 0);
+    let tex = textureSample(pattern, pattern_sampler, vertex.uv);
 
     return vec4<f32>(
-        0.0,
-        tex.r,
-        0.0,
+        0.2,
+        mix(0.2, 1.0, tex.r),
+        0.2,
         1.0
     );
 }}
