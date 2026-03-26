@@ -26,7 +26,7 @@ type Offset = [f32; 2];
 
 pub struct Scene {
     render_pipeline: RenderPipeline,
-    gr_layout: BgHelper,
+    gr_layout: SceneBinds,
     groups: [BindGroup; 2],
     offset_buffers: [BoundBuffer<Offset>; 2],
     size_buffer: BoundBuffer<u32>,
@@ -36,7 +36,7 @@ pub struct Scene {
 }
 
 #[bind_group_helper]
-pub struct BgHelper {
+pub struct SceneBinds {
     pub offset: BufferBind<[f32; 2]>,
     pub size: BufferBind<u32>,
     pub pattern: TextureBind<[u8; super::SIZE * super::SIZE]>,
@@ -45,7 +45,7 @@ pub struct BgHelper {
 
 impl Scene {
     pub fn new(device: &Device, format: TextureFormat, sample_count: u32) -> Self {
-        let gr_layout = BgHelper::new(
+        let gr_layout = SceneBinds::new(
             None,
             device,
             BufferBind::new(
@@ -138,37 +138,27 @@ impl Scene {
         ];
 
         let pattern_sampler = gr_layout.pattern_sampler.make_sampler(
-            device.create_sampler(
-                &sampler_descriptor(None)
-                    .address_mode_u(wgpu::AddressMode::Repeat)
-                    .address_mode_v(wgpu::AddressMode::Repeat)
-                    .build(),
-            ),
+            sampler_descriptor(None)
+                .address_mode_u(wgpu::AddressMode::Repeat)
+                .address_mode_v(wgpu::AddressMode::Repeat)
+                .create_with(device),
         );
 
         let groups = [
             gr_layout.group(
                 None,
-                BgBuffers {
+                SceneBindsBuffers {
                     offset: &offset_buffers[0],
                     size: &size_buffer,
                     pattern: &pattern_views[0],
                     pattern_sampler: &pattern_sampler,
                 },
-                BgBindingEntries {
+                SceneBindsEntries {
                     offset: |binding, buffer| {
-                        bind_group_entry()
-                            .binding(binding)
-                            .resource(wgpu::BindingResource::Buffer(
-                                buffer_binding().buffer(buffer).offset(0).build(),
-                            ))
+                        buffer_binding().buffer(buffer).offset(0).as_entry(binding)
                     },
                     size: |binding, buffer| {
-                        bind_group_entry()
-                            .binding(binding)
-                            .resource(wgpu::BindingResource::Buffer(
-                                buffer_binding().buffer(buffer).offset(0).build(),
-                            ))
+                        buffer_binding().buffer(buffer).offset(0).as_entry(binding)
                     },
                 },
                 None,
@@ -176,26 +166,18 @@ impl Scene {
             ),
             gr_layout.group(
                 None,
-                BgBuffers {
+                SceneBindsBuffers {
                     offset: &offset_buffers[1],
                     size: &size_buffer,
                     pattern: &pattern_views[1],
                     pattern_sampler: &pattern_sampler,
                 },
-                BgBindingEntries {
+                SceneBindsEntries {
                     offset: |binding, buffer| {
-                        bind_group_entry()
-                            .binding(binding)
-                            .resource(wgpu::BindingResource::Buffer(
-                                buffer_binding().buffer(buffer).offset(0).build(),
-                            ))
+                        buffer_binding().buffer(buffer).offset(0).as_entry(binding)
                     },
                     size: |binding, buffer| {
-                        bind_group_entry()
-                            .binding(binding)
-                            .resource(wgpu::BindingResource::Buffer(
-                                buffer_binding().buffer(buffer).offset(0).build(),
-                            ))
+                        buffer_binding().buffer(buffer).offset(0).as_entry(binding)
                     },
                 },
                 None,
@@ -259,7 +241,7 @@ impl Scene {
         let elapsed = self.start.elapsed().as_secs_f32();
         let t = (elapsed * 0.5).fract();
 
-        let BgHelper {
+        let SceneBinds {
             offset,
             size,
             pattern,
@@ -337,12 +319,12 @@ impl Scene {
 }
 
 pub fn shader_source(
-    BgDeclarations {
+    SceneBindsDeclarations {
         offset,
         size,
         pattern,
         pattern_sampler,
-    }: BgDeclarations,
+    }: SceneBindsDeclarations,
 ) -> String {
     format!(
         "

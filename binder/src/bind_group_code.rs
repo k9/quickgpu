@@ -1,3 +1,4 @@
+use heck::ToSnakeCase;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::{Data, DeriveInput, Fields, spanned::Spanned};
@@ -38,7 +39,11 @@ pub fn bind_group_code(input: DeriveInput) -> Result<TokenStream, TokenStream> {
         .filter_map(|f| f)
         .collect::<Vec<_>>();
 
-    let mod_ident = format_ident!("{ident}_mod");
+    let mod_ident = format_ident!("{}_mod", ident.to_string().to_snake_case());
+    let buffers_ident = format_ident!("{ident}Buffers");
+    let binding_entries_ident = format_ident!("{ident}Entries");
+    let declarations_ident = format_ident!("{ident}Declarations");
+    let offsets_ident = format_ident!("{ident}Offsets");
 
     let helper_fields = field_entries.iter().map(|f| &f.helper_field);
     let helper_return_fields = field_entries.iter().map(|f| &f.helper_return_field);
@@ -90,35 +95,35 @@ pub fn bind_group_code(input: DeriveInput) -> Result<TokenStream, TokenStream> {
     let declaration_return_fields = field_entries.iter().map(|f| &f.declaration_return_field);
 
     let code = quote! {
-        mod #mod_ident {
+        pub mod #mod_ident {
             use quickgpu::{Nested, bind_group_descriptor, bind_group_layout_descriptor, builders};
             use wgpu::*;
 
             use crate::bind::*;
 
-            pub struct BgHelper {
+            pub struct #ident {
                 pub layout: BindGroupLayout,
                 #(#helper_fields),*
             }
 
-            pub struct BgBuffers<'a> {
+            pub struct #buffers_ident <'a> {
                 #(#buffer_fields),*
             }
 
-            pub struct BgBindingEntries<#(#binding_entry_params),*> {
+            pub struct #binding_entries_ident <#(#binding_entry_params),*> {
                 #(#binding_entry_fields),*
             }
 
             #[derive(Copy, Clone)]
-            pub struct BgOffsets {
+            pub struct #offsets_ident {
                 #(#offset_fields),*
             }
 
-            pub struct BgDeclarations {
+            pub struct #declarations_ident {
                 #(#declaration_fields),*
             }
 
-            impl BgHelper {
+            impl #ident {
                 pub fn new<'a>(
                     label: Label<'a>,
                     device: &Device,
@@ -141,9 +146,9 @@ pub fn bind_group_code(input: DeriveInput) -> Result<TokenStream, TokenStream> {
                 pub fn group<'a, #(#binding_entry_constraints),*>(
                     &self,
                     label: Label<'a>,
-                    buffers: BgBuffers<'a>,
-                    entries: BgBindingEntries<#(#binding_entry_params),*>,
-                    offsets: Option<BgOffsets>,
+                    buffers: #buffers_ident <'a>,
+                    entries: #binding_entries_ident <#(#binding_entry_params),*>,
+                    offsets: Option<#offsets_ident>,
                     device: &Device
                 ) -> BindGroup {
                     device.create_bind_group(
@@ -156,8 +161,8 @@ pub fn bind_group_code(input: DeriveInput) -> Result<TokenStream, TokenStream> {
                     )
                 }
 
-                pub fn declarations(&self, group: u32) -> BgDeclarations {
-                    BgDeclarations {
+                pub fn declarations(&self, group: u32) -> #declarations_ident {
+                    #declarations_ident {
                         #(#declaration_return_fields),*
                     }
                 }

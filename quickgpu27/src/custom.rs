@@ -28,7 +28,7 @@ mod render_builder {
 
 mod buffer_init_builder {
     use super::super::builders::buffer_init_descriptor_builder::*;
-    use wgpu::{util::DeviceExt, Device};
+    use wgpu::{Device, util::DeviceExt};
 
     impl<'a, CS: Complete<'a>> BufferInitDescriptorBuilder<'a, CS> {
         pub fn create_with(self, device: &Device) -> wgpu::Buffer {
@@ -55,6 +55,47 @@ mod render_pass_builder {
     impl<'a, CS: Complete<'a>> RenderPassDescriptorBuilder<'a, CS> {
         pub fn begin_with(self, encoder: &'a mut CommandEncoder) -> wgpu::RenderPass<'a> {
             encoder.begin_render_pass(&self.build())
+        }
+    }
+}
+
+mod buffer_binding_builder {
+    use crate::builders::bind_group_entry_builder::{self as bge_builder};
+    use crate::builders::buffer_binding_builder::*;
+
+    impl<'a, CS: Complete<'a>> BufferBindingBuilder<'a, CS> {
+        pub fn as_entry(
+            self,
+            binding: u32,
+        ) -> bge_builder::BindGroupEntryBuilder<
+            'a,
+            bge_builder::SetBinding<bge_builder::SetResource<bge_builder::Empty>>,
+        > {
+            bge_builder::bind_group_entry()
+                .resource(wgpu::BindingResource::Buffer(self.build()))
+                .binding(binding)
+        }
+    }
+}
+
+mod sampler_builder {
+    use crate::builders::sampler_descriptor_builder::*;
+    use wgpu::Device;
+
+    impl<'a, CS: Complete<'a>> SamplerDescriptorBuilder<'a, CS> {
+        pub fn create_with(self, device: &'a Device) -> wgpu::Sampler {
+            device.create_sampler(&self.build())
+        }
+    }
+}
+
+mod shader_module {
+    use crate::builders::shader_module_descriptor_builder::*;
+    use wgpu::Device;
+
+    impl<'a, CS: Complete<'a>> ShaderModuleDescriptorBuilder<'a, CS> {
+        pub fn create_with(self, device: &'a Device) -> wgpu::ShaderModule {
+            device.create_shader_module(self.build())
         }
     }
 }
