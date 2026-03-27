@@ -37,6 +37,7 @@ pub struct Scene {
 
 #[bind_group_helper]
 pub struct SceneBinds {
+    pub points: BufferBind<[[f32; 4]; 6]>,
     pub offset: BufferBind<[f32; 2]>,
     pub size: BufferBind<u32>,
     pub pattern: TextureBind<[u8; super::SIZE * super::SIZE]>,
@@ -50,10 +51,16 @@ impl Scene {
             device,
             BufferBind::new(
                 BindingType::Buffer {
-                    ty: BufferBindingType::Uniform,
+                    ty: BufferBindingType::Storage { read_only: true },
                     has_dynamic_offset: false,
                     min_binding_size: None,
                 },
+                ShaderStages::VERTEX_FRAGMENT,
+                "array<vec4<f32>>",
+                "points",
+            ),
+            BufferBind::new(
+                binding_type_buffer(),
                 ShaderStages::VERTEX_FRAGMENT,
                 "vec2<f32>",
                 "offset",
@@ -84,6 +91,20 @@ impl Scene {
                 "sampler",
                 "pattern_sampler",
             ),
+        );
+
+        let points_buffer = gr_layout.points.make_buffer(
+            None,
+            [
+                [0.0, 0.0, 0.0, 0.0],
+                [1.0, 0.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0, 0.0],
+                [1.0, 0.0, 0.0, 0.0],
+                [1.0, 1.0, 0.0, 0.0],
+            ],
+            BufferUsages::STORAGE | BufferUsages::COPY_DST,
+            device,
         );
 
         let offset_buffers = [
@@ -148,12 +169,16 @@ impl Scene {
             gr_layout.group(
                 None,
                 SceneBindsBuffers {
+                    points: &points_buffer,
                     offset: &offset_buffers[0],
                     size: &size_buffer,
                     pattern: &pattern_views[0],
                     pattern_sampler: &pattern_sampler,
                 },
                 SceneBindsEntries {
+                    points: |binding, buffer| {
+                        buffer_binding().buffer(buffer).offset(0).as_entry(binding)
+                    },
                     offset: |binding, buffer| {
                         buffer_binding().buffer(buffer).offset(0).as_entry(binding)
                     },
@@ -167,12 +192,16 @@ impl Scene {
             gr_layout.group(
                 None,
                 SceneBindsBuffers {
+                    points: &points_buffer,
                     offset: &offset_buffers[1],
                     size: &size_buffer,
                     pattern: &pattern_views[1],
                     pattern_sampler: &pattern_sampler,
                 },
                 SceneBindsEntries {
+                    points: |binding, buffer| {
+                        buffer_binding().buffer(buffer).offset(0).as_entry(binding)
+                    },
                     offset: |binding, buffer| {
                         buffer_binding().buffer(buffer).offset(0).as_entry(binding)
                     },
@@ -318,8 +347,17 @@ impl Scene {
     }
 }
 
+fn binding_type_buffer() -> BindingType {
+    BindingType::Buffer {
+        ty: BufferBindingType::Uniform,
+        has_dynamic_offset: false,
+        min_binding_size: None,
+    }
+}
+
 pub fn shader_source(
     SceneBindsDeclarations {
+        points,
         offset,
         size,
         pattern,
@@ -328,6 +366,7 @@ pub fn shader_source(
 ) -> String {
     format!(
         "
+{points}
 {offset}
 {size}
 {pattern}
@@ -344,17 +383,9 @@ fn vs_main(
 ) -> VertexOutput {{
     var result: VertexOutput;
 
-    var points = array(
-          vec2f(0.0, 0.0), // bottom left
-          vec2f(1.0, 0.0), // bottom right
-          vec2f(0.0, 1.0), // top left
-          vec2f(0.0, 1.0), // top left
-          vec2f(1.0, 0.0), // bottom right
-          vec2f(1.0, 1.0), // top right
-    );
-
-    result.position = vec4((points[vertex_index] + offset) * 0.5, 0.0, 1.0);
-    result.uv = points[vertex_index];
+    var point = points[vertex_index].xy;
+    result.position = vec4((point + offset) * 0.5, 0.0, 1.0);
+    result.uv = point;
 
     return result;
 }}

@@ -2,7 +2,8 @@ use std::marker::PhantomData;
 
 use quickgpu::{Nested, bind_group_entry, buffer_init_descriptor};
 use wgpu::{
-    BindGroupEntry, Buffer, BufferAddress, BufferBinding, BufferUsages, Device, Label, Queue,
+    BindGroupEntry, BindingType, Buffer, BufferAddress, BufferBinding, BufferBindingType,
+    BufferUsages, Device, Label, Queue,
 };
 
 use crate::bind::{BufferResource, Datalike};
@@ -45,12 +46,22 @@ impl<Data: Datalike> super::Declarable for BufferBind<Data> {
     fn wgsl_declaration(&self, group: u32, binding: u32) -> String {
         let wgsl_type = &self.wgsl_type;
         let wgsl_name = &self.wgsl_name;
+        let BindingType::Buffer { ty, .. } = self.ty else {
+            panic!("Buffer uniform vs storage mismatch");
+        };
+
+        let var_kind = if ty == BufferBindingType::Uniform {
+            "uniform"
+        } else {
+            "storage"
+        };
+
         format!(
             "
 
 @group({group})
 @binding({binding})
-var<uniform> {wgsl_name}: {wgsl_type};
+var<{var_kind}> {wgsl_name}: {wgsl_type};
 
             "
         )
