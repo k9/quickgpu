@@ -3,6 +3,8 @@
 
 pub use super::super::Nested;
 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
+#[allow(unused_imports)]
+use wgpu::util::DeviceExt;
 pub trait Field {}
 pub trait IsOptional {}
 #[doc = "\nBuilder for [`wgpu::ImageSubresourceRange`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [aspect](ImageSubresourceRangeBuilder::aspect) Optional, defaults to [wgpu::TextureAspect::All]\n  - [base_mip_level](ImageSubresourceRangeBuilder::base_mip_level) Optional, defaults to `0u32`\n  - [mip_level_count](ImageSubresourceRangeBuilder::mip_level_count) Optional, defaults to `None`\n  - [base_array_layer](ImageSubresourceRangeBuilder::base_array_layer) Optional, defaults to `0u32`\n  - [array_layer_count](ImageSubresourceRangeBuilder::array_layer_count) Optional, defaults to `None`\n"]

@@ -3,6 +3,8 @@
 
 pub use super::super::Nested;
 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
+#[allow(unused_imports)]
+use wgpu::util::DeviceExt;
 pub trait Field {}
 pub trait IsOptional {}
 #[doc = "\nBuilder for [`wgpu::BufferBinding`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [buffer](BufferBindingBuilder::buffer) Required\n  - [offset](BufferBindingBuilder::offset) Required\n  - [size](BufferBindingBuilder::size) Optional, defaults to `None`\n"]

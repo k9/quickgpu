@@ -3,6 +3,8 @@
 
 pub use super::super::Nested;
 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
+#[allow(unused_imports)]
+use wgpu::util::DeviceExt;
 pub trait Field {}
 pub trait IsOptional {}
 #[doc = "\nBuilder for [`wgpu::SurfaceConfiguration`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [usage](SurfaceConfigurationBuilder::usage) Required\n  - [format](SurfaceConfigurationBuilder::format) Required\n  - [width](SurfaceConfigurationBuilder::width) Required\n  - [height](SurfaceConfigurationBuilder::height) Required\n  - [present_mode](SurfaceConfigurationBuilder::present_mode) Optional, defaults to [wgpu::PresentMode::Fifo]\n  - [desired_maximum_frame_latency](SurfaceConfigurationBuilder::desired_maximum_frame_latency) Required\n  - [alpha_mode](SurfaceConfigurationBuilder::alpha_mode) Optional, defaults to [wgpu::CompositeAlphaMode::Auto]\n  - [view_formats](SurfaceConfigurationBuilder::view_formats) Required\n"]

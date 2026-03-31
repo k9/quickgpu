@@ -3,6 +3,8 @@
 
 pub use super::super::Nested;
 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
+#[allow(unused_imports)]
+use wgpu::util::DeviceExt;
 pub trait Field {}
 pub trait IsOptional {}
 #[doc = "\nBuilder for [`wgpu::Origin3d`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [x](Origin3dBuilder::x) Optional, defaults to `0`\n  - [y](Origin3dBuilder::y) Optional, defaults to `0`\n  - [z](Origin3dBuilder::z) Optional, defaults to `0`\n"]

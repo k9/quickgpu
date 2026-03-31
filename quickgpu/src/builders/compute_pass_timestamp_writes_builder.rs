@@ -3,6 +3,8 @@
 
 pub use super::super::Nested;
 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
+#[allow(unused_imports)]
+use wgpu::util::DeviceExt;
 pub trait Field {}
 pub trait IsOptional {}
 #[doc = "\nBuilder for [`wgpu::ComputePassTimestampWrites`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [query_set](ComputePassTimestampWritesBuilder::query_set) Required\n  - [beginning_of_pass_write_index](ComputePassTimestampWritesBuilder::beginning_of_pass_write_index) Optional, defaults to `None`\n  - [end_of_pass_write_index](ComputePassTimestampWritesBuilder::end_of_pass_write_index) Optional, defaults to `None`\n"]

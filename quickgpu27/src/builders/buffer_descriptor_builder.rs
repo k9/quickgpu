@@ -3,6 +3,8 @@
 
 pub use super::super::Nested;
 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
+#[allow(unused_imports)]
+use wgpu::util::DeviceExt;
 pub trait Field {}
 pub trait IsOptional {}
 #[doc = "\nBuilder for [`wgpu::BufferDescriptor`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [size](BufferDescriptorBuilder::size) Required\n  - [usage](BufferDescriptorBuilder::usage) Required\n  - [mapped_at_creation](BufferDescriptorBuilder::mapped_at_creation) Required\n"]
@@ -213,6 +215,9 @@ impl<'a, CS: Complete<'a>> BufferDescriptorBuilder<'a, CS> {
             usage: IsSetUsage::get(self.usage),
             mapped_at_creation: IsSetMappedAtCreation::get(self.mapped_at_creation),
         }
+    }
+    pub fn create_with(self, device: &wgpu::Device) -> wgpu::Buffer {
+        device.create_buffer(&self.build())
     }
 }
 #[cfg(test)]

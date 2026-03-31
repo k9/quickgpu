@@ -3,6 +3,8 @@
 
 pub use super::super::Nested;
 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
+#[allow(unused_imports)]
+use wgpu::util::DeviceExt;
 pub trait Field {}
 pub trait IsOptional {}
 #[doc = "\nBuilder for [`wgpu::VertexState`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [module](VertexStateBuilder::module) Required\n  - [entry_point](VertexStateBuilder::entry_point) Optional, defaults to `None`\n  - [compilation_options](VertexStateBuilder::compilation_options) Optional, defaults to [wgpu::PipelineCompilationOptions::default()]\n  - [buffers](VertexStateBuilder::buffers) Required\n"]

@@ -3,6 +3,8 @@
 
 pub use super::super::Nested;
 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
+#[allow(unused_imports)]
+use wgpu::util::DeviceExt;
 pub trait Field {}
 pub trait IsOptional {}
 #[doc = "\nBuilder for [`wgpu::StencilFaceState`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [compare](StencilFaceStateBuilder::compare) Optional, defaults to [wgpu::CompareFunction::Always]\n  - [fail_op](StencilFaceStateBuilder::fail_op) Optional, defaults to [wgpu::StencilOperation::Keep]\n  - [depth_fail_op](StencilFaceStateBuilder::depth_fail_op) Optional, defaults to [wgpu::StencilOperation::Keep]\n  - [pass_op](StencilFaceStateBuilder::pass_op) Optional, defaults to [wgpu::StencilOperation::Keep]\n"]

@@ -3,6 +3,8 @@
 
 pub use super::super::Nested;
 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
+#[allow(unused_imports)]
+use wgpu::util::DeviceExt;
 pub trait Field {}
 pub trait IsOptional {}
 #[doc = "\nBuilder for [`wgpu::DeviceDescriptor`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [required_features](DeviceDescriptorBuilder::required_features) Optional, defaults to [wgpu::Features::default()]\n  - [required_limits](DeviceDescriptorBuilder::required_limits) Optional, defaults to [wgpu::Limits::defaults()]\n  - [experimental_features](DeviceDescriptorBuilder::experimental_features) Optional, defaults to [wgpu::ExperimentalFeatures::default()]\n  - [memory_hints](DeviceDescriptorBuilder::memory_hints) Optional, defaults to [wgpu::MemoryHints::Performance]\n  - [trace](DeviceDescriptorBuilder::trace) Optional, defaults to [wgpu::Trace::Off]\n"]

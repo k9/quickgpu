@@ -3,6 +3,8 @@
 
 pub use super::super::Nested;
 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
+#[allow(unused_imports)]
+use wgpu::util::DeviceExt;
 pub trait Field {}
 pub trait IsOptional {}
 #[doc = "\nBuilder for [`wgpu::ComputePipelineDescriptor`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [layout](ComputePipelineDescriptorBuilder::layout) Optional, defaults to `None`\n  - [module](ComputePipelineDescriptorBuilder::module) Required\n  - [entry_point](ComputePipelineDescriptorBuilder::entry_point) Optional, defaults to `None`\n  - [compilation_options](ComputePipelineDescriptorBuilder::compilation_options) Optional, defaults to [wgpu::PipelineCompilationOptions::default()]\n  - [cache](ComputePipelineDescriptorBuilder::cache) Optional, defaults to `None`\n"]
@@ -400,6 +402,9 @@ impl<'a, CS: Complete<'a>> ComputePipelineDescriptorBuilder<'a, CS> {
             compilation_options: IsSetCompilationOptions::get(self.compilation_options),
             cache: IsSetCache::get(self.cache),
         }
+    }
+    pub fn create_with(self, device: &wgpu::Device) -> wgpu::ComputePipeline {
+        device.create_compute_pipeline(&self.build())
     }
 }
 impl<'a> Nested<wgpu::ComputePipelineDescriptor<'a>> for wgpu::ComputePipelineDescriptor<'a> {

@@ -3,6 +3,8 @@
 
 pub use super::super::Nested;
 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
+#[allow(unused_imports)]
+use wgpu::util::DeviceExt;
 pub trait Field {}
 pub trait IsOptional {}
 #[doc = "\nBuilder for [`wgpu::QuerySetDescriptor`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [ty](QuerySetDescriptorBuilder::ty) Required\n  - [count](QuerySetDescriptorBuilder::count) Required\n"]
@@ -146,6 +148,9 @@ impl<'a, CS: Complete<'a>> QuerySetDescriptorBuilder<'a, CS> {
             ty: IsSetTy::get(self.ty),
             count: IsSetCount::get(self.count),
         }
+    }
+    pub fn create_with(self, device: &wgpu::Device) -> wgpu::QuerySet {
+        device.create_query_set(&self.build())
     }
 }
 #[cfg(test)]

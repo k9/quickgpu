@@ -3,6 +3,8 @@
 
 pub use super::super::Nested;
 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
+#[allow(unused_imports)]
+use wgpu::util::DeviceExt;
 pub trait Field {}
 pub trait IsOptional {}
 #[doc = "\nBuilder for [`wgpu::CopyExternalImageDestInfo`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [texture](CopyExternalImageDestInfoBuilder::texture) Required\n  - [mip_level](CopyExternalImageDestInfoBuilder::mip_level) Required\n  - [origin](CopyExternalImageDestInfoBuilder::origin) Optional, defaults to [wgpu::Origin3d::ZERO]\n  - [aspect](CopyExternalImageDestInfoBuilder::aspect) Optional, defaults to [wgpu::TextureAspect::All]\n  - [color_space](CopyExternalImageDestInfoBuilder::color_space) Required\n  - [premultiplied_alpha](CopyExternalImageDestInfoBuilder::premultiplied_alpha) Required\n"]

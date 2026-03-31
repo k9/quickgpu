@@ -3,6 +3,8 @@
 
 pub use super::super::Nested;
 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
+#[allow(unused_imports)]
+use wgpu::util::DeviceExt;
 pub trait Field {}
 pub trait IsOptional {}
 #[doc = "\nBuilder for [`wgpu::MultisampleState`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [count](MultisampleStateBuilder::count) Optional, defaults to `1`\n  - [mask](MultisampleStateBuilder::mask) Optional, defaults to `!0`\n  - [alpha_to_coverage_enabled](MultisampleStateBuilder::alpha_to_coverage_enabled) Optional, defaults to `false`\n"]

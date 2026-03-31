@@ -3,6 +3,8 @@
 
 pub use super::super::Nested;
 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
+#[allow(unused_imports)]
+use wgpu::util::DeviceExt;
 pub trait Field {}
 pub trait IsOptional {}
 #[doc = "\nBuilder for [`wgpu::ColorTargetState`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [format](ColorTargetStateBuilder::format) Required\n  - [blend](ColorTargetStateBuilder::blend) Optional, defaults to `None`\n  - [write_mask](ColorTargetStateBuilder::write_mask) Optional, defaults to [wgpu::ColorWrites::ALL]\n"]

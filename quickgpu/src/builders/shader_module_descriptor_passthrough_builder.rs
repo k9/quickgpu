@@ -3,6 +3,8 @@
 
 pub use super::super::Nested;
 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
+#[allow(unused_imports)]
+use wgpu::util::DeviceExt;
 pub trait Field {}
 pub trait IsOptional {}
 #[doc = "\nBuilder for [`wgpu::ShaderModuleDescriptorPassthrough`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [entry_points](ShaderModuleDescriptorPassthroughBuilder::entry_points) Optional, defaults to [Cow::Borrowed(&[])]\n  - [spirv](ShaderModuleDescriptorPassthroughBuilder::spirv) Optional, defaults to `None`\n  - [dxil](ShaderModuleDescriptorPassthroughBuilder::dxil) Optional, defaults to `None`\n  - [hlsl](ShaderModuleDescriptorPassthroughBuilder::hlsl) Optional, defaults to `None`\n  - [metallib](ShaderModuleDescriptorPassthroughBuilder::metallib) Optional, defaults to `None`\n  - [msl](ShaderModuleDescriptorPassthroughBuilder::msl) Optional, defaults to `None`\n  - [glsl](ShaderModuleDescriptorPassthroughBuilder::glsl) Optional, defaults to `None`\n  - [wgsl](ShaderModuleDescriptorPassthroughBuilder::wgsl) Optional, defaults to `None`\n"]

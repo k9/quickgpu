@@ -3,6 +3,8 @@
 
 pub use super::super::Nested;
 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
+#[allow(unused_imports)]
+use wgpu::util::DeviceExt;
 pub trait Field {}
 pub trait IsOptional {}
 #[doc = "\nBuilder for [`wgpu::TextureViewDescriptor`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [format](TextureViewDescriptorBuilder::format) Optional, defaults to `None`\n  - [dimension](TextureViewDescriptorBuilder::dimension) Optional, defaults to `None`\n  - [usage](TextureViewDescriptorBuilder::usage) Optional, defaults to `None`\n  - [aspect](TextureViewDescriptorBuilder::aspect) Optional, defaults to [wgpu::TextureAspect::All]\n  - [base_mip_level](TextureViewDescriptorBuilder::base_mip_level) Optional, defaults to `0u32`\n  - [mip_level_count](TextureViewDescriptorBuilder::mip_level_count) Optional, defaults to `None`\n  - [base_array_layer](TextureViewDescriptorBuilder::base_array_layer) Optional, defaults to `0u32`\n  - [array_layer_count](TextureViewDescriptorBuilder::array_layer_count) Optional, defaults to `None`\n"]

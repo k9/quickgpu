@@ -3,6 +3,8 @@
 
 pub use super::super::Nested;
 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
+#[allow(unused_imports)]
+use wgpu::util::DeviceExt;
 pub trait Field {}
 pub trait IsOptional {}
 #[doc = "\nBuilder for [`wgpu::PipelineLayoutDescriptor`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [bind_group_layouts](PipelineLayoutDescriptorBuilder::bind_group_layouts) Optional, defaults to [::core::default::Default::default()]\n  - [immediate_size](PipelineLayoutDescriptorBuilder::immediate_size) Optional, defaults to `0u32`\n"]
@@ -180,6 +182,9 @@ impl<'a, CS: Complete<'a>> PipelineLayoutDescriptorBuilder<'a, CS> {
             bind_group_layouts: IsSetBindGroupLayouts::get(self.bind_group_layouts),
             immediate_size: IsSetImmediateSize::get(self.immediate_size),
         }
+    }
+    pub fn create_with(self, device: &wgpu::Device) -> wgpu::PipelineLayout {
+        device.create_pipeline_layout(&self.build())
     }
 }
 impl<'a> Nested<wgpu::PipelineLayoutDescriptor<'a>> for wgpu::PipelineLayoutDescriptor<'a> {

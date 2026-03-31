@@ -1,10 +1,15 @@
 use clap::ValueEnum;
 use quote::{ToTokens, quote as q};
 use std::collections::HashMap;
+use syn::{Ident, ReturnType, TypePath};
 use xshell::Shell;
 
 use discover_exports::{
-    analysis::Analysis, crate_graph::for_each_node, process::parse_crate, resolve::PathType,
+    analysis::Analysis,
+    crate_graph::for_each_node,
+    process::parse_crate,
+    resolve::{PathType, resolve_impls, resolve_path},
+    utils::path_from_string,
 };
 
 use crate::{
@@ -47,6 +52,13 @@ const SKIP: &[&str] = &[
 pub enum Version {
     V27,
     V28,
+}
+
+pub struct CreateWithDevice {
+    pub path: TypePath,
+    pub name: Ident,
+    pub output: ReturnType,
+    pub use_reference: bool,
 }
 
 pub fn generate(version: Version) -> anyhow::Result<()> {
@@ -125,6 +137,22 @@ pub fn generate(version: Version) -> anyhow::Result<()> {
     let mut builders = vec![];
     let mut builder_entries = HashMap::new();
 
+    let mut create_with_device = vec![];
+
+    let resolution =
+        resolve_path(&wgpu, wgpu.crate_root, &path_from_string("wgpu::Device")).unwrap();
+
+    resolve_impls(&wgpu, resolution)
+        .unwrap()
+        .iter()
+        .for_each(|impl_| {
+            impl_.items.iter().for_each(|item| {
+                if let Some(create_with) = should_create_with(item) {
+                    create_with_device.push(create_with);
+                }
+            });
+        });
+
     for_each_node(
         &wgpu,
         |(index, path)| {
@@ -152,7 +180,13 @@ pub fn generate(version: Version) -> anyhow::Result<()> {
     });
 
     for (index, path) in builder_entries_sorted {
-        builders.push(output_struct(&wgpu, *index, path.clone(), &builder_entries));
+        builders.push(output_struct(
+            &wgpu,
+            *index,
+            path.clone(),
+            &builder_entries,
+            &create_with_device,
+        ));
     }
 
     for Output {
@@ -222,4 +256,54 @@ pub mod builders;
     rustfmt(output_path)?;
 
     Ok(())
+}
+
+fn should_create_with(item: &syn::ImplItem) -> Option<CreateWithDevice> {
+    if let syn::ImplItem::Fn(item_fn) = item
+        && item_fn.sig.unsafety.is_none()
+        && let name = item_fn.sig.ident.to_string()
+        && name.starts_with("create_")
+        && item_fn.sig.inputs.len() == 2
+        && let Some(syn::FnArg::Receiver(reciever)) = item_fn.sig.inputs.get(0)
+        && ([
+            quote::quote!(&wgpu::Device).to_string(),
+            quote::quote!(wgpu::util::DeviceExt).to_string(),
+        ]
+        .contains(&reciever.ty.clone().into_token_stream().to_string()))
+        && let Some(syn::FnArg::Typed(desc)) = item_fn.sig.inputs.get(1)
+        && desc
+            .ty
+            .clone()
+            .into_token_stream()
+            .to_string()
+            .contains("Descriptor")
+    {
+        let ty = desc.ty.clone();
+        match *ty {
+            syn::Type::Path(path) => {
+                return Some(CreateWithDevice {
+                    path,
+                    name: item_fn.sig.ident.clone(),
+                    use_reference: false,
+                    output: item_fn.sig.output.clone(),
+                });
+            }
+            syn::Type::Reference(type_reference) => {
+                match *type_reference.elem {
+                    syn::Type::Path(path) => {
+                        return Some(CreateWithDevice {
+                            path,
+                            name: item_fn.sig.ident.clone(),
+                            use_reference: true,
+                            output: item_fn.sig.output.clone(),
+                        });
+                    }
+                    _ => (),
+                };
+            }
+            _ => (),
+        };
+    }
+
+    None
 }

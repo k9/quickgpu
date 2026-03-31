@@ -3,6 +3,8 @@
 
 pub use super::super::Nested;
 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
+#[allow(unused_imports)]
+use wgpu::util::DeviceExt;
 pub trait Field {}
 pub trait IsOptional {}
 #[doc = "\nBuilder for [`wgpu::CooperativeMatrixProperties`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [m_size](CooperativeMatrixPropertiesBuilder::m_size) Required\n  - [n_size](CooperativeMatrixPropertiesBuilder::n_size) Required\n  - [k_size](CooperativeMatrixPropertiesBuilder::k_size) Required\n  - [ab_type](CooperativeMatrixPropertiesBuilder::ab_type) Required\n  - [cr_type](CooperativeMatrixPropertiesBuilder::cr_type) Required\n  - [saturating_accumulation](CooperativeMatrixPropertiesBuilder::saturating_accumulation) Required\n"]

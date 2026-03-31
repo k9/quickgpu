@@ -3,6 +3,8 @@
 
 pub use super::super::Nested;
 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
+#[allow(unused_imports)]
+use wgpu::util::DeviceExt;
 pub trait Field {}
 pub trait IsOptional {}
 #[doc = "\nBuilder for [`wgpu::BlasAabbGeometry`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [size](BlasAabbGeometryBuilder::size) Required\n  - [stride](BlasAabbGeometryBuilder::stride) Required\n  - [aabb_buffer](BlasAabbGeometryBuilder::aabb_buffer) Required\n  - [primitive_offset](BlasAabbGeometryBuilder::primitive_offset) Required\n"]

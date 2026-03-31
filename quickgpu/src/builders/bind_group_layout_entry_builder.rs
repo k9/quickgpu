@@ -3,6 +3,8 @@
 
 pub use super::super::Nested;
 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
+#[allow(unused_imports)]
+use wgpu::util::DeviceExt;
 pub trait Field {}
 pub trait IsOptional {}
 #[doc = "\nBuilder for [`wgpu::BindGroupLayoutEntry`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [binding](BindGroupLayoutEntryBuilder::binding) Required\n  - [visibility](BindGroupLayoutEntryBuilder::visibility) Required\n  - [ty](BindGroupLayoutEntryBuilder::ty) Required\n  - [count](BindGroupLayoutEntryBuilder::count) Optional, defaults to `None`\n"]

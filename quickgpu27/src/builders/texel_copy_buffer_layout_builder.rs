@@ -3,6 +3,8 @@
 
 pub use super::super::Nested;
 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
+#[allow(unused_imports)]
+use wgpu::util::DeviceExt;
 pub trait Field {}
 pub trait IsOptional {}
 #[doc = "\nBuilder for [`wgpu::TexelCopyBufferLayout`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [offset](TexelCopyBufferLayoutBuilder::offset) Optional, defaults to [wgpu::BufferAddress::default()]\n  - [bytes_per_row](TexelCopyBufferLayoutBuilder::bytes_per_row) Optional, defaults to `None`\n  - [rows_per_image](TexelCopyBufferLayoutBuilder::rows_per_image) Optional, defaults to `None`\n"]

@@ -3,6 +3,8 @@
 
 pub use super::super::Nested;
 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
+#[allow(unused_imports)]
+use wgpu::util::DeviceExt;
 pub trait Field {}
 pub trait IsOptional {}
 #[doc = "\nBuilder for [`wgpu::CreateTlasDescriptor`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [max_instances](CreateTlasDescriptorBuilder::max_instances) Required\n  - [flags](CreateTlasDescriptorBuilder::flags) Required\n  - [update_mode](CreateTlasDescriptorBuilder::update_mode) Required\n"]
@@ -219,6 +221,9 @@ impl<'a, CS: Complete<'a>> CreateTlasDescriptorBuilder<'a, CS> {
             flags: IsSetFlags::get(self.flags),
             update_mode: IsSetUpdateMode::get(self.update_mode),
         }
+    }
+    pub fn create_with(self, device: &wgpu::Device) -> wgpu::Tlas {
+        device.create_tlas(&self.build())
     }
 }
 #[cfg(test)]

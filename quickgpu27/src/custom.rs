@@ -16,38 +16,6 @@ pub fn builders<T, N: Nested<T>, const COUNT: usize>(a: [N; COUNT]) -> Vec<T> {
     a.into_iter().map(|item| item.unnest()).collect()
 }
 
-mod render_builder {
-    use super::super::builders::render_pipeline_descriptor_builder::*;
-
-    impl<'a, CS: Complete<'a>> RenderPipelineDescriptorBuilder<'a, CS> {
-        pub fn create_with(self, device: &wgpu::Device) -> wgpu::RenderPipeline {
-            device.create_render_pipeline(&self.build())
-        }
-    }
-}
-
-mod buffer_init_builder {
-    use super::super::builders::buffer_init_descriptor_builder::*;
-    use wgpu::{util::DeviceExt, Device};
-
-    impl<'a, CS: Complete<'a>> BufferInitDescriptorBuilder<'a, CS> {
-        pub fn create_with(self, device: &Device) -> wgpu::Buffer {
-            device.create_buffer_init(&self.build())
-        }
-    }
-}
-
-mod command_encoder_builder {
-    use super::super::builders::command_encoder_descriptor_builder::*;
-    use wgpu::Device;
-
-    impl<'a, CS: Complete<'a>> CommandEncoderDescriptorBuilder<'a, CS> {
-        pub fn create_with(self, device: &Device) -> wgpu::CommandEncoder {
-            device.create_command_encoder(&self.build())
-        }
-    }
-}
-
 mod render_pass_builder {
     use super::super::builders::render_pass_descriptor_builder::*;
     use wgpu::CommandEncoder;
@@ -74,28 +42,6 @@ mod buffer_binding_builder {
             bge_builder::bind_group_entry()
                 .resource(wgpu::BindingResource::Buffer(self.build()))
                 .binding(binding)
-        }
-    }
-}
-
-mod sampler_builder {
-    use crate::builders::sampler_descriptor_builder::*;
-    use wgpu::Device;
-
-    impl<'a, CS: Complete<'a>> SamplerDescriptorBuilder<'a, CS> {
-        pub fn create_with(self, device: &'a Device) -> wgpu::Sampler {
-            device.create_sampler(&self.build())
-        }
-    }
-}
-
-mod shader_module {
-    use crate::builders::shader_module_descriptor_builder::*;
-    use wgpu::Device;
-
-    impl<'a, CS: Complete<'a>> ShaderModuleDescriptorBuilder<'a, CS> {
-        pub fn create_with(self, device: &'a Device) -> wgpu::ShaderModule {
-            device.create_shader_module(self.build())
         }
     }
 }

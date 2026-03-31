@@ -3,6 +3,8 @@
 
 pub use super::super::Nested;
 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
+#[allow(unused_imports)]
+use wgpu::util::DeviceExt;
 pub trait Field {}
 pub trait IsOptional {}
 #[doc = "\nBuilder for [`wgpu::NoopBackendOptions`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [enable](NoopBackendOptionsBuilder::enable) Optional, defaults to `false`\n  - [limits](NoopBackendOptionsBuilder::limits) Optional, defaults to `None`\n  - [features](NoopBackendOptionsBuilder::features) Optional, defaults to `None`\n  - [device_type](NoopBackendOptionsBuilder::device_type) Optional, defaults to `None`\n  - [subgroup_min_size](NoopBackendOptionsBuilder::subgroup_min_size) Optional, defaults to `None`\n  - [subgroup_max_size](NoopBackendOptionsBuilder::subgroup_max_size) Optional, defaults to `None`\n"]

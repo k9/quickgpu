@@ -3,6 +3,8 @@
 
 pub use super::super::Nested;
 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
+#[allow(unused_imports)]
+use wgpu::util::DeviceExt;
 pub trait Field {}
 pub trait IsOptional {}
 #[doc = "\nBuilder for [`wgpu::BlasTriangleGeometry`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [size](BlasTriangleGeometryBuilder::size) Required\n  - [vertex_buffer](BlasTriangleGeometryBuilder::vertex_buffer) Required\n  - [first_vertex](BlasTriangleGeometryBuilder::first_vertex) Required\n  - [vertex_stride](BlasTriangleGeometryBuilder::vertex_stride) Required\n  - [index_buffer](BlasTriangleGeometryBuilder::index_buffer) Optional, defaults to `None`\n  - [first_index](BlasTriangleGeometryBuilder::first_index) Optional, defaults to `None`\n  - [transform_buffer](BlasTriangleGeometryBuilder::transform_buffer) Optional, defaults to `None`\n  - [transform_buffer_offset](BlasTriangleGeometryBuilder::transform_buffer_offset) Optional, defaults to `None`\n"]

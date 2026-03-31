@@ -3,6 +3,8 @@
 
 pub use super::super::Nested;
 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
+#[allow(unused_imports)]
+use wgpu::util::DeviceExt;
 pub trait Field {}
 pub trait IsOptional {}
 #[doc = "\nBuilder for [`wgpu::BlendComponent`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [src_factor](BlendComponentBuilder::src_factor) Optional, defaults to [wgpu::BlendFactor::One]\n  - [dst_factor](BlendComponentBuilder::dst_factor) Optional, defaults to [wgpu::BlendFactor::Zero]\n  - [operation](BlendComponentBuilder::operation) Optional, defaults to [wgpu::BlendOperation::Add]\n"]

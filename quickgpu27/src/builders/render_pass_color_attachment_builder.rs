@@ -3,6 +3,8 @@
 
 pub use super::super::Nested;
 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
+#[allow(unused_imports)]
+use wgpu::util::DeviceExt;
 pub trait Field {}
 pub trait IsOptional {}
 #[doc = "\nBuilder for [`wgpu::RenderPassColorAttachment`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [view](RenderPassColorAttachmentBuilder::view) Required\n  - [depth_slice](RenderPassColorAttachmentBuilder::depth_slice) Optional, defaults to `None`\n  - [resolve_target](RenderPassColorAttachmentBuilder::resolve_target) Optional, defaults to `None`\n  - [ops](RenderPassColorAttachmentBuilder::ops) Optional, defaults to [wgpu::Operations::default()]\n"]

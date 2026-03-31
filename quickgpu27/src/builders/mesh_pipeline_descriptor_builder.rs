@@ -3,6 +3,8 @@
 
 pub use super::super::Nested;
 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
+#[allow(unused_imports)]
+use wgpu::util::DeviceExt;
 pub trait Field {}
 pub trait IsOptional {}
 #[doc = "\nBuilder for [`wgpu::MeshPipelineDescriptor`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [layout](MeshPipelineDescriptorBuilder::layout) Optional, defaults to `None`\n  - [task](MeshPipelineDescriptorBuilder::task) Optional, defaults to `None`\n  - [mesh](MeshPipelineDescriptorBuilder::mesh) Required\n  - [primitive](MeshPipelineDescriptorBuilder::primitive) Optional, defaults to [wgpu::PrimitiveState::default()]\n  - [depth_stencil](MeshPipelineDescriptorBuilder::depth_stencil) Optional, defaults to `None`\n  - [multisample](MeshPipelineDescriptorBuilder::multisample) Optional, defaults to [wgpu::MultisampleState::default()]\n  - [fragment](MeshPipelineDescriptorBuilder::fragment) Optional, defaults to `None`\n  - [multiview](MeshPipelineDescriptorBuilder::multiview) Optional, defaults to `None`\n  - [cache](MeshPipelineDescriptorBuilder::cache) Optional, defaults to `None`\n"]
@@ -763,6 +765,9 @@ impl<'a, CS: Complete<'a>> MeshPipelineDescriptorBuilder<'a, CS> {
             multiview: IsSetMultiview::get(self.multiview),
             cache: IsSetCache::get(self.cache),
         }
+    }
+    pub fn create_with(self, device: &wgpu::Device) -> wgpu::RenderPipeline {
+        device.create_mesh_pipeline(&self.build())
     }
 }
 impl<'a> Nested<wgpu::MeshPipelineDescriptor<'a>> for wgpu::MeshPipelineDescriptor<'a> {

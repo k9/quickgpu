@@ -3,6 +3,8 @@
 
 pub use super::super::Nested;
 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
+#[allow(unused_imports)]
+use wgpu::util::DeviceExt;
 pub trait Field {}
 pub trait IsOptional {}
 #[doc = "\nBuilder for [`wgpu::RenderBundleEncoderDescriptor`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [color_formats](RenderBundleEncoderDescriptorBuilder::color_formats) Optional, defaults to [::core::default::Default::default()]\n  - [depth_stencil](RenderBundleEncoderDescriptorBuilder::depth_stencil) Optional, defaults to `None`\n  - [sample_count](RenderBundleEncoderDescriptorBuilder::sample_count) Optional, defaults to `0u32`\n  - [multiview](RenderBundleEncoderDescriptorBuilder::multiview) Optional, defaults to `None`\n"]
@@ -327,6 +329,9 @@ impl<'a, CS: Complete<'a>> RenderBundleEncoderDescriptorBuilder<'a, CS> {
             sample_count: IsSetSampleCount::get(self.sample_count),
             multiview: IsSetMultiview::get(self.multiview),
         }
+    }
+    pub fn create_with(self, device: &wgpu::Device) -> wgpu::RenderBundleEncoder<'a> {
+        device.create_render_bundle_encoder(&self.build())
     }
 }
 impl<'a> Nested<wgpu::RenderBundleEncoderDescriptor<'a>>

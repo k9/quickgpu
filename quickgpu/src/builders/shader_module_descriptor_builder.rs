@@ -3,6 +3,8 @@
 
 pub use super::super::Nested;
 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
+#[allow(unused_imports)]
+use wgpu::util::DeviceExt;
 pub trait Field {}
 pub trait IsOptional {}
 #[doc = "\nBuilder for [`wgpu::ShaderModuleDescriptor`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [source](ShaderModuleDescriptorBuilder::source) Required\n"]
@@ -109,6 +111,9 @@ impl<'a, CS: Complete<'a>> ShaderModuleDescriptorBuilder<'a, CS> {
             label: IsSetLabel::get(self.label),
             source: IsSetSource::get(self.source),
         }
+    }
+    pub fn create_with(self, device: &wgpu::Device) -> wgpu::ShaderModule {
+        device.create_shader_module(self.build())
     }
 }
 impl<'a> Nested<wgpu::ShaderModuleDescriptor<'a>> for wgpu::ShaderModuleDescriptor<'a> {

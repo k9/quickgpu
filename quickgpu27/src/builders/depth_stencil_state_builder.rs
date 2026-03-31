@@ -3,6 +3,8 @@
 
 pub use super::super::Nested;
 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
+#[allow(unused_imports)]
+use wgpu::util::DeviceExt;
 pub trait Field {}
 pub trait IsOptional {}
 #[doc = "\nBuilder for [`wgpu::DepthStencilState`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [format](DepthStencilStateBuilder::format) Required\n  - [depth_write_enabled](DepthStencilStateBuilder::depth_write_enabled) Optional, defaults to `None`\n  - [depth_compare](DepthStencilStateBuilder::depth_compare) Optional, defaults to `None`\n  - [stencil](DepthStencilStateBuilder::stencil) Optional, defaults to [wgpu::StencilState::default()]\n  - [bias](DepthStencilStateBuilder::bias) Optional, defaults to [wgpu::DepthBiasState::default()]\n"]
