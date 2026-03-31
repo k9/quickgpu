@@ -3,6 +3,8 @@
 
 pub use super::super::Nested;
 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
+#[allow(unused_imports)]
+use wgpu::util::DeviceExt;
 pub trait Field {}
 pub trait IsOptional {}
 #[doc = "\nBuilder for [`wgpu::RequestAdapterOptions`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [power_preference](RequestAdapterOptionsBuilder::power_preference) Optional, defaults to [wgpu::PowerPreference::None]\n  - [force_fallback_adapter](RequestAdapterOptionsBuilder::force_fallback_adapter) Optional, defaults to `false`\n  - [compatible_surface](RequestAdapterOptionsBuilder::compatible_surface) Optional, defaults to `None`\n"]

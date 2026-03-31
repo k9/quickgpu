@@ -3,6 +3,8 @@
 
 pub use super::super::Nested;
 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
+#[allow(unused_imports)]
+use wgpu::util::DeviceExt;
 pub trait Field {}
 pub trait IsOptional {}
 #[doc = "\nBuilder for [`wgpu::ShaderRuntimeChecks`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [bounds_checks](ShaderRuntimeChecksBuilder::bounds_checks) Optional, defaults to `true`\n  - [force_loop_bounding](ShaderRuntimeChecksBuilder::force_loop_bounding) Optional, defaults to `true`\n  - [ray_query_initialization_tracking](ShaderRuntimeChecksBuilder::ray_query_initialization_tracking) Optional, defaults to `true`\n"]

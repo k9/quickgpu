@@ -3,6 +3,8 @@
 
 pub use super::super::Nested;
 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
+#[allow(unused_imports)]
+use wgpu::util::DeviceExt;
 pub trait Field {}
 pub trait IsOptional {}
 #[doc = "\nBuilder for [`wgpu::util::DrawIndexedIndirectArgs`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [index_count](DrawIndexedIndirectArgsBuilder::index_count) Optional, defaults to `0u32`\n  - [instance_count](DrawIndexedIndirectArgsBuilder::instance_count) Optional, defaults to `0u32`\n  - [first_index](DrawIndexedIndirectArgsBuilder::first_index) Optional, defaults to `0u32`\n  - [base_vertex](DrawIndexedIndirectArgsBuilder::base_vertex) Optional, defaults to `0i32`\n  - [first_instance](DrawIndexedIndirectArgsBuilder::first_instance) Optional, defaults to `0u32`\n"]

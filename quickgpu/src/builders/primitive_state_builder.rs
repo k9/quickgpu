@@ -3,6 +3,8 @@
 
 pub use super::super::Nested;
 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
+#[allow(unused_imports)]
+use wgpu::util::DeviceExt;
 pub trait Field {}
 pub trait IsOptional {}
 #[doc = "\nBuilder for [`wgpu::PrimitiveState`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [topology](PrimitiveStateBuilder::topology) Optional, defaults to [wgpu::PrimitiveTopology::TriangleList]\n  - [strip_index_format](PrimitiveStateBuilder::strip_index_format) Optional, defaults to `None`\n  - [front_face](PrimitiveStateBuilder::front_face) Optional, defaults to [wgpu::FrontFace::Ccw]\n  - [cull_mode](PrimitiveStateBuilder::cull_mode) Optional, defaults to `None`\n  - [unclipped_depth](PrimitiveStateBuilder::unclipped_depth) Optional, defaults to `false`\n  - [polygon_mode](PrimitiveStateBuilder::polygon_mode) Optional, defaults to [wgpu::PolygonMode::Fill]\n  - [conservative](PrimitiveStateBuilder::conservative) Optional, defaults to `false`\n"]

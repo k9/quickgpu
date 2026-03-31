@@ -3,6 +3,8 @@
 
 pub use super::super::Nested;
 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
+#[allow(unused_imports)]
+use wgpu::util::DeviceExt;
 pub trait Field {}
 pub trait IsOptional {}
 #[doc = "\nBuilder for [`wgpu::ExternalTextureTransferFunction`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [a](ExternalTextureTransferFunctionBuilder::a) Optional, defaults to `1.0`\n  - [b](ExternalTextureTransferFunctionBuilder::b) Optional, defaults to `1.0`\n  - [g](ExternalTextureTransferFunctionBuilder::g) Optional, defaults to `1.0`\n  - [k](ExternalTextureTransferFunctionBuilder::k) Optional, defaults to `1.0`\n"]

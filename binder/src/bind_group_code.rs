@@ -27,20 +27,13 @@ pub fn bind_group_code(input: DeriveInput) -> Result<TokenStream, TokenStream> {
         .map(|(i, f)| process_field(f, i as u32))
         .collect();
 
-    let field_entries = match field_entries {
-        Ok(entries) => entries,
-        Err(err) => {
-            return Err(err);
-        }
-    };
-
-    let field_entries = field_entries
+    let field_entries = field_entries?
         .into_iter()
         .filter_map(|f| f)
         .collect::<Vec<_>>();
 
     let mod_ident = format_ident!("{}_mod", ident.to_string().to_snake_case());
-    let buffers_ident = format_ident!("{ident}Buffers");
+    let resources_ident = format_ident!("{ident}Resources");
     let binding_entries_ident = format_ident!("{ident}Entries");
     let declarations_ident = format_ident!("{ident}Declarations");
     let offsets_ident = format_ident!("{ident}Offsets");
@@ -52,7 +45,7 @@ pub fn bind_group_code(input: DeriveInput) -> Result<TokenStream, TokenStream> {
         .iter()
         .map(|f| &f.helper_layout_descriptor_entry);
 
-    let buffer_fields = field_entries.iter().map(|f| &f.resource_field);
+    let resource_fields = field_entries.iter().map(|f| &f.resource_field);
 
     let binding_entry_fields = field_entries
         .iter()
@@ -106,8 +99,8 @@ pub fn bind_group_code(input: DeriveInput) -> Result<TokenStream, TokenStream> {
                 #(#helper_fields),*
             }
 
-            pub struct #buffers_ident <'a> {
-                #(#buffer_fields),*
+            pub struct #resources_ident <'a> {
+                #(#resource_fields),*
             }
 
             pub struct #binding_entries_ident <#(#binding_entry_params),*> {
@@ -146,7 +139,7 @@ pub fn bind_group_code(input: DeriveInput) -> Result<TokenStream, TokenStream> {
                 pub fn group<'a, #(#binding_entry_constraints),*>(
                     &self,
                     label: Label<'a>,
-                    buffers: #buffers_ident <'a>,
+                    resources: #resources_ident <'a>,
                     entries: #binding_entries_ident <#(#binding_entry_params),*>,
                     offsets: Option<#offsets_ident>,
                     device: &Device

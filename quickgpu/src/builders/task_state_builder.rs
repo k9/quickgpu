@@ -3,6 +3,8 @@
 
 pub use super::super::Nested;
 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
+#[allow(unused_imports)]
+use wgpu::util::DeviceExt;
 pub trait Field {}
 pub trait IsOptional {}
 #[doc = "\nBuilder for [`wgpu::TaskState`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [module](TaskStateBuilder::module) Required\n  - [entry_point](TaskStateBuilder::entry_point) Optional, defaults to `None`\n  - [compilation_options](TaskStateBuilder::compilation_options) Optional, defaults to [wgpu::PipelineCompilationOptions::default()]\n"]

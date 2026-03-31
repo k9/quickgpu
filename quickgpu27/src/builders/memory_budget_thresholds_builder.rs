@@ -3,6 +3,8 @@
 
 pub use super::super::Nested;
 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
+#[allow(unused_imports)]
+use wgpu::util::DeviceExt;
 pub trait Field {}
 pub trait IsOptional {}
 #[doc = "\nBuilder for [`wgpu::MemoryBudgetThresholds`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [for_resource_creation](MemoryBudgetThresholdsBuilder::for_resource_creation) Optional, defaults to `None`\n  - [for_device_loss](MemoryBudgetThresholdsBuilder::for_device_loss) Optional, defaults to `None`\n"]

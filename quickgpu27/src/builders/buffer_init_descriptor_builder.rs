@@ -3,6 +3,8 @@
 
 pub use super::super::Nested;
 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
+#[allow(unused_imports)]
+use wgpu::util::DeviceExt;
 pub trait Field {}
 pub trait IsOptional {}
 #[doc = "\nBuilder for [`wgpu::util::BufferInitDescriptor`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [contents](BufferInitDescriptorBuilder::contents) Required\n  - [usage](BufferInitDescriptorBuilder::usage) Required\n"]
@@ -152,6 +154,9 @@ impl<'a, CS: Complete<'a>> BufferInitDescriptorBuilder<'a, CS> {
             contents: IsSetContents::get(self.contents),
             usage: IsSetUsage::get(self.usage),
         }
+    }
+    pub fn create_with(self, device: &wgpu::Device) -> wgpu::Buffer {
+        device.create_buffer_init(&self.build())
     }
 }
 impl<'a> Nested<wgpu::util::BufferInitDescriptor<'a>> for wgpu::util::BufferInitDescriptor<'a> {

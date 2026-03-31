@@ -3,6 +3,8 @@
 
 pub use super::super::Nested;
 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
+#[allow(unused_imports)]
+use wgpu::util::DeviceExt;
 pub trait Field {}
 pub trait IsOptional {}
 #[doc = "\nBuilder for [`wgpu::BindGroupDescriptor`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [layout](BindGroupDescriptorBuilder::layout) Required\n  - [entries](BindGroupDescriptorBuilder::entries) Required\n"]
@@ -160,6 +162,9 @@ impl<'a, CS: Complete<'a>> BindGroupDescriptorBuilder<'a, CS> {
             layout: IsSetLayout::get(self.layout),
             entries: IsSetEntries::get(self.entries),
         }
+    }
+    pub fn create_with(self, device: &wgpu::Device) -> wgpu::BindGroup {
+        device.create_bind_group(&self.build())
     }
 }
 impl<'a> Nested<wgpu::BindGroupDescriptor<'a>> for wgpu::BindGroupDescriptor<'a> {

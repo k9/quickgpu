@@ -3,6 +3,8 @@
 
 pub use super::super::Nested;
 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
+#[allow(unused_imports)]
+use wgpu::util::DeviceExt;
 pub trait Field {}
 pub trait IsOptional {}
 #[doc = "\nBuilder for [`wgpu::VertexBufferLayout`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [array_stride](VertexBufferLayoutBuilder::array_stride) Required\n  - [step_mode](VertexBufferLayoutBuilder::step_mode) Optional, defaults to [wgpu::VertexStepMode::Vertex]\n  - [attributes](VertexBufferLayoutBuilder::attributes) Required\n"]

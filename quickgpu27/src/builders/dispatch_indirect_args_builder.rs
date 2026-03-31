@@ -3,6 +3,8 @@
 
 pub use super::super::Nested;
 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
+#[allow(unused_imports)]
+use wgpu::util::DeviceExt;
 pub trait Field {}
 pub trait IsOptional {}
 #[doc = "\nBuilder for [`wgpu::util::DispatchIndirectArgs`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [x](DispatchIndirectArgsBuilder::x) Optional, defaults to `0u32`\n  - [y](DispatchIndirectArgsBuilder::y) Optional, defaults to `0u32`\n  - [z](DispatchIndirectArgsBuilder::z) Optional, defaults to `0u32`\n"]

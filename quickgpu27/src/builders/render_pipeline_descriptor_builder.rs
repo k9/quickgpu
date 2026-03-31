@@ -3,6 +3,8 @@
 
 pub use super::super::Nested;
 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
+#[allow(unused_imports)]
+use wgpu::util::DeviceExt;
 pub trait Field {}
 pub trait IsOptional {}
 #[doc = "\nBuilder for [`wgpu::RenderPipelineDescriptor`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [layout](RenderPipelineDescriptorBuilder::layout) Optional, defaults to `None`\n  - [vertex](RenderPipelineDescriptorBuilder::vertex) Required\n  - [primitive](RenderPipelineDescriptorBuilder::primitive) Optional, defaults to [wgpu::PrimitiveState::default()]\n  - [depth_stencil](RenderPipelineDescriptorBuilder::depth_stencil) Optional, defaults to `None`\n  - [multisample](RenderPipelineDescriptorBuilder::multisample) Optional, defaults to [wgpu::MultisampleState::default()]\n  - [fragment](RenderPipelineDescriptorBuilder::fragment) Optional, defaults to `None`\n  - [multiview](RenderPipelineDescriptorBuilder::multiview) Optional, defaults to `None`\n  - [cache](RenderPipelineDescriptorBuilder::cache) Optional, defaults to `None`\n"]
@@ -659,6 +661,9 @@ impl<'a, CS: Complete<'a>> RenderPipelineDescriptorBuilder<'a, CS> {
             multiview: IsSetMultiview::get(self.multiview),
             cache: IsSetCache::get(self.cache),
         }
+    }
+    pub fn create_with(self, device: &wgpu::Device) -> wgpu::RenderPipeline {
+        device.create_render_pipeline(&self.build())
     }
 }
 impl<'a> Nested<wgpu::RenderPipelineDescriptor<'a>> for wgpu::RenderPipelineDescriptor<'a> {

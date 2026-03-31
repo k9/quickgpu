@@ -134,17 +134,15 @@ impl Scene {
         let texture_extent = extent_3_d().width(SIZE as u32).height(SIZE as u32).build();
 
         let make_texture = || {
-            device.create_texture(
-                &texture_descriptor(None)
-                    .size(texture_extent)
-                    .mip_level_count(1)
-                    .sample_count(1)
-                    .dimension(TextureDimension::D2)
-                    .format(TextureFormat::R8Unorm)
-                    .usage(TextureUsages::TEXTURE_BINDING | TextureUsages::COPY_DST)
-                    .view_formats(&[])
-                    .build(),
-            )
+            texture_descriptor(None)
+                .size(texture_extent)
+                .mip_level_count(1)
+                .sample_count(1)
+                .dimension(TextureDimension::D2)
+                .format(TextureFormat::R8Unorm)
+                .usage(TextureUsages::TEXTURE_BINDING | TextureUsages::COPY_DST)
+                .view_formats(&[])
+                .create_with(device)
         };
 
         let textures = [make_texture(), make_texture()];
@@ -168,7 +166,7 @@ impl Scene {
         let groups = [
             gr_layout.group(
                 None,
-                SceneBindsBuffers {
+                SceneBindsResources {
                     points: &points_buffer,
                     offset: &offset_buffers[0],
                     size: &size_buffer,
@@ -191,7 +189,7 @@ impl Scene {
             ),
             gr_layout.group(
                 None,
-                SceneBindsBuffers {
+                SceneBindsResources {
                     points: &points_buffer,
                     offset: &offset_buffers[1],
                     size: &size_buffer,
@@ -214,19 +212,15 @@ impl Scene {
             ),
         ];
 
-        let shader = device.create_shader_module(
-            shader_module_descriptor(None)
-                .source(ShaderSource::Wgsl(Cow::Owned(shader_source(
-                    gr_layout.declarations(0),
-                ))))
-                .build(),
-        );
+        let shader = shader_module_descriptor(None)
+            .source(ShaderSource::Wgsl(Cow::Owned(shader_source(
+                gr_layout.declarations(0),
+            ))))
+            .create_with(device);
 
-        let layout = device.create_pipeline_layout(
-            &pipeline_layout_descriptor(Some("Layout"))
-                .bind_group_layouts(&[&gr_layout.layout])
-                .build(),
-        );
+        let layout = pipeline_layout_descriptor(Some("Layout"))
+            .bind_group_layouts(&[&gr_layout.layout])
+            .create_with(device);
 
         let render_pipeline = render_pipeline_descriptor(Some("Render Pipeline"))
             .layout(&layout)
@@ -323,10 +317,10 @@ impl Scene {
                     .view(render_textures.view)
                     .maybe_resolve_target(render_textures.resolve_target)
                     .ops(operations().load(LoadOp::Clear(Color {
-                        r: 0.95,
-                        g: 0.95,
-                        b: 0.95,
-                        a: 1.0,
+                        r: 0.92,
+                        g: 0.93,
+                        b: 0.94,
+                        a: 0.1,
                     }))),
             )]);
 

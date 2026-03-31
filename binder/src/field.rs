@@ -89,7 +89,7 @@ pub fn process_field(f: &mut syn::Field, binding: u32) -> Result<Option<FieldEnt
             let param = quote! { #fn_param };
             let field = quote! { pub #field_ident: #fn_param };
             let make = quote! {
-                (entries.#field_ident)(#binding, &buffers.#field_ident.buffer).unnest()
+                (entries.#field_ident)(#binding, &resources.#field_ident.buffer).unnest()
             };
 
             let resource_field = quote! {
@@ -109,7 +109,7 @@ pub fn process_field(f: &mut syn::Field, binding: u32) -> Result<Option<FieldEnt
             let entry = quote! {
                 BindGroupEntry {
                     binding: #binding,
-                    resource: BindingResource::TextureView(&buffers.#field_ident.texture_view)
+                    resource: BindingResource::TextureView(&resources.#field_ident.texture_view)
                 }
             };
 
@@ -125,7 +125,7 @@ pub fn process_field(f: &mut syn::Field, binding: u32) -> Result<Option<FieldEnt
             let entry = quote! {
                 BindGroupEntry {
                     binding: #binding,
-                    resource: BindingResource::Sampler(&buffers.#field_ident.sampler)
+                    resource: BindingResource::Sampler(&resources.#field_ident.sampler)
                 }
             };
 

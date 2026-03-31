@@ -3,6 +3,8 @@
 
 pub use super::super::Nested;
 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
+#[allow(unused_imports)]
+use wgpu::util::DeviceExt;
 pub trait Field {}
 pub trait IsOptional {}
 #[doc = "\nBuilder for [`wgpu::CommandEncoderDescriptor`]\n        "]
@@ -68,6 +70,9 @@ impl<'a, CS: Complete<'a>> CommandEncoderDescriptorBuilder<'a, CS> {
         wgpu::CommandEncoderDescriptor {
             label: IsSetLabel::get(self.label),
         }
+    }
+    pub fn create_with(self, device: &wgpu::Device) -> wgpu::CommandEncoder {
+        device.create_command_encoder(&self.build())
     }
 }
 #[cfg(test)]

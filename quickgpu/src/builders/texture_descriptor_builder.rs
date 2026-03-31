@@ -3,6 +3,8 @@
 
 pub use super::super::Nested;
 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
+#[allow(unused_imports)]
+use wgpu::util::DeviceExt;
 pub trait Field {}
 pub trait IsOptional {}
 #[doc = "\nBuilder for [`wgpu::TextureDescriptor`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [size](TextureDescriptorBuilder::size) Optional, defaults to [wgpu::Extent3d::default()]\n  - [mip_level_count](TextureDescriptorBuilder::mip_level_count) Required\n  - [sample_count](TextureDescriptorBuilder::sample_count) Required\n  - [dimension](TextureDescriptorBuilder::dimension) Required\n  - [format](TextureDescriptorBuilder::format) Required\n  - [usage](TextureDescriptorBuilder::usage) Required\n  - [view_formats](TextureDescriptorBuilder::view_formats) Required\n"]
@@ -451,6 +453,9 @@ impl<'a, CS: Complete<'a>> TextureDescriptorBuilder<'a, CS> {
             usage: IsSetUsage::get(self.usage),
             view_formats: IsSetViewFormats::get(self.view_formats),
         }
+    }
+    pub fn create_with(self, device: &wgpu::Device) -> wgpu::Texture {
+        device.create_texture(&self.build())
     }
 }
 #[cfg(test)]

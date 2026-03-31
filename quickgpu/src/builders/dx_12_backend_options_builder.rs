@@ -3,6 +3,8 @@
 
 pub use super::super::Nested;
 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
+#[allow(unused_imports)]
+use wgpu::util::DeviceExt;
 pub trait Field {}
 pub trait IsOptional {}
 #[doc = "\nBuilder for [`wgpu::Dx12BackendOptions`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [shader_compiler](Dx12BackendOptionsBuilder::shader_compiler) Optional, defaults to [wgpu::Dx12Compiler::Fxc]\n  - [presentation_system](Dx12BackendOptionsBuilder::presentation_system) Optional, defaults to [wgpu::Dx12SwapchainKind::DxgiFromHwnd]\n  - [latency_waitable_object](Dx12BackendOptionsBuilder::latency_waitable_object) Optional, defaults to [wgpu::Dx12UseFrameLatencyWaitableObject::Wait]\n"]

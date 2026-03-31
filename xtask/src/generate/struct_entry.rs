@@ -20,6 +20,7 @@ use discover_exports::{
 
 use crate::{
     generate::{
+        CreateWithDevice,
         builder::{GeneratedBuilder, builder_code},
         nested::BuilderResolve,
     },
@@ -36,6 +37,7 @@ pub struct BuilderStruct<'a> {
     pub generics: UniqueGenerics,
     pub generate_nested_impl: bool,
     pub original_ident: Ident,
+    pub create_with_device: Option<&'a CreateWithDevice>,
 }
 
 pub enum StructIdent {
@@ -150,6 +152,7 @@ pub(crate) fn output_struct(
     index: EntryIndex,
     path: Path,
     builders: &HashMap<String, (EntryIndex, Path)>,
+    create_with_device: &[CreateWithDevice],
 ) -> Output {
     let (index, mut item, generate_nested_impl) = filter_struct(ctx, index, &path).unwrap();
 
@@ -182,6 +185,7 @@ pub(crate) fn output_struct(
     }
 
     let ident = ident_from_path(&path).unwrap();
+    let path_string = &path.clone().into_token_stream().to_string();
     let mut builder_struct = BuilderStruct {
         path,
         original_ident: ident,
@@ -189,6 +193,9 @@ pub(crate) fn output_struct(
         fields,
         generics: UniqueGenerics::new(Some(generics)),
         generate_nested_impl,
+        create_with_device: create_with_device
+            .iter()
+            .find(|c| path_string == &without_args(&c.path.path).into_token_stream().to_string()),
     };
 
     for impl_item in &impls {

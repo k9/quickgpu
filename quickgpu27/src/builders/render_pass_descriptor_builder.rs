@@ -3,6 +3,8 @@
 
 pub use super::super::Nested;
 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
+#[allow(unused_imports)]
+use wgpu::util::DeviceExt;
 pub trait Field {}
 pub trait IsOptional {}
 #[doc = "\nBuilder for [`wgpu::RenderPassDescriptor`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [color_attachments](RenderPassDescriptorBuilder::color_attachments) Optional, defaults to [::core::default::Default::default()]\n  - [depth_stencil_attachment](RenderPassDescriptorBuilder::depth_stencil_attachment) Optional, defaults to `None`\n  - [timestamp_writes](RenderPassDescriptorBuilder::timestamp_writes) Optional, defaults to `None`\n  - [occlusion_query_set](RenderPassDescriptorBuilder::occlusion_query_set) Optional, defaults to `None`\n"]

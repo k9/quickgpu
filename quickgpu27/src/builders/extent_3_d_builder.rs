@@ -3,6 +3,8 @@
 
 pub use super::super::Nested;
 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
+#[allow(unused_imports)]
+use wgpu::util::DeviceExt;
 pub trait Field {}
 pub trait IsOptional {}
 #[doc = "\nBuilder for [`wgpu::Extent3d`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [width](Extent3dBuilder::width) Optional, defaults to `1`\n  - [height](Extent3dBuilder::height) Optional, defaults to `1`\n  - [depth_or_array_layers](Extent3dBuilder::depth_or_array_layers) Optional, defaults to `1`\n"]
