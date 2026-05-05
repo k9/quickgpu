@@ -19,8 +19,6 @@ pub enum BindingEntry {
     Buffer {
         field: TokenStream,
         make: TokenStream,
-        constraint: TokenStream,
-        param: TokenStream,
     },
     Texture {
         entry: TokenStream,
@@ -74,22 +72,13 @@ pub fn process_field(f: &mut syn::Field, binding: u32) -> Result<Option<FieldEnt
             #field_ident.layout_entry(#binding)
         };
 
-        let fn_param = format_ident!("F{binding}");
-        let fn_return_param = format_ident!("R{binding}");
-
         let ResourceSpecific {
             binding_entry,
             resource_field,
         } = if last.ident.to_string().starts_with("Buffer") {
-            let constraint = quote! {
-                #fn_return_param: Nested<BindGroupEntry<'a>>,
-                #fn_param: Fn(u32, &'a Buffer) -> #fn_return_param
-            };
-
-            let param = quote! { #fn_param };
-            let field = quote! { pub #field_ident: #fn_param };
+            let field = quote! { pub #field_ident: Option<for<'a> fn(binding: u32, buffer: &'a Buffer) -> BindGroupEntry<'a>> };
             let make = quote! {
-                (entries.#field_ident)(#binding, &resources.#field_ident.buffer).unnest()
+                (entries.#field_ident.unwrap_or(default_entry))(#binding, &resources.#field_ident.buffer).unnest()
             };
 
             let resource_field = quote! {
@@ -98,12 +87,7 @@ pub fn process_field(f: &mut syn::Field, binding: u32) -> Result<Option<FieldEnt
 
             ResourceSpecific {
                 resource_field,
-                binding_entry: BindingEntry::Buffer {
-                    field,
-                    make,
-                    constraint,
-                    param,
-                },
+                binding_entry: BindingEntry::Buffer { field, make },
             }
         } else if last.ident.to_string().starts_with("Texture") {
             let entry = quote! {

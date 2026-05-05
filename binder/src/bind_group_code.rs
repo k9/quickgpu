@@ -56,24 +56,6 @@ pub fn bind_group_code(input: DeriveInput) -> Result<TokenStream, TokenStream> {
         })
         .collect::<Vec<_>>();
 
-    let binding_entry_constraints = field_entries
-        .iter()
-        .filter_map(|f| match &f.binding_entry {
-            BindingEntry::Buffer { constraint, .. } => Some(constraint),
-            BindingEntry::Sampler { .. } => None,
-            BindingEntry::Texture { .. } => None,
-        })
-        .collect::<Vec<_>>();
-
-    let binding_entry_params = field_entries
-        .iter()
-        .filter_map(|f| match &f.binding_entry {
-            BindingEntry::Buffer { param, .. } => Some(param),
-            BindingEntry::Sampler { .. } => None,
-            BindingEntry::Texture { .. } => None,
-        })
-        .collect::<Vec<_>>();
-
     let binding_entry_makes = field_entries
         .iter()
         .filter_map(|f| match &f.binding_entry {
@@ -103,8 +85,16 @@ pub fn bind_group_code(input: DeriveInput) -> Result<TokenStream, TokenStream> {
                 #(#resource_fields),*
             }
 
-            pub struct #binding_entries_ident <#(#binding_entry_params),*> {
+            pub struct #binding_entries_ident {
                 #(#binding_entry_fields),*
+            }
+
+            pub fn default_entry<'a>(binding: u32, buffer: &'a Buffer) -> BindGroupEntry<'a> {
+                quickgpu::buffer_binding()
+                    .buffer(buffer)
+                    .offset(0)
+                    .as_entry(binding)
+                    .build()
             }
 
             #[derive(Copy, Clone)]
@@ -136,11 +126,11 @@ pub fn bind_group_code(input: DeriveInput) -> Result<TokenStream, TokenStream> {
                     }
                 }
 
-                pub fn group<'a, #(#binding_entry_constraints),*>(
+                pub fn group<'a>(
                     &self,
                     label: Label<'a>,
                     resources: #resources_ident <'a>,
-                    entries: #binding_entries_ident <#(#binding_entry_params),*>,
+                    entries: #binding_entries_ident,
                     offsets: Option<#offsets_ident>,
                     device: &Device
                 ) -> BindGroup {

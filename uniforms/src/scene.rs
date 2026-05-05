@@ -26,7 +26,7 @@ type Offset = [f32; 2];
 
 pub struct Scene {
     render_pipeline: RenderPipeline,
-    gr_layout: SceneBinds,
+    scene_binds: SceneBinds,
     groups: [BindGroup; 2],
     offset_buffers: [BoundBuffer<Offset>; 2],
     size_buffer: BoundBuffer<u32>,
@@ -46,7 +46,7 @@ pub struct SceneBinds {
 
 impl Scene {
     pub fn new(device: &Device, format: TextureFormat, sample_count: u32) -> Self {
-        let gr_layout = SceneBinds::new(
+        let scene_binds = SceneBinds::new(
             None,
             device,
             BufferBind::new(
@@ -93,7 +93,7 @@ impl Scene {
             ),
         );
 
-        let points_buffer = gr_layout.points.make_buffer(
+        let points_buffer = scene_binds.points.make_buffer(
             None,
             [
                 [0.0, 0.0, 0.0, 0.0],
@@ -108,13 +108,13 @@ impl Scene {
         );
 
         let offset_buffers = [
-            gr_layout.offset.make_buffer(
+            scene_binds.offset.make_buffer(
                 None,
                 [1.0; 2],
                 BufferUsages::UNIFORM | BufferUsages::COPY_DST,
                 device,
             ),
-            gr_layout.offset.make_buffer(
+            scene_binds.offset.make_buffer(
                 None,
                 [1.0; 2],
                 BufferUsages::UNIFORM | BufferUsages::COPY_DST,
@@ -122,7 +122,7 @@ impl Scene {
             ),
         ];
 
-        let size_buffer = gr_layout.size.make_buffer(
+        let size_buffer = scene_binds.size.make_buffer(
             None,
             SIZE as u32,
             BufferUsages::UNIFORM | BufferUsages::COPY_DST,
@@ -148,15 +148,15 @@ impl Scene {
         let textures = [make_texture(), make_texture()];
 
         let pattern_views = [
-            gr_layout
+            scene_binds
                 .pattern
                 .make_view(&textures[0], &texture_view_descriptor(None).build()),
-            gr_layout
+            scene_binds
                 .pattern
                 .make_view(&textures[1], &texture_view_descriptor(None).build()),
         ];
 
-        let pattern_sampler = gr_layout.pattern_sampler.make_sampler(
+        let pattern_sampler = scene_binds.pattern_sampler.make_sampler(
             sampler_descriptor(None)
                 .address_mode_u(wgpu::AddressMode::Repeat)
                 .address_mode_v(wgpu::AddressMode::Repeat)
@@ -164,7 +164,7 @@ impl Scene {
         );
 
         let groups = [
-            gr_layout.group(
+            scene_binds.group(
                 None,
                 SceneBindsResources {
                     points: &points_buffer,
@@ -174,20 +174,14 @@ impl Scene {
                     pattern_sampler: &pattern_sampler,
                 },
                 SceneBindsEntries {
-                    points: |binding, buffer| {
-                        buffer_binding().buffer(buffer).offset(0).as_entry(binding)
-                    },
-                    offset: |binding, buffer| {
-                        buffer_binding().buffer(buffer).offset(0).as_entry(binding)
-                    },
-                    size: |binding, buffer| {
-                        buffer_binding().buffer(buffer).offset(0).as_entry(binding)
-                    },
+                    points: None,
+                    offset: None,
+                    size: None,
                 },
                 None,
                 device,
             ),
-            gr_layout.group(
+            scene_binds.group(
                 None,
                 SceneBindsResources {
                     points: &points_buffer,
@@ -197,15 +191,9 @@ impl Scene {
                     pattern_sampler: &pattern_sampler,
                 },
                 SceneBindsEntries {
-                    points: |binding, buffer| {
-                        buffer_binding().buffer(buffer).offset(0).as_entry(binding)
-                    },
-                    offset: |binding, buffer| {
-                        buffer_binding().buffer(buffer).offset(0).as_entry(binding)
-                    },
-                    size: |binding, buffer| {
-                        buffer_binding().buffer(buffer).offset(0).as_entry(binding)
-                    },
+                    points: None,
+                    offset: None,
+                    size: None,
                 },
                 None,
                 device,
@@ -214,12 +202,12 @@ impl Scene {
 
         let shader = shader_module_descriptor(None)
             .source(ShaderSource::Wgsl(Cow::Owned(shader_source(
-                gr_layout.declarations(0),
+                scene_binds.declarations(0),
             ))))
             .create_with(device);
 
         let layout = pipeline_layout_descriptor(Some("Layout"))
-            .bind_group_layouts(&[&gr_layout.layout])
+            .bind_group_layouts(&[&scene_binds.layout])
             .create_with(device);
 
         let render_pipeline = render_pipeline_descriptor(Some("Render Pipeline"))
@@ -242,7 +230,7 @@ impl Scene {
 
         Scene {
             render_pipeline,
-            gr_layout,
+            scene_binds,
             groups,
             offset_buffers,
             size_buffer,
@@ -269,7 +257,7 @@ impl Scene {
             size,
             pattern,
             ..
-        } = &self.gr_layout;
+        } = &self.scene_binds;
 
         offset.write(
             queue,
