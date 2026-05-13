@@ -7,7 +7,7 @@ members = [
   "example",
   "uniforms",
   "bunnymark",
-  "binder",
+  "binder_macros",
 ]
 exclude = ["discover_exports/test_workspace", "wgpu"]
 resolver = "2"

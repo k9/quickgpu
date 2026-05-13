@@ -26,3 +26,22 @@ mod render_pass_builder {
         }
     }
 }
+
+mod buffer_binding_builder {
+    use crate::builders::bind_group_entry_builder::{self as bge_builder};
+    use crate::builders::buffer_binding_builder::*;
+
+    impl<'a, CS: Complete<'a>> BufferBindingBuilder<'a, CS> {
+        pub fn as_entry(
+            self,
+            binding: u32,
+        ) -> bge_builder::BindGroupEntryBuilder<
+            'a,
+            bge_builder::SetBinding<bge_builder::SetResource<bge_builder::Empty>>,
+        > {
+            bge_builder::bind_group_entry()
+                .resource(wgpu::BindingResource::Buffer(self.build()))
+                .binding(binding)
+        }
+    }
+}

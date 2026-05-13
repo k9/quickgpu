@@ -1,14 +1,14 @@
 use std::marker::PhantomData;
 
-use quickgpu::{Nested, bind_group_entry, buffer_init_descriptor};
 use wgpu::{
     BindGroupEntry, BindingType, Buffer, BufferAddress, BufferBinding, BufferBindingType,
     BufferUsages, Device, Label, Queue,
 };
 
-use crate::bind::{BufferResource, Datalike};
+use crate::binder::{BufferResource, Datalike};
+use crate::{bind_group_entry, buffer_init_descriptor, Nested};
 
-pub type BufferBind<Data> = super::Bind<Data, BufferResource>;
+pub type BufferBind<Data> = crate::binder::Bind<Data, BufferResource>;
 
 impl<Data: Datalike> BufferBind<Data> {
     pub fn make_buffer<'a>(
@@ -42,7 +42,7 @@ impl<Data: Datalike> BufferBind<Data> {
     }
 }
 
-impl<Data: Datalike> super::Declarable for BufferBind<Data> {
+impl<Data: Datalike> crate::binder::Declarable for BufferBind<Data> {
     fn wgsl_declaration(&self, group: u32, binding: u32) -> String {
         let wgsl_type = &self.wgsl_type;
         let wgsl_name = &self.wgsl_name;

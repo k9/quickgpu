@@ -1,13 +1,29 @@
 use heck::ToSnakeCase;
+use proc_macro_crate::{FoundCrate, crate_name};
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
-use syn::{Data, DeriveInput, Fields, spanned::Spanned};
+use syn::{Data, DeriveInput, Fields, Ident, spanned::Spanned};
 
 use crate::{
     field::{BindingEntry, process_field},
     inner::PUBLIC_NAMED,
     utils::err,
 };
+
+pub fn quickgpu_crate_name() -> Ident {
+    let mut quickgpu = None;
+    for krate in ["quickgpu", "quickgpu27"] {
+        if let Ok(FoundCrate::Name(name)) = crate_name(krate) {
+            quickgpu = Some(name);
+        }
+    }
+
+    let Some(quickgpu) = quickgpu else {
+        panic!("Couldn't find quickgpu dependency")
+    };
+
+    format_ident!("{}", quickgpu)
+}
 
 pub fn bind_group_code(input: DeriveInput) -> Result<TokenStream, TokenStream> {
     let ident = &input.ident;
@@ -27,10 +43,7 @@ pub fn bind_group_code(input: DeriveInput) -> Result<TokenStream, TokenStream> {
         .map(|(i, f)| process_field(f, i as u32))
         .collect();
 
-    let field_entries = field_entries?
-        .into_iter()
-        .filter_map(|f| f)
-        .collect::<Vec<_>>();
+    let field_entries = field_entries?.into_iter().flatten().collect::<Vec<_>>();
 
     let mod_ident = format_ident!("{}_mod", ident.to_string().to_snake_case());
     let resources_ident = format_ident!("{ident}Resources");
@@ -58,26 +71,22 @@ pub fn bind_group_code(input: DeriveInput) -> Result<TokenStream, TokenStream> {
 
     let binding_entry_makes = field_entries
         .iter()
-        .filter_map(|f| match &f.binding_entry {
-            BindingEntry::Buffer { make, .. } => Some(make),
-            BindingEntry::Texture { entry, .. } => Some(entry),
-            BindingEntry::Sampler { entry, .. } => Some(entry),
+        .map(|f| match &f.binding_entry {
+            BindingEntry::Buffer { make, .. } => make,
+            BindingEntry::Texture { entry, .. } => entry,
+            BindingEntry::Sampler { entry, .. } => entry,
         })
         .collect::<Vec<_>>();
 
     let offset_fields = field_entries.iter().map(|f| &f.offset_field);
     let declaration_fields = field_entries.iter().map(|f| &f.declaration_field);
     let declaration_return_fields = field_entries.iter().map(|f| &f.declaration_return_field);
+    let quickgpu = quickgpu_crate_name();
 
     let code = quote! {
         pub mod #mod_ident {
-            use quickgpu::{Nested, bind_group_descriptor, bind_group_layout_descriptor, builders};
-            use wgpu::*;
-
-            use crate::bind::*;
-
             pub struct #ident {
-                pub layout: BindGroupLayout,
+                pub layout: wgpu::BindGroupLayout,
                 #(#helper_fields),*
             }
 
@@ -89,8 +98,8 @@ pub fn bind_group_code(input: DeriveInput) -> Result<TokenStream, TokenStream> {
                 #(#binding_entry_fields),*
             }
 
-            pub fn default_entry<'a>(binding: u32, buffer: &'a Buffer) -> BindGroupEntry<'a> {
-                quickgpu::buffer_binding()
+            pub fn default_entry<'a>(binding: u32, buffer: &'a wgpu::Buffer) -> wgpu::BindGroupEntry<'a> {
+                #quickgpu::buffer_binding()
                     .buffer(buffer)
                     .offset(0)
                     .as_entry(binding)
@@ -108,13 +117,13 @@ pub fn bind_group_code(input: DeriveInput) -> Result<TokenStream, TokenStream> {
 
             impl #ident {
                 pub fn new<'a>(
-                    label: Label<'a>,
-                    device: &Device,
+                    label: wgpu::Label<'a>,
+                    device: &wgpu::Device,
                     #(#helper_new_args),*
                 ) -> Self {
                     let layout = device.create_bind_group_layout(
-                        &bind_group_layout_descriptor(label)
-                            .entries(&builders([
+                        &#quickgpu::bind_group_layout_descriptor(label)
+                            .entries(&#quickgpu::builders([
                                 #(#helper_layout_descriptor_entries),*
                             ]))
                             .build(),
@@ -128,14 +137,14 @@ pub fn bind_group_code(input: DeriveInput) -> Result<TokenStream, TokenStream> {
 
                 pub fn group<'a>(
                     &self,
-                    label: Label<'a>,
+                    label: wgpu::Label<'a>,
                     resources: #resources_ident <'a>,
                     entries: #binding_entries_ident,
                     offsets: Option<#offsets_ident>,
-                    device: &Device
-                ) -> BindGroup {
+                    device: &wgpu::Device
+                ) -> wgpu::BindGroup {
                     device.create_bind_group(
-                        &bind_group_descriptor(label)
+                        &#quickgpu::bind_group_descriptor(label)
                             .entries(&[
                                 #(#binding_entry_makes),*
                             ])

@@ -1,6 +1,6 @@
 use std::{borrow::Cow, time::Instant};
 
-use binder::bind_group_helper;
+use quickgpu::binder::*;
 use quickgpu::*;
 use wgpu::{
     BindGroup, BindingType, BufferBindingType, BufferUsages, Color, CommandBuffer, Device, LoadOp,
@@ -10,7 +10,6 @@ use wgpu::{
 
 use crate::{
     app::RenderTextures,
-    bind::{BufferBind, SamplerBind, TextureBind, buffer::BoundBuffer},
     math::{cubic, graph, linear},
 };
 

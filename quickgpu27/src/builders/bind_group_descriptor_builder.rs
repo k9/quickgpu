@@ -149,10 +149,8 @@ pub trait Complete<'a>:
     State<'a, Label: IsSetLabel<'a>, Layout: IsSetLayout<'a>, Entries: IsSetEntries<'a>>
 {
 }
-impl<
-        'a,
-        CS: State<'a, Label: IsSetLabel<'a>, Layout: IsSetLayout<'a>, Entries: IsSetEntries<'a>>,
-    > Complete<'a> for CS
+impl<'a, CS: State<'a, Label: IsSetLabel<'a>, Layout: IsSetLayout<'a>, Entries: IsSetEntries<'a>>>
+    Complete<'a> for CS
 {
 }
 impl<'a, CS: Complete<'a>> BindGroupDescriptorBuilder<'a, CS> {
@@ -181,7 +179,6 @@ impl<'a, CS: Complete<'a>> Nested<wgpu::BindGroupDescriptor<'a>>
 }
 #[cfg(test)]
 mod tests {
-    #[allow(unused_imports)]
     #[allow(unused_imports)]
     use std::num::NonZeroU32;
     #[test]

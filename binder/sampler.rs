@@ -1,7 +1,7 @@
-use quickgpu::bind_group_entry;
 use wgpu::{BindGroupEntry, BindingResource, Sampler};
 
-use crate::bind::{Bind, Declarable, SamplerResource};
+use crate::bind_group_entry;
+use crate::binder::{Bind, Declarable, SamplerResource};
 
 pub type SamplerBind = Bind<(), SamplerResource>;
 

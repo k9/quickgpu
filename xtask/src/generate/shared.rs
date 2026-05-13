@@ -1,4 +1,4 @@
-use crate::generate::Version;
+use crate::{generate::Version, utils::relative_path};
 
 pub fn intro(version: Version) -> String {
     let package_name = match version {
@@ -122,10 +122,30 @@ readme = "../README.md"
 
 [dependencies]
 wgpu = {{ version = "{wgpu_version}" }}
+binder_macros = {{ path = "../binder_macros" }}
+bytemuck = {{ workspace = true }}
 
 [dev-dependencies]
-bytemuck = {{ workspace = true }}
 wgpu = {{ version = "{wgpu_version}", features = ["noop"] }}
 "#
     )
+}
+
+pub fn binder(version: Version) -> anyhow::Result<()> {
+    let crate_name = match version {
+        Version::V27 => "quickgpu27",
+        Version::V28 => "quickgpu",
+    };
+
+    let sh = xshell::Shell::new()?;
+    let binder_dest_path = relative_path(format!("{crate_name}/src/binder"));
+    sh.remove_path(binder_dest_path.clone())?;
+    sh.create_dir(binder_dest_path.clone())?;
+
+    let binder_src_path = relative_path("binder".to_string());
+    for file in sh.read_dir(binder_src_path)? {
+        sh.copy_file(file, binder_dest_path.clone())?;
+    }
+
+    Ok(())
 }

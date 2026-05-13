@@ -14,7 +14,7 @@ use discover_exports::{
 
 use crate::{
     generate::{
-        shared::{cargo_toml, intro},
+        shared::{binder, cargo_toml, intro},
         struct_entry::{Output, filter_struct, output_struct},
     },
     utils::{relative_path, rustfmt, without_args},
@@ -111,16 +111,14 @@ pub fn generate(version: Version) -> anyhow::Result<()> {
         )
         .unwrap();
 
-        let wgpu = parse_crate(
+        parse_crate(
             &mut analysis,
             relative_path("expanded/wgpu.rs"),
             relative_path(format!("{wgpu_source}/wgpu")),
             "wgpu",
             vec![],
         )
-        .unwrap();
-
-        wgpu
+        .unwrap()
     };
 
     let intro_path = relative_path(format!("{crate_name}/INTRO.md"));
@@ -128,6 +126,8 @@ pub fn generate(version: Version) -> anyhow::Result<()> {
 
     let cargo_path = relative_path(format!("{crate_name}/Cargo.toml"));
     std::fs::write(cargo_path.clone(), cargo_toml(version))?;
+
+    binder(version)?;
 
     let builders_path = relative_path(format!("{crate_name}/src/builders/"));
     let sh = Shell::new()?;
@@ -246,6 +246,8 @@ pub fn generate(version: Version) -> anyhow::Result<()> {
 pub mod custom;
 pub use custom::*;
 pub mod builders;
+pub mod binder;
+pub use binder_macros::*;
 
 {use_statements}
 "#

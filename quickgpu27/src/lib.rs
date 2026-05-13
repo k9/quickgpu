@@ -2,7 +2,9 @@
 
 pub mod custom;
 pub use custom::*;
+pub mod binder;
 pub mod builders;
+pub use binder_macros::*;
 
 #[doc(inline)]
 pub use builders::backend_options_builder::backend_options;

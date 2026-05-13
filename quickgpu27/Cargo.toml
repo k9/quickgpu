@@ -12,7 +12,8 @@ readme = "../README.md"
 
 [dependencies]
 wgpu = { version = "^27.0.0" }
+binder_macros = { path = "../binder_macros" }
+bytemuck = { workspace = true }
 
 [dev-dependencies]
-bytemuck = { workspace = true }
 wgpu = { version = "^27.0.0", features = ["noop"] }

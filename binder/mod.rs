@@ -7,9 +7,10 @@ pub use sampler::*;
 pub use texture::*;
 
 use bytemuck::NoUninit;
-use quickgpu::bind_group_layout_entry;
 use std::marker::PhantomData;
 use wgpu::{BindGroupLayoutEntry, BindingType, ShaderStages};
+
+use crate::bind_group_layout_entry;
 
 pub trait Datalike: Copy + Clone + NoUninit {}
 impl<T> Datalike for T where T: Copy + Clone + NoUninit {}

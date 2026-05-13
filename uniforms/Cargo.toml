@@ -4,14 +4,13 @@ version = "0.0.1"
 edition = "2024"
 
 [dependencies]
-binder = { path= "../binder" }
 bytemuck = { workspace = true }
 env_logger = { workspace = true }
 log = { workspace = true }
 pollster = { workspace = true }
 wgpu = "^27.0.0"
 winit = { workspace = true }
-quickgpu = { path= "../quickgpu27", package = "quickgpu27", version = "0.0.9" }
+quickgpu = { path = "../quickgpu27", package = "quickgpu27", version = "0.0.9" }
 
 [target.'cfg(target_arch="wasm32")'.dependencies]
 console_error_panic_hook.workspace = true

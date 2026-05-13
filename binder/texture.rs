@@ -1,16 +1,16 @@
 use std::marker::PhantomData;
 
-use quickgpu::{Nested, bind_group_entry, texel_copy_buffer_layout};
 use wgpu::{
     BindGroupEntry, BindingResource, Extent3d, Queue, TexelCopyTextureInfo, Texture, TextureView,
     TextureViewDescriptor,
 };
 
-use crate::bind::{Bind, Datalike, Declarable, TextureResource};
+use crate::binder::{Bind, Datalike, Declarable, TextureResource};
+use crate::{bind_group_entry, texel_copy_buffer_layout, Nested};
 
 pub type TextureBind<Data> = Bind<Data, TextureResource>;
 
-impl<Data: super::Datalike> TextureBind<Data> {
+impl<Data: Datalike> TextureBind<Data> {
     pub fn make_view(
         &self,
         texture: &Texture,

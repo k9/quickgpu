@@ -1,7 +1,7 @@
 use proc_macro2::{Span, TokenStream};
-use quote::{format_ident, quote};
+use quote::quote;
 
-use crate::utils::err;
+use crate::{bind_group_code::quickgpu_crate_name, utils::err};
 
 pub struct FieldEntry {
     pub helper_field: TokenStream,
@@ -42,6 +42,7 @@ impl std::fmt::Debug for FieldEntry {
 }
 
 pub fn process_field(f: &mut syn::Field, binding: u32) -> Result<Option<FieldEntry>, TokenStream> {
+    let quickgpu = quickgpu_crate_name();
     let field_ident = f.ident.clone().unwrap();
     let ty = &f.ty;
 
@@ -57,7 +58,7 @@ pub fn process_field(f: &mut syn::Field, binding: u32) -> Result<Option<FieldEnt
         }
 
         let helper_field = quote! {
-            pub #field_ident: #ty
+            pub #field_ident: #quickgpu::binder::#ty
         };
 
         let helper_return_field = quote! {
@@ -65,7 +66,7 @@ pub fn process_field(f: &mut syn::Field, binding: u32) -> Result<Option<FieldEnt
         };
 
         let helper_new_arg = quote! {
-            #field_ident: #ty
+            #field_ident: #quickgpu::binder::#ty
         };
 
         let helper_layout_descriptor_entry = quote! {
@@ -76,13 +77,15 @@ pub fn process_field(f: &mut syn::Field, binding: u32) -> Result<Option<FieldEnt
             binding_entry,
             resource_field,
         } = if last.ident.to_string().starts_with("Buffer") {
-            let field = quote! { pub #field_ident: Option<for<'a> fn(binding: u32, buffer: &'a Buffer) -> BindGroupEntry<'a>> };
+            let field = quote! { pub #field_ident: Option<for<'a> fn(binding: u32, buffer: &'a wgpu::Buffer) -> wgpu::BindGroupEntry<'a>> };
             let make = quote! {
-                (entries.#field_ident.unwrap_or(default_entry))(#binding, &resources.#field_ident.buffer).unnest()
+                #quickgpu::Nested::unnest(
+                    (entries.#field_ident.unwrap_or(default_entry))(#binding, &resources.#field_ident.buffer)
+                )
             };
 
             let resource_field = quote! {
-                pub #field_ident: &'a BoundBuffer<#inner_ty>
+                pub #field_ident: &'a #quickgpu::binder::BoundBuffer<#inner_ty>
             };
 
             ResourceSpecific {
@@ -91,14 +94,14 @@ pub fn process_field(f: &mut syn::Field, binding: u32) -> Result<Option<FieldEnt
             }
         } else if last.ident.to_string().starts_with("Texture") {
             let entry = quote! {
-                BindGroupEntry {
+                wgpu::BindGroupEntry {
                     binding: #binding,
-                    resource: BindingResource::TextureView(&resources.#field_ident.texture_view)
+                    resource: wgpu::BindingResource::TextureView(&resources.#field_ident.texture_view)
                 }
             };
 
             let resource_field = quote! {
-                pub #field_ident: &'a BoundTextureView<#inner_ty>
+                pub #field_ident: &'a #quickgpu::binder::BoundTextureView<#inner_ty>
             };
 
             ResourceSpecific {
@@ -107,14 +110,14 @@ pub fn process_field(f: &mut syn::Field, binding: u32) -> Result<Option<FieldEnt
             }
         } else if last.ident.to_string().starts_with("Sampler") {
             let entry = quote! {
-                BindGroupEntry {
+                wgpu::BindGroupEntry {
                     binding: #binding,
-                    resource: BindingResource::Sampler(&resources.#field_ident.sampler)
+                    resource: wgpu::BindingResource::Sampler(&resources.#field_ident.sampler)
                 }
             };
 
             let resource_field = quote! {
-                pub #field_ident: &'a BoundSampler<#inner_ty>
+                pub #field_ident: &'a #quickgpu::binder::BoundSampler<#inner_ty>
             };
 
             ResourceSpecific {
@@ -126,7 +129,7 @@ pub fn process_field(f: &mut syn::Field, binding: u32) -> Result<Option<FieldEnt
         };
 
         let offset_field = quote! {
-            pub #field_ident: BufferAddress
+            pub #field_ident: wgpu::BufferAddress
         };
 
         let declaration_field = quote! {
@@ -134,7 +137,11 @@ pub fn process_field(f: &mut syn::Field, binding: u32) -> Result<Option<FieldEnt
         };
 
         let declaration_return_field = quote! {
-            #field_ident: self.#field_ident.wgsl_declaration(group, #binding)
+            #field_ident: #quickgpu::binder::Declarable::wgsl_declaration(
+                &self.#field_ident,
+                group,
+                #binding
+            )
         };
 
         let entry = FieldEntry {
