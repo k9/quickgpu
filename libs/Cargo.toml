@@ -1,0 +1,52 @@
+[workspace]
+members = [
+	"quickgpu",
+	"quickgpu27",
+	"example",
+	"uniforms",
+	"bunnymark",
+	"binder_macros",
+]
+resolver = "2"
+
+[workspace.dependencies]
+syn = { version = "2.0.113", features = [
+	"full",
+	"extra-traits",
+	"visit",
+	"visit-mut",
+] }
+anyhow = "1.0.100"
+bytemuck = { version = "1.24.0", features = ["must_cast"] }
+convert_case = "0.10.0"
+duct = "1.1.1"
+env_logger = "0.11.8"
+fixedbitset = "0.5.7"
+log = "0.4.29"
+petgraph = "0.8.3"
+pollster = "0.4.0"
+proc-macro2 = "1.0.104"
+quickgpu = { path = "quickgpu" }
+quote = "1.0.42"
+winit = "0.30.12"
+glam = "0.30.9"
+nanorand = "0.8.0"
+png = "0.18.0"
+web-time = "1.1.0"
+xshell = "0.2.7"
+mint = "0.5.9"
+naga = "28.0.0"
+prettyplease = "0.2.37"
+console_error_panic_hook = "0.1.7"
+console_log = "1.0.0"
+wasm-bindgen = "0.2.113"
+wasm-bindgen-futures = "0.4.63"
+web-sys = "0.3.90"
+
+# Enable a small amount of optimization in the dev profile.
+[profile.dev]
+opt-level = 1
+
+# Enable a large amount of optimization in the dev profile for dependencies.
+[profile.dev.package."*"]
+opt-level = 3
