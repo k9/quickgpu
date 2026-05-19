@@ -6,7 +6,7 @@ use wgpu::{
 };
 
 use crate::binder::{Bind, Datalike, Declarable, TextureResource};
-use crate::{bind_group_entry, texel_copy_buffer_layout, Nested};
+use crate::{Nested, bind_group_entry, texel_copy_buffer_layout};
 
 pub type TextureBind<Data> = Bind<Data, TextureResource>;
 

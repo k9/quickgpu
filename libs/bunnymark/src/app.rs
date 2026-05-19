@@ -128,8 +128,12 @@ pub fn resize(app: &mut App, new_size: PhysicalSize<u32>) {
     app.framebuffer_texture = framebuffer_texture;
     app.framebuffer = framebuffer;
 
-    app.scene
-        .resize(&app.surface_config, &app.device, &app.queue);
+    app.scene.resize(
+        app.surface_config.width,
+        app.surface_config.height,
+        &app.device,
+        &app.queue,
+    );
 
     app.window.request_redraw();
 }

@@ -1,16 +1,17 @@
 use bytemuck::{Pod, Zeroable};
 use nanorand::{Rng, WyRand};
+use quickgpu::binder::*;
 use quickgpu::{
-    bind_group_descriptor, bind_group_entry, bind_group_layout_descriptor, bind_group_layout_entry,
-    buffer_binding, buffer_descriptor, buffer_init_descriptor, color, color_target_state,
-    command_encoder_descriptor, extent_3_d, fragment_state, operations, pipeline_layout_descriptor,
-    primitive_state, render_pass_color_attachment, render_pass_descriptor,
-    render_pipeline_descriptor, sampler_descriptor, texel_copy_buffer_layout, texture_descriptor,
-    texture_view_descriptor, vertex_state,
+    bind_group_helper, color, color_target_state, command_encoder_descriptor, extent_3_d,
+    fragment_state, operations, pipeline_layout_descriptor, primitive_state,
+    render_pass_color_attachment, render_pass_descriptor, render_pipeline_descriptor,
+    sampler_descriptor, texel_copy_buffer_layout, texture_descriptor, texture_view_descriptor,
+    vertex_state,
 };
 use wgpu::{
-    BindingResource, BindingType, BlendState, CommandBuffer, Device, FilterMode, MipmapFilterMode,
-    Queue, ShaderStages, TextureFormat, include_wgsl, util::DeviceExt,
+    BindingType, BlendState, BufferBindingType, CommandBuffer, Device, FilterMode,
+    MipmapFilterMode, Queue, SamplerBindingType, ShaderStages, TextureFormat, TextureSampleType,
+    TextureViewDimension, include_wgsl,
 };
 
 use crate::app::RenderTextures;
@@ -21,15 +22,28 @@ pub struct GPUState<'a> {
     pub queue: &'a Queue,
 }
 
+#[bind_group_helper]
+pub struct GlobalBinds {
+    pub globals: BufferBind<super::Globals>,
+    pub tex: TextureBind<()>,
+    pub sam: SamplerBind,
+}
+
+#[bind_group_helper]
+pub struct LocalBinds {
+    pub locals: BufferBind<super::Bunny>,
+}
+
 pub struct Scene {
-    view: wgpu::TextureView,
-    sampler: wgpu::Sampler,
-    global_bind_group_layout: wgpu::BindGroupLayout,
+    texture_view: BoundTextureView<()>,
+    sampler: BoundSampler,
+    global_binds: GlobalBinds,
     global_group: wgpu::BindGroup,
+    local_binds: LocalBinds,
     local_group: wgpu::BindGroup,
     pipeline: wgpu::RenderPipeline,
     bunnies: Vec<Bunny>,
-    local_buffer: wgpu::Buffer,
+    local_buffer: BoundBuffer<Bunny>,
     rng: WyRand,
     extent: [u32; 2],
 }
@@ -41,7 +55,7 @@ const MAX_VELOCITY: f32 = 750.0;
 
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
-struct Globals {
+pub struct Globals {
     mvp: [[f32; 4]; 4],
     size: [f32; 2],
     pad: [f32; 2],
@@ -49,7 +63,7 @@ struct Globals {
 
 #[repr(C, align(256))]
 #[derive(Clone, Copy, Pod, Zeroable)]
-struct Bunny {
+pub struct Bunny {
     position: [f32; 2],
     velocity: [f32; 2],
     color: u32,
@@ -77,6 +91,27 @@ impl Bunny {
             self.velocity[1] *= -1.0;
         }
     }
+}
+
+fn make_globals(
+    device: &Device,
+    binds: &GlobalBinds,
+    width: u32,
+    height: u32,
+) -> BoundBuffer<Globals> {
+    let globals = Globals {
+        mvp: glam::Mat4::orthographic_rh(0.0, width as f32, 0.0, height as f32, -1.0, 1.0)
+            .to_cols_array_2d(),
+        size: [BUNNY_SIZE; 2],
+        pad: [0.0; 2],
+    };
+
+    binds.globals.make_buffer(
+        Some("global"),
+        globals,
+        wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::UNIFORM,
+        device,
+    )
 }
 
 impl Scene {
@@ -108,55 +143,55 @@ impl Scene {
     ) -> Self {
         let shader = device.create_shader_module(include_wgsl!("../shaders/base.wgsl"));
 
-        let global_bind_group_layout = device.create_bind_group_layout(
-            &bind_group_layout_descriptor(None)
-                .entries(&[
-                    bind_group_layout_entry()
-                        .binding(0)
-                        .visibility(ShaderStages::VERTEX)
-                        .ty(BindingType::Buffer {
-                            ty: wgpu::BufferBindingType::Uniform,
-                            has_dynamic_offset: false,
-                            min_binding_size: wgpu::BufferSize::new(size_of::<Globals>() as _),
-                        })
-                        .build(),
-                    bind_group_layout_entry()
-                        .binding(1)
-                        .visibility(ShaderStages::FRAGMENT)
-                        .ty(BindingType::Texture {
-                            sample_type: wgpu::TextureSampleType::Float { filterable: true },
-                            view_dimension: wgpu::TextureViewDimension::D2,
-                            multisampled: false,
-                        })
-                        .build(),
-                    bind_group_layout_entry()
-                        .binding(2)
-                        .visibility(ShaderStages::FRAGMENT)
-                        .ty(BindingType::Sampler(wgpu::SamplerBindingType::Filtering))
-                        .build(),
-                ])
-                .build(),
+        let global_binds = GlobalBinds::new(
+            None,
+            device,
+            BufferBind::new(
+                BindingType::Buffer {
+                    ty: BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: wgpu::BufferSize::new(size_of::<Globals>() as _),
+                },
+                ShaderStages::VERTEX,
+                "Globals",
+                "globals",
+            ),
+            TextureBind::new(
+                BindingType::Texture {
+                    sample_type: TextureSampleType::Float { filterable: true },
+                    view_dimension: TextureViewDimension::D2,
+                    multisampled: false,
+                },
+                ShaderStages::FRAGMENT,
+                "texture_2d<f32>",
+                "tex",
+            ),
+            SamplerBind::new(
+                BindingType::Sampler(SamplerBindingType::Filtering),
+                ShaderStages::FRAGMENT,
+                "sampler",
+                "sam",
+            ),
         );
 
-        let local_bind_group_layout = device.create_bind_group_layout(
-            &bind_group_layout_descriptor(None)
-                .entries(&[bind_group_layout_entry()
-                    .binding(0)
-                    .visibility(ShaderStages::VERTEX)
-                    .ty(BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Uniform,
-                        has_dynamic_offset: true,
-                        min_binding_size: wgpu::BufferSize::new(size_of::<Bunny>() as _),
-                    })
-                    .build()])
-                .build(),
+        let local_binds = LocalBinds::new(
+            None,
+            device,
+            BufferBind::new(
+                BindingType::Buffer {
+                    ty: BufferBindingType::Uniform,
+                    has_dynamic_offset: true,
+                    min_binding_size: wgpu::BufferSize::new(size_of::<Bunny>() as _),
+                },
+                ShaderStages::VERTEX,
+                "Bunny",
+                "locals",
+            ),
         );
 
-        let pipeline_layout = device.create_pipeline_layout(
-            &pipeline_layout_descriptor(None)
-                .bind_group_layouts(&[&global_bind_group_layout, &local_bind_group_layout])
-                .build(),
-        );
+        let pipeline_layout = pipeline_layout_descriptor(None)
+            .bind_group_layouts(&[&global_binds.layout, &local_binds.layout])
+            .create_with(device);
 
         let pipeline = render_pipeline_descriptor(None)
             .layout(&pipeline_layout)
@@ -180,8 +215,7 @@ impl Scene {
             .primitive(
                 primitive_state()
                     .topology(wgpu::PrimitiveTopology::TriangleStrip)
-                    .strip_index_format(wgpu::IndexFormat::Uint16)
-                    .build(),
+                    .strip_index_format(wgpu::IndexFormat::Uint16),
             )
             .create_with(device);
 
@@ -197,17 +231,15 @@ impl Scene {
 
             let size = extent_3_d().width(info.width).height(info.height).build();
 
-            let texture = device.create_texture(
-                &texture_descriptor(None)
-                    .size(size)
-                    .mip_level_count(1)
-                    .sample_count(1)
-                    .dimension(wgpu::TextureDimension::D2)
-                    .format(wgpu::TextureFormat::Rgba8UnormSrgb)
-                    .usage(wgpu::TextureUsages::COPY_DST | wgpu::TextureUsages::TEXTURE_BINDING)
-                    .view_formats(&[])
-                    .build(),
-            );
+            let texture = texture_descriptor(None)
+                .size(size)
+                .mip_level_count(1)
+                .sample_count(1)
+                .dimension(wgpu::TextureDimension::D2)
+                .format(wgpu::TextureFormat::Rgba8UnormSrgb)
+                .usage(wgpu::TextureUsages::COPY_DST | wgpu::TextureUsages::TEXTURE_BINDING)
+                .view_formats(&[])
+                .create_with(device);
 
             queue.write_texture(
                 texture.as_image_copy(),
@@ -221,85 +253,69 @@ impl Scene {
             texture
         };
 
-        let sampler = device.create_sampler(
-            &sampler_descriptor(None)
+        let texture_view = global_binds
+            .tex
+            .make_view(&texture, &texture_view_descriptor(None).build());
+
+        let sampler = global_binds.sam.make_sampler(
+            sampler_descriptor(None)
                 .mag_filter(FilterMode::Linear)
                 .min_filter(FilterMode::Nearest)
                 .mipmap_filter(MipmapFilterMode::Nearest)
-                .build(),
-        );
-
-        let globals = Globals {
-            mvp: glam::Mat4::orthographic_rh(0.0, width as f32, 0.0, height as f32, -1.0, 1.0)
-                .to_cols_array_2d(),
-            size: [BUNNY_SIZE; 2],
-            pad: [0.0; 2],
-        };
-
-        let global_buffer = device.create_buffer_init(
-            &buffer_init_descriptor(Some("global"))
-                .contents(bytemuck::bytes_of(&globals))
-                .usage(wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::UNIFORM)
-                .build(),
+                .create_with(device),
         );
 
         let uniform_alignment =
             device.limits().min_uniform_buffer_offset_alignment as wgpu::BufferAddress;
 
-        let local_buffer = device.create_buffer(
-            &buffer_descriptor(Some("local"))
-                .size((MAX_BUNNIES as wgpu::BufferAddress) * uniform_alignment)
-                .usage(wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::UNIFORM)
-                .mapped_at_creation(false)
-                .build(),
+        let local_buffer = local_binds.locals.make_buffer_sized(
+            Some("local"),
+            (MAX_BUNNIES as wgpu::BufferAddress) * uniform_alignment,
+            wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::UNIFORM,
+            device,
         );
 
-        let view = texture.create_view(&texture_view_descriptor(None).build());
-
-        let global_group = device.create_bind_group(
-            &bind_group_descriptor(None)
-                .layout(&global_bind_group_layout)
-                .entries(&[
-                    bind_group_entry()
-                        .binding(0)
-                        .resource(global_buffer.as_entire_binding())
-                        .build(),
-                    bind_group_entry()
-                        .binding(1)
-                        .resource(BindingResource::TextureView(&view))
-                        .build(),
-                    bind_group_entry()
-                        .binding(2)
-                        .resource(BindingResource::Sampler(&sampler))
-                        .build(),
-                ])
-                .build(),
+        let global_buffer = make_globals(device, &global_binds, width, height);
+        let global_group = global_binds.group(
+            None,
+            GlobalBindsResources {
+                globals: &global_buffer,
+                tex: &texture_view,
+                sam: &sampler,
+            },
+            GlobalBindsEntries { globals: None },
+            None,
+            device,
         );
 
-        let local_group = device.create_bind_group(
-            &bind_group_descriptor(None)
-                .layout(&local_bind_group_layout)
-                .entries(&[bind_group_entry()
-                    .binding(0)
-                    .resource(BindingResource::Buffer(
-                        buffer_binding()
-                            .buffer(&local_buffer)
-                            .offset(0)
-                            .size(wgpu::BufferSize::new(size_of::<Bunny>() as _).unwrap())
-                            .build(),
-                    ))
-                    .build()])
-                .build(),
+        let local_group = local_binds.group(
+            None,
+            LocalBindsResources {
+                locals: &local_buffer,
+            },
+            LocalBindsEntries {
+                locals: Some(|binding, buffer| wgpu::BindGroupEntry {
+                    binding,
+                    resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
+                        buffer,
+                        offset: 0,
+                        size: wgpu::BufferSize::new(size_of::<Bunny>() as _),
+                    }),
+                }),
+            },
+            None,
+            device,
         );
 
         let rng = WyRand::new_seed(42);
 
-        let mut ex = Scene {
-            view,
+        let mut scene = Scene {
+            texture_view,
             sampler,
-            global_bind_group_layout,
             pipeline,
+            global_binds,
             global_group,
+            local_binds,
             local_group,
             bunnies: Vec::new(),
             local_buffer,
@@ -307,61 +323,27 @@ impl Scene {
             extent: [width, height],
         };
 
-        ex.spawn_bunnies();
+        scene.spawn_bunnies();
 
-        ex
+        scene
     }
 
-    pub fn resize(
-        &mut self,
-        sc_desc: &wgpu::SurfaceConfiguration,
-        device: &wgpu::Device,
-        _queue: &wgpu::Queue,
-    ) {
-        self.extent = [sc_desc.width, sc_desc.height];
+    pub fn resize(&mut self, width: u32, height: u32, device: &wgpu::Device, _queue: &wgpu::Queue) {
+        self.extent = [width, height];
 
-        let globals = Globals {
-            mvp: glam::Mat4::orthographic_rh(
-                0.0,
-                sc_desc.width as f32,
-                0.0,
-                sc_desc.height as f32,
-                -1.0,
-                1.0,
-            )
-            .to_cols_array_2d(),
-            size: [BUNNY_SIZE; 2],
-            pad: [0.0; 2],
-        };
+        let global_buffer = make_globals(device, &self.global_binds, width, height);
 
-        let global_buffer = device.create_buffer_init(
-            &buffer_init_descriptor(Some("global"))
-                .contents(bytemuck::bytes_of(&globals))
-                .usage(wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::UNIFORM)
-                .build(),
+        self.global_group = self.global_binds.group(
+            None,
+            GlobalBindsResources {
+                globals: &global_buffer,
+                tex: &self.texture_view,
+                sam: &self.sampler,
+            },
+            GlobalBindsEntries { globals: None },
+            None,
+            device,
         );
-
-        let global_group = device.create_bind_group(
-            &bind_group_descriptor(None)
-                .layout(&self.global_bind_group_layout)
-                .entries(&[
-                    bind_group_entry()
-                        .binding(0)
-                        .resource(global_buffer.as_entire_binding())
-                        .build(),
-                    bind_group_entry()
-                        .binding(1)
-                        .resource(BindingResource::TextureView(&self.view))
-                        .build(),
-                    bind_group_entry()
-                        .binding(2)
-                        .resource(BindingResource::Sampler(&self.sampler))
-                        .build(),
-                ])
-                .build(),
-        );
-
-        self.global_group = global_group;
     }
 
     #[must_use]
@@ -379,7 +361,11 @@ impl Scene {
         }
 
         let uniform_alignment = device.limits().min_uniform_buffer_offset_alignment;
-        queue.write_buffer(&self.local_buffer, 0, bytemuck::cast_slice(&self.bunnies));
+        queue.write_buffer(
+            &self.local_buffer.buffer,
+            0,
+            bytemuck::cast_slice(&self.bunnies),
+        );
 
         let mut encoder = command_encoder_descriptor(None).create_with(device);
 

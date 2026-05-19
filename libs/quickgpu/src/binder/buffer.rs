@@ -6,7 +6,7 @@ use wgpu::{
 };
 
 use crate::binder::{BufferResource, Datalike};
-use crate::{bind_group_entry, buffer_init_descriptor, Nested};
+use crate::{bind_group_entry, buffer_descriptor, buffer_init_descriptor, Nested};
 
 pub type BufferBind<Data> = crate::binder::Bind<Data, BufferResource>;
 
@@ -22,6 +22,23 @@ impl<Data: Datalike> BufferBind<Data> {
             buffer: buffer_init_descriptor(label)
                 .contents(bytemuck::cast_slice(std::slice::from_ref(&data)))
                 .usage(usage)
+                .create_with(device),
+            phantom: PhantomData,
+        }
+    }
+
+    pub fn make_buffer_sized<'a>(
+        &self,
+        label: Label<'a>,
+        size: BufferAddress,
+        usage: BufferUsages,
+        device: &Device,
+    ) -> BoundBuffer<Data> {
+        BoundBuffer {
+            buffer: buffer_descriptor(label)
+                .size(size)
+                .usage(usage)
+                .mapped_at_creation(false)
                 .create_with(device),
             phantom: PhantomData,
         }
