@@ -5,7 +5,7 @@ pub use super::super::Nested;
 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
 pub trait Field {}
 pub trait IsOptional {}
-#[doc = "\nBuilder for [`wgpu::DepthStencilState`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [format](DepthStencilStateBuilder::format) Required\n  - [depth_write_enabled](DepthStencilStateBuilder::depth_write_enabled) Required\n  - [depth_compare](DepthStencilStateBuilder::depth_compare) Required\n  - [stencil](DepthStencilStateBuilder::stencil) Optional, defaults to [wgpu::StencilState::default()]\n  - [bias](DepthStencilStateBuilder::bias) Optional, defaults to [wgpu::DepthBiasState::default()]\n"]
+#[doc = "\nBuilder for [`wgpu::DepthStencilState`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [format](DepthStencilStateBuilder::format) Required\n  - [depth_write_enabled](DepthStencilStateBuilder::depth_write_enabled) Optional, defaults to `None`\n  - [depth_compare](DepthStencilStateBuilder::depth_compare) Optional, defaults to `None`\n  - [stencil](DepthStencilStateBuilder::stencil) Optional, defaults to [wgpu::StencilState::default()]\n  - [bias](DepthStencilStateBuilder::bias) Optional, defaults to [wgpu::DepthBiasState::default()]\n"]
 pub struct DepthStencilStateBuilder<CS: State> {
     format: CS::Format,
     depth_write_enabled: CS::DepthWriteEnabled,
@@ -24,7 +24,7 @@ impl DepthStencilStateBuilder<Empty> {
         }
     }
 }
-#[doc = "\nReturns [DepthStencilStateBuilder] for building [`wgpu::DepthStencilState`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [format](DepthStencilStateBuilder::format) Required\n  - [depth_write_enabled](DepthStencilStateBuilder::depth_write_enabled) Required\n  - [depth_compare](DepthStencilStateBuilder::depth_compare) Required\n  - [stencil](DepthStencilStateBuilder::stencil) Optional, defaults to [wgpu::StencilState::default()]\n  - [bias](DepthStencilStateBuilder::bias) Optional, defaults to [wgpu::DepthBiasState::default()]\n"]
+#[doc = "\nReturns [DepthStencilStateBuilder] for building [`wgpu::DepthStencilState`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [format](DepthStencilStateBuilder::format) Required\n  - [depth_write_enabled](DepthStencilStateBuilder::depth_write_enabled) Optional, defaults to `None`\n  - [depth_compare](DepthStencilStateBuilder::depth_compare) Optional, defaults to `None`\n  - [stencil](DepthStencilStateBuilder::stencil) Optional, defaults to [wgpu::StencilState::default()]\n  - [bias](DepthStencilStateBuilder::bias) Optional, defaults to [wgpu::DepthBiasState::default()]\n"]
 pub fn depth_stencil_state() -> DepthStencilStateBuilder<Empty> {
     DepthStencilStateBuilder::new()
 }
@@ -47,12 +47,17 @@ impl Field for DepthWriteEnabledEmpty {}
 pub trait DepthWriteEnabledIsEmpty {}
 impl DepthWriteEnabledIsEmpty for DepthWriteEnabledEmpty {}
 pub trait IsSetDepthWriteEnabled {
-    fn get(self) -> bool;
+    fn get(self) -> Option<bool>;
 }
-pub struct DepthWriteEnabledValue(pub bool);
+impl IsSetDepthWriteEnabled for DepthWriteEnabledEmpty {
+    fn get(self) -> Option<bool> {
+        None
+    }
+}
+pub struct DepthWriteEnabledValue(pub Option<bool>);
 impl Field for DepthWriteEnabledValue {}
 impl IsSetDepthWriteEnabled for DepthWriteEnabledValue {
-    fn get(self) -> bool {
+    fn get(self) -> Option<bool> {
         self.0
     }
 }
@@ -61,12 +66,17 @@ impl Field for DepthCompareEmpty {}
 pub trait DepthCompareIsEmpty {}
 impl DepthCompareIsEmpty for DepthCompareEmpty {}
 pub trait IsSetDepthCompare {
-    fn get(self) -> wgpu::CompareFunction;
+    fn get(self) -> Option<wgpu::CompareFunction>;
 }
-pub struct DepthCompareValue(pub wgpu::CompareFunction);
+impl IsSetDepthCompare for DepthCompareEmpty {
+    fn get(self) -> Option<wgpu::CompareFunction> {
+        None
+    }
+}
+pub struct DepthCompareValue(pub Option<wgpu::CompareFunction>);
 impl Field for DepthCompareValue {}
 impl IsSetDepthCompare for DepthCompareValue {
-    fn get(self) -> wgpu::CompareFunction {
+    fn get(self) -> Option<wgpu::CompareFunction> {
         self.0
     }
 }
@@ -177,10 +187,26 @@ impl<CS: State> DepthStencilStateBuilder<CS> {
             bias: self.bias,
         }
     }
-    #[doc = "Setter for [wgpu::DepthStencilState::depth_write_enabled]. Required.\n"]
+    #[doc = "Setter for [wgpu::DepthStencilState::depth_write_enabled]. Optional, defaults to `None`.\n"]
     pub fn depth_write_enabled(
         self,
         depth_write_enabled: bool,
+    ) -> DepthStencilStateBuilder<SetDepthWriteEnabled<CS>>
+    where
+        CS::DepthWriteEnabled: DepthWriteEnabledIsEmpty,
+    {
+        DepthStencilStateBuilder {
+            format: self.format,
+            depth_write_enabled: DepthWriteEnabledValue(Some(depth_write_enabled)),
+            depth_compare: self.depth_compare,
+            stencil: self.stencil,
+            bias: self.bias,
+        }
+    }
+    #[doc = "Setter for [wgpu::DepthStencilState::depth_write_enabled]. Optional, defaults to `None`.\n"]
+    pub fn maybe_depth_write_enabled(
+        self,
+        depth_write_enabled: Option<bool>,
     ) -> DepthStencilStateBuilder<SetDepthWriteEnabled<CS>>
     where
         CS::DepthWriteEnabled: DepthWriteEnabledIsEmpty,
@@ -193,10 +219,26 @@ impl<CS: State> DepthStencilStateBuilder<CS> {
             bias: self.bias,
         }
     }
-    #[doc = "Setter for [wgpu::DepthStencilState::depth_compare]. Required.\n"]
+    #[doc = "Setter for [wgpu::DepthStencilState::depth_compare]. Optional, defaults to `None`.\n"]
     pub fn depth_compare(
         self,
         depth_compare: wgpu::CompareFunction,
+    ) -> DepthStencilStateBuilder<SetDepthCompare<CS>>
+    where
+        CS::DepthCompare: DepthCompareIsEmpty,
+    {
+        DepthStencilStateBuilder {
+            format: self.format,
+            depth_write_enabled: self.depth_write_enabled,
+            depth_compare: DepthCompareValue(Some(depth_compare)),
+            stencil: self.stencil,
+            bias: self.bias,
+        }
+    }
+    #[doc = "Setter for [wgpu::DepthStencilState::depth_compare]. Optional, defaults to `None`.\n"]
+    pub fn maybe_depth_compare(
+        self,
+        depth_compare: Option<wgpu::CompareFunction>,
     ) -> DepthStencilStateBuilder<SetDepthCompare<CS>>
     where
         CS::DepthCompare: DepthCompareIsEmpty,
@@ -291,6 +333,20 @@ mod tests {
     use std::num::NonZeroU32;
     #[test]
     pub fn test_default() {
+        assert_eq!(
+            format!(
+                "{:#?}",
+                super::IsSetDepthWriteEnabled::get(super::DepthWriteEnabledEmpty)
+            ),
+            format!("{:#?}", Option::<bool>::default()),
+        );
+        assert_eq!(
+            format!(
+                "{:#?}",
+                super::IsSetDepthCompare::get(super::DepthCompareEmpty)
+            ),
+            format!("{:#?}", Option::<wgpu::CompareFunction>::default()),
+        );
         assert_eq!(
             format!("{:#?}", super::IsSetStencil::get(super::StencilEmpty)),
             format!("{:#?}", wgpu::StencilState::default()),

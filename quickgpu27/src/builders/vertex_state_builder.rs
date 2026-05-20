@@ -83,12 +83,12 @@ impl Field for BuffersEmpty {}
 pub trait BuffersIsEmpty {}
 impl BuffersIsEmpty for BuffersEmpty {}
 pub trait IsSetBuffers<'a> {
-    fn get(self) -> &'a [wgpu::VertexBufferLayout<'a>];
+    fn get(self) -> &'a [Option<wgpu::VertexBufferLayout<'a>>];
 }
-pub struct BuffersValue<'a>(pub &'a [wgpu::VertexBufferLayout<'a>]);
+pub struct BuffersValue<'a>(pub &'a [Option<wgpu::VertexBufferLayout<'a>>]);
 impl<'a> Field for BuffersValue<'a> {}
 impl<'a> IsSetBuffers<'a> for BuffersValue<'a> {
-    fn get(self) -> &'a [wgpu::VertexBufferLayout<'a>] {
+    fn get(self) -> &'a [Option<wgpu::VertexBufferLayout<'a>>] {
         self.0
     }
 }
@@ -191,7 +191,7 @@ impl<'a, CS: State<'a>> VertexStateBuilder<'a, CS> {
     #[doc = "Setter for [wgpu::VertexState::buffers]. Required.\n"]
     pub fn buffers(
         self,
-        buffers: &'a [wgpu::VertexBufferLayout<'a>],
+        buffers: &'a [Option<wgpu::VertexBufferLayout<'a>>],
     ) -> VertexStateBuilder<'a, SetBuffers<CS>>
     where
         CS::Buffers: BuffersIsEmpty,

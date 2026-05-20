@@ -20,6 +20,9 @@ pub use builders::bind_group_layout_descriptor_builder::bind_group_layout_descri
 pub use builders::bind_group_layout_entry_builder::bind_group_layout_entry;
 
 #[doc(inline)]
+pub use builders::blas_aabb_geometry_builder::blas_aabb_geometry;
+
+#[doc(inline)]
 pub use builders::blas_build_entry_builder::blas_build_entry;
 
 #[doc(inline)]
@@ -66,6 +69,9 @@ pub use builders::compute_pass_timestamp_writes_builder::compute_pass_timestamp_
 
 #[doc(inline)]
 pub use builders::compute_pipeline_descriptor_builder::compute_pipeline_descriptor;
+
+#[doc(inline)]
+pub use builders::cooperative_matrix_properties_builder::cooperative_matrix_properties;
 
 #[doc(inline)]
 pub use builders::copy_external_image_dest_info_builder::copy_external_image_dest_info;
@@ -146,6 +152,9 @@ pub use builders::origin_2_d_builder::origin_2_d;
 pub use builders::origin_3_d_builder::origin_3_d;
 
 #[doc(inline)]
+pub use builders::passthrough_shader_entry_point_builder::passthrough_shader_entry_point;
+
+#[doc(inline)]
 pub use builders::pipeline_cache_descriptor_builder::pipeline_cache_descriptor;
 
 #[doc(inline)]
@@ -156,9 +165,6 @@ pub use builders::pipeline_layout_descriptor_builder::pipeline_layout_descriptor
 
 #[doc(inline)]
 pub use builders::primitive_state_builder::primitive_state;
-
-#[doc(inline)]
-pub use builders::push_constant_range_builder::push_constant_range;
 
 #[doc(inline)]
 pub use builders::query_set_descriptor_builder::query_set_descriptor;

@@ -5,11 +5,13 @@ pub use super::super::Nested;
 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
 pub trait Field {}
 pub trait IsOptional {}
-#[doc = "\nBuilder for [`wgpu::Dx12BackendOptions`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [shader_compiler](Dx12BackendOptionsBuilder::shader_compiler) Optional, defaults to [wgpu::Dx12Compiler::Fxc]\n  - [presentation_system](Dx12BackendOptionsBuilder::presentation_system) Optional, defaults to [wgpu::wgt::Dx12SwapchainKind::DxgiFromHwnd]\n  - [latency_waitable_object](Dx12BackendOptionsBuilder::latency_waitable_object) Optional, defaults to [wgpu::wgt::Dx12UseFrameLatencyWaitableObject::Wait]\n"]
+#[doc = "\nBuilder for [`wgpu::Dx12BackendOptions`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [shader_compiler](Dx12BackendOptionsBuilder::shader_compiler) Optional, defaults to [wgpu::Dx12Compiler::Auto]\n  - [presentation_system](Dx12BackendOptionsBuilder::presentation_system) Optional, defaults to [wgpu::Dx12SwapchainKind::DxgiFromHwnd]\n  - [latency_waitable_object](Dx12BackendOptionsBuilder::latency_waitable_object) Optional, defaults to [wgpu::Dx12UseFrameLatencyWaitableObject::Wait]\n  - [force_shader_model](Dx12BackendOptionsBuilder::force_shader_model) Optional, defaults to [wgpu::ForceShaderModelToken::default()]\n  - [agility_sdk](Dx12BackendOptionsBuilder::agility_sdk) Optional, defaults to `None`\n"]
 pub struct Dx12BackendOptionsBuilder<CS: State> {
     shader_compiler: CS::ShaderCompiler,
     presentation_system: CS::PresentationSystem,
     latency_waitable_object: CS::LatencyWaitableObject,
+    force_shader_model: CS::ForceShaderModel,
+    agility_sdk: CS::AgilitySdk,
 }
 impl Dx12BackendOptionsBuilder<Empty> {
     pub fn new() -> Dx12BackendOptionsBuilder<Empty> {
@@ -17,10 +19,12 @@ impl Dx12BackendOptionsBuilder<Empty> {
             shader_compiler: ShaderCompilerEmpty,
             presentation_system: PresentationSystemEmpty,
             latency_waitable_object: LatencyWaitableObjectEmpty,
+            force_shader_model: ForceShaderModelEmpty,
+            agility_sdk: AgilitySdkEmpty,
         }
     }
 }
-#[doc = "\nReturns [Dx12BackendOptionsBuilder] for building [`wgpu::Dx12BackendOptions`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [shader_compiler](Dx12BackendOptionsBuilder::shader_compiler) Optional, defaults to [wgpu::Dx12Compiler::Fxc]\n  - [presentation_system](Dx12BackendOptionsBuilder::presentation_system) Optional, defaults to [wgpu::wgt::Dx12SwapchainKind::DxgiFromHwnd]\n  - [latency_waitable_object](Dx12BackendOptionsBuilder::latency_waitable_object) Optional, defaults to [wgpu::wgt::Dx12UseFrameLatencyWaitableObject::Wait]\n"]
+#[doc = "\nReturns [Dx12BackendOptionsBuilder] for building [`wgpu::Dx12BackendOptions`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [shader_compiler](Dx12BackendOptionsBuilder::shader_compiler) Optional, defaults to [wgpu::Dx12Compiler::Auto]\n  - [presentation_system](Dx12BackendOptionsBuilder::presentation_system) Optional, defaults to [wgpu::Dx12SwapchainKind::DxgiFromHwnd]\n  - [latency_waitable_object](Dx12BackendOptionsBuilder::latency_waitable_object) Optional, defaults to [wgpu::Dx12UseFrameLatencyWaitableObject::Wait]\n  - [force_shader_model](Dx12BackendOptionsBuilder::force_shader_model) Optional, defaults to [wgpu::ForceShaderModelToken::default()]\n  - [agility_sdk](Dx12BackendOptionsBuilder::agility_sdk) Optional, defaults to `None`\n"]
 pub fn dx_12_backend_options() -> Dx12BackendOptionsBuilder<Empty> {
     Dx12BackendOptionsBuilder::new()
 }
@@ -33,7 +37,7 @@ pub trait IsSetShaderCompiler {
 }
 impl IsSetShaderCompiler for ShaderCompilerEmpty {
     fn get(self) -> wgpu::Dx12Compiler {
-        wgpu::Dx12Compiler::Fxc
+        wgpu::Dx12Compiler::Auto
     }
 }
 pub struct ShaderCompilerValue(pub wgpu::Dx12Compiler);
@@ -48,17 +52,17 @@ impl Field for PresentationSystemEmpty {}
 pub trait PresentationSystemIsEmpty {}
 impl PresentationSystemIsEmpty for PresentationSystemEmpty {}
 pub trait IsSetPresentationSystem {
-    fn get(self) -> wgpu::wgt::Dx12SwapchainKind;
+    fn get(self) -> wgpu::Dx12SwapchainKind;
 }
 impl IsSetPresentationSystem for PresentationSystemEmpty {
-    fn get(self) -> wgpu::wgt::Dx12SwapchainKind {
-        wgpu::wgt::Dx12SwapchainKind::DxgiFromHwnd
+    fn get(self) -> wgpu::Dx12SwapchainKind {
+        wgpu::Dx12SwapchainKind::DxgiFromHwnd
     }
 }
-pub struct PresentationSystemValue(pub wgpu::wgt::Dx12SwapchainKind);
+pub struct PresentationSystemValue(pub wgpu::Dx12SwapchainKind);
 impl Field for PresentationSystemValue {}
 impl IsSetPresentationSystem for PresentationSystemValue {
-    fn get(self) -> wgpu::wgt::Dx12SwapchainKind {
+    fn get(self) -> wgpu::Dx12SwapchainKind {
         self.0
     }
 }
@@ -67,17 +71,55 @@ impl Field for LatencyWaitableObjectEmpty {}
 pub trait LatencyWaitableObjectIsEmpty {}
 impl LatencyWaitableObjectIsEmpty for LatencyWaitableObjectEmpty {}
 pub trait IsSetLatencyWaitableObject {
-    fn get(self) -> wgpu::wgt::Dx12UseFrameLatencyWaitableObject;
+    fn get(self) -> wgpu::Dx12UseFrameLatencyWaitableObject;
 }
 impl IsSetLatencyWaitableObject for LatencyWaitableObjectEmpty {
-    fn get(self) -> wgpu::wgt::Dx12UseFrameLatencyWaitableObject {
-        wgpu::wgt::Dx12UseFrameLatencyWaitableObject::Wait
+    fn get(self) -> wgpu::Dx12UseFrameLatencyWaitableObject {
+        wgpu::Dx12UseFrameLatencyWaitableObject::Wait
     }
 }
-pub struct LatencyWaitableObjectValue(pub wgpu::wgt::Dx12UseFrameLatencyWaitableObject);
+pub struct LatencyWaitableObjectValue(pub wgpu::Dx12UseFrameLatencyWaitableObject);
 impl Field for LatencyWaitableObjectValue {}
 impl IsSetLatencyWaitableObject for LatencyWaitableObjectValue {
-    fn get(self) -> wgpu::wgt::Dx12UseFrameLatencyWaitableObject {
+    fn get(self) -> wgpu::Dx12UseFrameLatencyWaitableObject {
+        self.0
+    }
+}
+pub struct ForceShaderModelEmpty;
+impl Field for ForceShaderModelEmpty {}
+pub trait ForceShaderModelIsEmpty {}
+impl ForceShaderModelIsEmpty for ForceShaderModelEmpty {}
+pub trait IsSetForceShaderModel {
+    fn get(self) -> wgpu::ForceShaderModelToken;
+}
+impl IsSetForceShaderModel for ForceShaderModelEmpty {
+    fn get(self) -> wgpu::ForceShaderModelToken {
+        wgpu::ForceShaderModelToken::default()
+    }
+}
+pub struct ForceShaderModelValue(pub wgpu::ForceShaderModelToken);
+impl Field for ForceShaderModelValue {}
+impl IsSetForceShaderModel for ForceShaderModelValue {
+    fn get(self) -> wgpu::ForceShaderModelToken {
+        self.0
+    }
+}
+pub struct AgilitySdkEmpty;
+impl Field for AgilitySdkEmpty {}
+pub trait AgilitySdkIsEmpty {}
+impl AgilitySdkIsEmpty for AgilitySdkEmpty {}
+pub trait IsSetAgilitySdk {
+    fn get(self) -> Option<wgpu::wgt::Dx12AgilitySDK>;
+}
+impl IsSetAgilitySdk for AgilitySdkEmpty {
+    fn get(self) -> Option<wgpu::wgt::Dx12AgilitySDK> {
+        None
+    }
+}
+pub struct AgilitySdkValue(pub Option<wgpu::wgt::Dx12AgilitySDK>);
+impl Field for AgilitySdkValue {}
+impl IsSetAgilitySdk for AgilitySdkValue {
+    fn get(self) -> Option<wgpu::wgt::Dx12AgilitySDK> {
         self.0
     }
 }
@@ -85,33 +127,59 @@ pub trait State {
     type ShaderCompiler: Field;
     type PresentationSystem: Field;
     type LatencyWaitableObject: Field;
+    type ForceShaderModel: Field;
+    type AgilitySdk: Field;
 }
 pub struct Empty;
 impl State for Empty {
     type ShaderCompiler = ShaderCompilerEmpty;
     type PresentationSystem = PresentationSystemEmpty;
     type LatencyWaitableObject = LatencyWaitableObjectEmpty;
+    type ForceShaderModel = ForceShaderModelEmpty;
+    type AgilitySdk = AgilitySdkEmpty;
 }
 pub struct SetShaderCompiler<CS>(CS);
 impl<CS: State> State for SetShaderCompiler<CS> {
     type ShaderCompiler = ShaderCompilerValue;
     type PresentationSystem = CS::PresentationSystem;
     type LatencyWaitableObject = CS::LatencyWaitableObject;
+    type ForceShaderModel = CS::ForceShaderModel;
+    type AgilitySdk = CS::AgilitySdk;
 }
 pub struct SetPresentationSystem<CS>(CS);
 impl<CS: State> State for SetPresentationSystem<CS> {
     type ShaderCompiler = CS::ShaderCompiler;
     type PresentationSystem = PresentationSystemValue;
     type LatencyWaitableObject = CS::LatencyWaitableObject;
+    type ForceShaderModel = CS::ForceShaderModel;
+    type AgilitySdk = CS::AgilitySdk;
 }
 pub struct SetLatencyWaitableObject<CS>(CS);
 impl<CS: State> State for SetLatencyWaitableObject<CS> {
     type ShaderCompiler = CS::ShaderCompiler;
     type PresentationSystem = CS::PresentationSystem;
     type LatencyWaitableObject = LatencyWaitableObjectValue;
+    type ForceShaderModel = CS::ForceShaderModel;
+    type AgilitySdk = CS::AgilitySdk;
+}
+pub struct SetForceShaderModel<CS>(CS);
+impl<CS: State> State for SetForceShaderModel<CS> {
+    type ShaderCompiler = CS::ShaderCompiler;
+    type PresentationSystem = CS::PresentationSystem;
+    type LatencyWaitableObject = CS::LatencyWaitableObject;
+    type ForceShaderModel = ForceShaderModelValue;
+    type AgilitySdk = CS::AgilitySdk;
+}
+pub struct SetAgilitySdk<CS>(CS);
+impl<CS: State> State for SetAgilitySdk<CS> {
+    type ShaderCompiler = CS::ShaderCompiler;
+    type PresentationSystem = CS::PresentationSystem;
+    type LatencyWaitableObject = CS::LatencyWaitableObject;
+    type ForceShaderModel = CS::ForceShaderModel;
+    type AgilitySdk = AgilitySdkValue;
 }
 impl<CS: State> Dx12BackendOptionsBuilder<CS> {
-    #[doc = "Setter for [wgpu::Dx12BackendOptions::shader_compiler]. Optional, defaults to [wgpu::Dx12Compiler::Fxc].\n"]
+    #[doc = "Setter for [wgpu::Dx12BackendOptions::shader_compiler]. Optional, defaults to [wgpu::Dx12Compiler::Auto].\n"]
     pub fn shader_compiler(
         self,
         shader_compiler: wgpu::Dx12Compiler,
@@ -123,12 +191,14 @@ impl<CS: State> Dx12BackendOptionsBuilder<CS> {
             shader_compiler: ShaderCompilerValue(shader_compiler),
             presentation_system: self.presentation_system,
             latency_waitable_object: self.latency_waitable_object,
+            force_shader_model: self.force_shader_model,
+            agility_sdk: self.agility_sdk,
         }
     }
-    #[doc = "Setter for [wgpu::Dx12BackendOptions::presentation_system]. Optional, defaults to [wgpu::wgt::Dx12SwapchainKind::DxgiFromHwnd].\n"]
+    #[doc = "Setter for [wgpu::Dx12BackendOptions::presentation_system]. Optional, defaults to [wgpu::Dx12SwapchainKind::DxgiFromHwnd].\n"]
     pub fn presentation_system(
         self,
-        presentation_system: wgpu::wgt::Dx12SwapchainKind,
+        presentation_system: wgpu::Dx12SwapchainKind,
     ) -> Dx12BackendOptionsBuilder<SetPresentationSystem<CS>>
     where
         CS::PresentationSystem: PresentationSystemIsEmpty,
@@ -137,12 +207,14 @@ impl<CS: State> Dx12BackendOptionsBuilder<CS> {
             shader_compiler: self.shader_compiler,
             presentation_system: PresentationSystemValue(presentation_system),
             latency_waitable_object: self.latency_waitable_object,
+            force_shader_model: self.force_shader_model,
+            agility_sdk: self.agility_sdk,
         }
     }
-    #[doc = "Setter for [wgpu::Dx12BackendOptions::latency_waitable_object]. Optional, defaults to [wgpu::wgt::Dx12UseFrameLatencyWaitableObject::Wait].\n"]
+    #[doc = "Setter for [wgpu::Dx12BackendOptions::latency_waitable_object]. Optional, defaults to [wgpu::Dx12UseFrameLatencyWaitableObject::Wait].\n"]
     pub fn latency_waitable_object(
         self,
-        latency_waitable_object: wgpu::wgt::Dx12UseFrameLatencyWaitableObject,
+        latency_waitable_object: wgpu::Dx12UseFrameLatencyWaitableObject,
     ) -> Dx12BackendOptionsBuilder<SetLatencyWaitableObject<CS>>
     where
         CS::LatencyWaitableObject: LatencyWaitableObjectIsEmpty,
@@ -151,6 +223,56 @@ impl<CS: State> Dx12BackendOptionsBuilder<CS> {
             shader_compiler: self.shader_compiler,
             presentation_system: self.presentation_system,
             latency_waitable_object: LatencyWaitableObjectValue(latency_waitable_object),
+            force_shader_model: self.force_shader_model,
+            agility_sdk: self.agility_sdk,
+        }
+    }
+    #[doc = "Setter for [wgpu::Dx12BackendOptions::force_shader_model]. Optional, defaults to [wgpu::ForceShaderModelToken::default()].\n"]
+    pub fn force_shader_model(
+        self,
+        force_shader_model: wgpu::ForceShaderModelToken,
+    ) -> Dx12BackendOptionsBuilder<SetForceShaderModel<CS>>
+    where
+        CS::ForceShaderModel: ForceShaderModelIsEmpty,
+    {
+        Dx12BackendOptionsBuilder {
+            shader_compiler: self.shader_compiler,
+            presentation_system: self.presentation_system,
+            latency_waitable_object: self.latency_waitable_object,
+            force_shader_model: ForceShaderModelValue(force_shader_model),
+            agility_sdk: self.agility_sdk,
+        }
+    }
+    #[doc = "Setter for [wgpu::Dx12BackendOptions::agility_sdk]. Optional, defaults to `None`.\n"]
+    pub fn agility_sdk(
+        self,
+        agility_sdk: wgpu::wgt::Dx12AgilitySDK,
+    ) -> Dx12BackendOptionsBuilder<SetAgilitySdk<CS>>
+    where
+        CS::AgilitySdk: AgilitySdkIsEmpty,
+    {
+        Dx12BackendOptionsBuilder {
+            shader_compiler: self.shader_compiler,
+            presentation_system: self.presentation_system,
+            latency_waitable_object: self.latency_waitable_object,
+            force_shader_model: self.force_shader_model,
+            agility_sdk: AgilitySdkValue(Some(agility_sdk)),
+        }
+    }
+    #[doc = "Setter for [wgpu::Dx12BackendOptions::agility_sdk]. Optional, defaults to `None`.\n"]
+    pub fn maybe_agility_sdk(
+        self,
+        agility_sdk: Option<wgpu::wgt::Dx12AgilitySDK>,
+    ) -> Dx12BackendOptionsBuilder<SetAgilitySdk<CS>>
+    where
+        CS::AgilitySdk: AgilitySdkIsEmpty,
+    {
+        Dx12BackendOptionsBuilder {
+            shader_compiler: self.shader_compiler,
+            presentation_system: self.presentation_system,
+            latency_waitable_object: self.latency_waitable_object,
+            force_shader_model: self.force_shader_model,
+            agility_sdk: AgilitySdkValue(agility_sdk),
         }
     }
 }
@@ -159,6 +281,8 @@ pub trait Complete:
     ShaderCompiler: IsSetShaderCompiler,
     PresentationSystem: IsSetPresentationSystem,
     LatencyWaitableObject: IsSetLatencyWaitableObject,
+    ForceShaderModel: IsSetForceShaderModel,
+    AgilitySdk: IsSetAgilitySdk,
 >
 {
 }
@@ -167,6 +291,8 @@ impl<
             ShaderCompiler: IsSetShaderCompiler,
             PresentationSystem: IsSetPresentationSystem,
             LatencyWaitableObject: IsSetLatencyWaitableObject,
+            ForceShaderModel: IsSetForceShaderModel,
+            AgilitySdk: IsSetAgilitySdk,
         >,
     > Complete for CS
 {
@@ -177,6 +303,8 @@ impl<CS: Complete> Dx12BackendOptionsBuilder<CS> {
             shader_compiler: IsSetShaderCompiler::get(self.shader_compiler),
             presentation_system: IsSetPresentationSystem::get(self.presentation_system),
             latency_waitable_object: IsSetLatencyWaitableObject::get(self.latency_waitable_object),
+            force_shader_model: IsSetForceShaderModel::get(self.force_shader_model),
+            agility_sdk: IsSetAgilitySdk::get(self.agility_sdk),
         }
     }
 }

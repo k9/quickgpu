@@ -5,20 +5,22 @@ pub use super::super::Nested;
 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
 pub trait Field {}
 pub trait IsOptional {}
-#[doc = "\nBuilder for [`wgpu::GlBackendOptions`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [gles_minor_version](GlBackendOptionsBuilder::gles_minor_version) Optional, defaults to [wgpu::Gles3MinorVersion::Automatic]\n  - [fence_behavior](GlBackendOptionsBuilder::fence_behavior) Optional, defaults to [wgpu::GlFenceBehavior::Normal]\n"]
+#[doc = "\nBuilder for [`wgpu::GlBackendOptions`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [gles_minor_version](GlBackendOptionsBuilder::gles_minor_version) Optional, defaults to [wgpu::Gles3MinorVersion::Automatic]\n  - [fence_behavior](GlBackendOptionsBuilder::fence_behavior) Optional, defaults to [wgpu::GlFenceBehavior::Normal]\n  - [debug_fns](GlBackendOptionsBuilder::debug_fns) Optional, defaults to [wgpu::GlDebugFns::Auto]\n"]
 pub struct GlBackendOptionsBuilder<CS: State> {
     gles_minor_version: CS::GlesMinorVersion,
     fence_behavior: CS::FenceBehavior,
+    debug_fns: CS::DebugFns,
 }
 impl GlBackendOptionsBuilder<Empty> {
     pub fn new() -> GlBackendOptionsBuilder<Empty> {
         GlBackendOptionsBuilder {
             gles_minor_version: GlesMinorVersionEmpty,
             fence_behavior: FenceBehaviorEmpty,
+            debug_fns: DebugFnsEmpty,
         }
     }
 }
-#[doc = "\nReturns [GlBackendOptionsBuilder] for building [`wgpu::GlBackendOptions`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [gles_minor_version](GlBackendOptionsBuilder::gles_minor_version) Optional, defaults to [wgpu::Gles3MinorVersion::Automatic]\n  - [fence_behavior](GlBackendOptionsBuilder::fence_behavior) Optional, defaults to [wgpu::GlFenceBehavior::Normal]\n"]
+#[doc = "\nReturns [GlBackendOptionsBuilder] for building [`wgpu::GlBackendOptions`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [gles_minor_version](GlBackendOptionsBuilder::gles_minor_version) Optional, defaults to [wgpu::Gles3MinorVersion::Automatic]\n  - [fence_behavior](GlBackendOptionsBuilder::fence_behavior) Optional, defaults to [wgpu::GlFenceBehavior::Normal]\n  - [debug_fns](GlBackendOptionsBuilder::debug_fns) Optional, defaults to [wgpu::GlDebugFns::Auto]\n"]
 pub fn gl_backend_options() -> GlBackendOptionsBuilder<Empty> {
     GlBackendOptionsBuilder::new()
 }
@@ -60,24 +62,53 @@ impl IsSetFenceBehavior for FenceBehaviorValue {
         self.0
     }
 }
+pub struct DebugFnsEmpty;
+impl Field for DebugFnsEmpty {}
+pub trait DebugFnsIsEmpty {}
+impl DebugFnsIsEmpty for DebugFnsEmpty {}
+pub trait IsSetDebugFns {
+    fn get(self) -> wgpu::GlDebugFns;
+}
+impl IsSetDebugFns for DebugFnsEmpty {
+    fn get(self) -> wgpu::GlDebugFns {
+        wgpu::GlDebugFns::Auto
+    }
+}
+pub struct DebugFnsValue(pub wgpu::GlDebugFns);
+impl Field for DebugFnsValue {}
+impl IsSetDebugFns for DebugFnsValue {
+    fn get(self) -> wgpu::GlDebugFns {
+        self.0
+    }
+}
 pub trait State {
     type GlesMinorVersion: Field;
     type FenceBehavior: Field;
+    type DebugFns: Field;
 }
 pub struct Empty;
 impl State for Empty {
     type GlesMinorVersion = GlesMinorVersionEmpty;
     type FenceBehavior = FenceBehaviorEmpty;
+    type DebugFns = DebugFnsEmpty;
 }
 pub struct SetGlesMinorVersion<CS>(CS);
 impl<CS: State> State for SetGlesMinorVersion<CS> {
     type GlesMinorVersion = GlesMinorVersionValue;
     type FenceBehavior = CS::FenceBehavior;
+    type DebugFns = CS::DebugFns;
 }
 pub struct SetFenceBehavior<CS>(CS);
 impl<CS: State> State for SetFenceBehavior<CS> {
     type GlesMinorVersion = CS::GlesMinorVersion;
     type FenceBehavior = FenceBehaviorValue;
+    type DebugFns = CS::DebugFns;
+}
+pub struct SetDebugFns<CS>(CS);
+impl<CS: State> State for SetDebugFns<CS> {
+    type GlesMinorVersion = CS::GlesMinorVersion;
+    type FenceBehavior = CS::FenceBehavior;
+    type DebugFns = DebugFnsValue;
 }
 impl<CS: State> GlBackendOptionsBuilder<CS> {
     #[doc = "Setter for [wgpu::GlBackendOptions::gles_minor_version]. Optional, defaults to [wgpu::Gles3MinorVersion::Automatic].\n"]
@@ -91,6 +122,7 @@ impl<CS: State> GlBackendOptionsBuilder<CS> {
         GlBackendOptionsBuilder {
             gles_minor_version: GlesMinorVersionValue(gles_minor_version),
             fence_behavior: self.fence_behavior,
+            debug_fns: self.debug_fns,
         }
     }
     #[doc = "Setter for [wgpu::GlBackendOptions::fence_behavior]. Optional, defaults to [wgpu::GlFenceBehavior::Normal].\n"]
@@ -104,15 +136,36 @@ impl<CS: State> GlBackendOptionsBuilder<CS> {
         GlBackendOptionsBuilder {
             gles_minor_version: self.gles_minor_version,
             fence_behavior: FenceBehaviorValue(fence_behavior),
+            debug_fns: self.debug_fns,
+        }
+    }
+    #[doc = "Setter for [wgpu::GlBackendOptions::debug_fns]. Optional, defaults to [wgpu::GlDebugFns::Auto].\n"]
+    pub fn debug_fns(self, debug_fns: wgpu::GlDebugFns) -> GlBackendOptionsBuilder<SetDebugFns<CS>>
+    where
+        CS::DebugFns: DebugFnsIsEmpty,
+    {
+        GlBackendOptionsBuilder {
+            gles_minor_version: self.gles_minor_version,
+            fence_behavior: self.fence_behavior,
+            debug_fns: DebugFnsValue(debug_fns),
         }
     }
 }
 pub trait Complete:
-    State<GlesMinorVersion: IsSetGlesMinorVersion, FenceBehavior: IsSetFenceBehavior>
+    State<
+    GlesMinorVersion: IsSetGlesMinorVersion,
+    FenceBehavior: IsSetFenceBehavior,
+    DebugFns: IsSetDebugFns,
+>
 {
 }
-impl<CS: State<GlesMinorVersion: IsSetGlesMinorVersion, FenceBehavior: IsSetFenceBehavior>> Complete
-    for CS
+impl<
+        CS: State<
+            GlesMinorVersion: IsSetGlesMinorVersion,
+            FenceBehavior: IsSetFenceBehavior,
+            DebugFns: IsSetDebugFns,
+        >,
+    > Complete for CS
 {
 }
 impl<CS: Complete> GlBackendOptionsBuilder<CS> {
@@ -120,6 +173,7 @@ impl<CS: Complete> GlBackendOptionsBuilder<CS> {
         wgpu::GlBackendOptions {
             gles_minor_version: IsSetGlesMinorVersion::get(self.gles_minor_version),
             fence_behavior: IsSetFenceBehavior::get(self.fence_behavior),
+            debug_fns: IsSetDebugFns::get(self.debug_fns),
         }
     }
 }

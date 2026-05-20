@@ -8,6 +8,8 @@ pub mod bind_group_layout_descriptor_builder;
 
 pub mod bind_group_layout_entry_builder;
 
+pub mod blas_aabb_geometry_builder;
+
 pub mod blas_build_entry_builder;
 
 pub mod blas_triangle_geometry_builder;
@@ -39,6 +41,8 @@ pub mod compute_pass_descriptor_builder;
 pub mod compute_pass_timestamp_writes_builder;
 
 pub mod compute_pipeline_descriptor_builder;
+
+pub mod cooperative_matrix_properties_builder;
 
 pub mod copy_external_image_dest_info_builder;
 
@@ -91,6 +95,8 @@ pub mod operations_builder;
 pub mod origin_2_d_builder;
 
 pub mod origin_3_d_builder;
+
+pub mod passthrough_shader_entry_point_builder;
 
 pub mod pipeline_cache_descriptor_builder;
 

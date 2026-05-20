@@ -5,59 +5,38 @@ pub use super::super::Nested;
 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
 pub trait Field {}
 pub trait IsOptional {}
-#[doc = "\nBuilder for [`wgpu::ShaderModuleDescriptorPassthrough`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [entry_point](ShaderModuleDescriptorPassthroughBuilder::entry_point) Optional, defaults to `\"\".into()`\n  - [num_workgroups](ShaderModuleDescriptorPassthroughBuilder::num_workgroups) Optional, defaults to `(0,0,0)`\n  - [runtime_checks](ShaderModuleDescriptorPassthroughBuilder::runtime_checks) Optional, defaults to [wgpu::ShaderRuntimeChecks::unchecked()]\n  - [spirv](ShaderModuleDescriptorPassthroughBuilder::spirv) Optional, defaults to `None`\n  - [dxil](ShaderModuleDescriptorPassthroughBuilder::dxil) Optional, defaults to `None`\n  - [msl](ShaderModuleDescriptorPassthroughBuilder::msl) Optional, defaults to `None`\n  - [hlsl](ShaderModuleDescriptorPassthroughBuilder::hlsl) Optional, defaults to `None`\n  - [glsl](ShaderModuleDescriptorPassthroughBuilder::glsl) Optional, defaults to `None`\n  - [wgsl](ShaderModuleDescriptorPassthroughBuilder::wgsl) Optional, defaults to `None`\n"]
+#[doc = "\nBuilder for [`wgpu::ShaderModuleDescriptorPassthrough`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [entry_points](ShaderModuleDescriptorPassthroughBuilder::entry_points) Optional, defaults to [Cow::Borrowed(&[])]\n  - [spirv](ShaderModuleDescriptorPassthroughBuilder::spirv) Optional, defaults to `None`\n  - [dxil](ShaderModuleDescriptorPassthroughBuilder::dxil) Optional, defaults to `None`\n  - [hlsl](ShaderModuleDescriptorPassthroughBuilder::hlsl) Optional, defaults to `None`\n  - [metallib](ShaderModuleDescriptorPassthroughBuilder::metallib) Optional, defaults to `None`\n  - [msl](ShaderModuleDescriptorPassthroughBuilder::msl) Optional, defaults to `None`\n  - [glsl](ShaderModuleDescriptorPassthroughBuilder::glsl) Optional, defaults to `None`\n  - [wgsl](ShaderModuleDescriptorPassthroughBuilder::wgsl) Optional, defaults to `None`\n"]
 pub struct ShaderModuleDescriptorPassthroughBuilder<'a, CS: State<'a>> {
-    entry_point: CS::EntryPoint,
     label: CS::Label,
-    num_workgroups: CS::NumWorkgroups,
-    runtime_checks: CS::RuntimeChecks,
+    entry_points: CS::EntryPoints,
     spirv: CS::Spirv,
     dxil: CS::Dxil,
-    msl: CS::Msl,
     hlsl: CS::Hlsl,
+    metallib: CS::Metallib,
+    msl: CS::Msl,
     glsl: CS::Glsl,
     wgsl: CS::Wgsl,
 }
 impl<'a> ShaderModuleDescriptorPassthroughBuilder<'a, Empty> {
     pub fn new() -> ShaderModuleDescriptorPassthroughBuilder<'a, Empty> {
         ShaderModuleDescriptorPassthroughBuilder {
-            entry_point: EntryPointEmpty,
             label: LabelEmpty,
-            num_workgroups: NumWorkgroupsEmpty,
-            runtime_checks: RuntimeChecksEmpty,
+            entry_points: EntryPointsEmpty,
             spirv: SpirvEmpty,
             dxil: DxilEmpty,
-            msl: MslEmpty,
             hlsl: HlslEmpty,
+            metallib: MetallibEmpty,
+            msl: MslEmpty,
             glsl: GlslEmpty,
             wgsl: WgslEmpty,
         }
     }
 }
-#[doc = "\nReturns [ShaderModuleDescriptorPassthroughBuilder] for building [`wgpu::ShaderModuleDescriptorPassthrough`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [entry_point](ShaderModuleDescriptorPassthroughBuilder::entry_point) Optional, defaults to `\"\".into()`\n  - [num_workgroups](ShaderModuleDescriptorPassthroughBuilder::num_workgroups) Optional, defaults to `(0,0,0)`\n  - [runtime_checks](ShaderModuleDescriptorPassthroughBuilder::runtime_checks) Optional, defaults to [wgpu::ShaderRuntimeChecks::unchecked()]\n  - [spirv](ShaderModuleDescriptorPassthroughBuilder::spirv) Optional, defaults to `None`\n  - [dxil](ShaderModuleDescriptorPassthroughBuilder::dxil) Optional, defaults to `None`\n  - [msl](ShaderModuleDescriptorPassthroughBuilder::msl) Optional, defaults to `None`\n  - [hlsl](ShaderModuleDescriptorPassthroughBuilder::hlsl) Optional, defaults to `None`\n  - [glsl](ShaderModuleDescriptorPassthroughBuilder::glsl) Optional, defaults to `None`\n  - [wgsl](ShaderModuleDescriptorPassthroughBuilder::wgsl) Optional, defaults to `None`\n"]
+#[doc = "\nReturns [ShaderModuleDescriptorPassthroughBuilder] for building [`wgpu::ShaderModuleDescriptorPassthrough`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [entry_points](ShaderModuleDescriptorPassthroughBuilder::entry_points) Optional, defaults to [Cow::Borrowed(&[])]\n  - [spirv](ShaderModuleDescriptorPassthroughBuilder::spirv) Optional, defaults to `None`\n  - [dxil](ShaderModuleDescriptorPassthroughBuilder::dxil) Optional, defaults to `None`\n  - [hlsl](ShaderModuleDescriptorPassthroughBuilder::hlsl) Optional, defaults to `None`\n  - [metallib](ShaderModuleDescriptorPassthroughBuilder::metallib) Optional, defaults to `None`\n  - [msl](ShaderModuleDescriptorPassthroughBuilder::msl) Optional, defaults to `None`\n  - [glsl](ShaderModuleDescriptorPassthroughBuilder::glsl) Optional, defaults to `None`\n  - [wgsl](ShaderModuleDescriptorPassthroughBuilder::wgsl) Optional, defaults to `None`\n"]
 pub fn shader_module_descriptor_passthrough<'a>(
     label: wgpu::Label<'a>,
 ) -> ShaderModuleDescriptorPassthroughBuilder<'a, SetLabel<Empty>> {
     ShaderModuleDescriptorPassthroughBuilder::new().label(label)
-}
-pub struct EntryPointEmpty;
-impl Field for EntryPointEmpty {}
-pub trait EntryPointIsEmpty {}
-impl EntryPointIsEmpty for EntryPointEmpty {}
-pub trait IsSetEntryPoint {
-    fn get(self) -> String;
-}
-impl IsSetEntryPoint for EntryPointEmpty {
-    fn get(self) -> String {
-        "".into()
-    }
-}
-pub struct EntryPointValue(pub String);
-impl Field for EntryPointValue {}
-impl IsSetEntryPoint for EntryPointValue {
-    fn get(self) -> String {
-        self.0
-    }
 }
 pub struct LabelEmpty;
 impl Field for LabelEmpty {}
@@ -78,41 +57,22 @@ impl<'a> IsSetLabel<'a> for LabelValue<'a> {
         self.0
     }
 }
-pub struct NumWorkgroupsEmpty;
-impl Field for NumWorkgroupsEmpty {}
-pub trait NumWorkgroupsIsEmpty {}
-impl NumWorkgroupsIsEmpty for NumWorkgroupsEmpty {}
-pub trait IsSetNumWorkgroups {
-    fn get(self) -> (u32, u32, u32);
+pub struct EntryPointsEmpty;
+impl Field for EntryPointsEmpty {}
+pub trait EntryPointsIsEmpty {}
+impl EntryPointsIsEmpty for EntryPointsEmpty {}
+pub trait IsSetEntryPoints<'a> {
+    fn get(self) -> Cow<'a, [wgpu::PassthroughShaderEntryPoint<'a>]>;
 }
-impl IsSetNumWorkgroups for NumWorkgroupsEmpty {
-    fn get(self) -> (u32, u32, u32) {
-        (0, 0, 0)
+impl<'a> IsSetEntryPoints<'a> for EntryPointsEmpty {
+    fn get(self) -> Cow<'a, [wgpu::PassthroughShaderEntryPoint<'a>]> {
+        Cow::Borrowed(&[])
     }
 }
-pub struct NumWorkgroupsValue(pub (u32, u32, u32));
-impl Field for NumWorkgroupsValue {}
-impl IsSetNumWorkgroups for NumWorkgroupsValue {
-    fn get(self) -> (u32, u32, u32) {
-        self.0
-    }
-}
-pub struct RuntimeChecksEmpty;
-impl Field for RuntimeChecksEmpty {}
-pub trait RuntimeChecksIsEmpty {}
-impl RuntimeChecksIsEmpty for RuntimeChecksEmpty {}
-pub trait IsSetRuntimeChecks {
-    fn get(self) -> wgpu::ShaderRuntimeChecks;
-}
-impl IsSetRuntimeChecks for RuntimeChecksEmpty {
-    fn get(self) -> wgpu::ShaderRuntimeChecks {
-        wgpu::ShaderRuntimeChecks::unchecked()
-    }
-}
-pub struct RuntimeChecksValue(pub wgpu::ShaderRuntimeChecks);
-impl Field for RuntimeChecksValue {}
-impl IsSetRuntimeChecks for RuntimeChecksValue {
-    fn get(self) -> wgpu::ShaderRuntimeChecks {
+pub struct EntryPointsValue<'a>(pub Cow<'a, [wgpu::PassthroughShaderEntryPoint<'a>]>);
+impl<'a> Field for EntryPointsValue<'a> {}
+impl<'a> IsSetEntryPoints<'a> for EntryPointsValue<'a> {
+    fn get(self) -> Cow<'a, [wgpu::PassthroughShaderEntryPoint<'a>]> {
         self.0
     }
 }
@@ -154,25 +114,6 @@ impl<'a> IsSetDxil<'a> for DxilValue<'a> {
         self.0
     }
 }
-pub struct MslEmpty;
-impl Field for MslEmpty {}
-pub trait MslIsEmpty {}
-impl MslIsEmpty for MslEmpty {}
-pub trait IsSetMsl<'a> {
-    fn get(self) -> Option<Cow<'a, str>>;
-}
-impl<'a> IsSetMsl<'a> for MslEmpty {
-    fn get(self) -> Option<Cow<'a, str>> {
-        None
-    }
-}
-pub struct MslValue<'a>(pub Option<Cow<'a, str>>);
-impl<'a> Field for MslValue<'a> {}
-impl<'a> IsSetMsl<'a> for MslValue<'a> {
-    fn get(self) -> Option<Cow<'a, str>> {
-        self.0
-    }
-}
 pub struct HlslEmpty;
 impl Field for HlslEmpty {}
 pub trait HlslIsEmpty {}
@@ -188,6 +129,44 @@ impl<'a> IsSetHlsl<'a> for HlslEmpty {
 pub struct HlslValue<'a>(pub Option<Cow<'a, str>>);
 impl<'a> Field for HlslValue<'a> {}
 impl<'a> IsSetHlsl<'a> for HlslValue<'a> {
+    fn get(self) -> Option<Cow<'a, str>> {
+        self.0
+    }
+}
+pub struct MetallibEmpty;
+impl Field for MetallibEmpty {}
+pub trait MetallibIsEmpty {}
+impl MetallibIsEmpty for MetallibEmpty {}
+pub trait IsSetMetallib<'a> {
+    fn get(self) -> Option<Cow<'a, [u8]>>;
+}
+impl<'a> IsSetMetallib<'a> for MetallibEmpty {
+    fn get(self) -> Option<Cow<'a, [u8]>> {
+        None
+    }
+}
+pub struct MetallibValue<'a>(pub Option<Cow<'a, [u8]>>);
+impl<'a> Field for MetallibValue<'a> {}
+impl<'a> IsSetMetallib<'a> for MetallibValue<'a> {
+    fn get(self) -> Option<Cow<'a, [u8]>> {
+        self.0
+    }
+}
+pub struct MslEmpty;
+impl Field for MslEmpty {}
+pub trait MslIsEmpty {}
+impl MslIsEmpty for MslEmpty {}
+pub trait IsSetMsl<'a> {
+    fn get(self) -> Option<Cow<'a, str>>;
+}
+impl<'a> IsSetMsl<'a> for MslEmpty {
+    fn get(self) -> Option<Cow<'a, str>> {
+        None
+    }
+}
+pub struct MslValue<'a>(pub Option<Cow<'a, str>>);
+impl<'a> Field for MslValue<'a> {}
+impl<'a> IsSetMsl<'a> for MslValue<'a> {
     fn get(self) -> Option<Cow<'a, str>> {
         self.0
     }
@@ -231,182 +210,137 @@ impl<'a> IsSetWgsl<'a> for WgslValue<'a> {
     }
 }
 pub trait State<'a> {
-    type EntryPoint: Field;
     type Label: Field;
-    type NumWorkgroups: Field;
-    type RuntimeChecks: Field;
+    type EntryPoints: Field;
     type Spirv: Field;
     type Dxil: Field;
-    type Msl: Field;
     type Hlsl: Field;
+    type Metallib: Field;
+    type Msl: Field;
     type Glsl: Field;
     type Wgsl: Field;
 }
 pub struct Empty;
 impl<'a> State<'a> for Empty {
-    type EntryPoint = EntryPointEmpty;
     type Label = LabelEmpty;
-    type NumWorkgroups = NumWorkgroupsEmpty;
-    type RuntimeChecks = RuntimeChecksEmpty;
+    type EntryPoints = EntryPointsEmpty;
     type Spirv = SpirvEmpty;
     type Dxil = DxilEmpty;
-    type Msl = MslEmpty;
     type Hlsl = HlslEmpty;
+    type Metallib = MetallibEmpty;
+    type Msl = MslEmpty;
     type Glsl = GlslEmpty;
     type Wgsl = WgslEmpty;
 }
-pub struct SetEntryPoint<CS>(CS);
-impl<'a, CS: State<'a>> State<'a> for SetEntryPoint<CS> {
-    type EntryPoint = EntryPointValue;
-    type Label = CS::Label;
-    type NumWorkgroups = CS::NumWorkgroups;
-    type RuntimeChecks = CS::RuntimeChecks;
-    type Spirv = CS::Spirv;
-    type Dxil = CS::Dxil;
-    type Msl = CS::Msl;
-    type Hlsl = CS::Hlsl;
-    type Glsl = CS::Glsl;
-    type Wgsl = CS::Wgsl;
-}
 pub struct SetLabel<CS>(CS);
 impl<'a, CS: State<'a>> State<'a> for SetLabel<CS> {
-    type EntryPoint = CS::EntryPoint;
     type Label = LabelValue<'a>;
-    type NumWorkgroups = CS::NumWorkgroups;
-    type RuntimeChecks = CS::RuntimeChecks;
+    type EntryPoints = CS::EntryPoints;
     type Spirv = CS::Spirv;
     type Dxil = CS::Dxil;
-    type Msl = CS::Msl;
     type Hlsl = CS::Hlsl;
+    type Metallib = CS::Metallib;
+    type Msl = CS::Msl;
     type Glsl = CS::Glsl;
     type Wgsl = CS::Wgsl;
 }
-pub struct SetNumWorkgroups<CS>(CS);
-impl<'a, CS: State<'a>> State<'a> for SetNumWorkgroups<CS> {
-    type EntryPoint = CS::EntryPoint;
+pub struct SetEntryPoints<CS>(CS);
+impl<'a, CS: State<'a>> State<'a> for SetEntryPoints<CS> {
     type Label = CS::Label;
-    type NumWorkgroups = NumWorkgroupsValue;
-    type RuntimeChecks = CS::RuntimeChecks;
+    type EntryPoints = EntryPointsValue<'a>;
     type Spirv = CS::Spirv;
     type Dxil = CS::Dxil;
-    type Msl = CS::Msl;
     type Hlsl = CS::Hlsl;
-    type Glsl = CS::Glsl;
-    type Wgsl = CS::Wgsl;
-}
-pub struct SetRuntimeChecks<CS>(CS);
-impl<'a, CS: State<'a>> State<'a> for SetRuntimeChecks<CS> {
-    type EntryPoint = CS::EntryPoint;
-    type Label = CS::Label;
-    type NumWorkgroups = CS::NumWorkgroups;
-    type RuntimeChecks = RuntimeChecksValue;
-    type Spirv = CS::Spirv;
-    type Dxil = CS::Dxil;
+    type Metallib = CS::Metallib;
     type Msl = CS::Msl;
-    type Hlsl = CS::Hlsl;
     type Glsl = CS::Glsl;
     type Wgsl = CS::Wgsl;
 }
 pub struct SetSpirv<CS>(CS);
 impl<'a, CS: State<'a>> State<'a> for SetSpirv<CS> {
-    type EntryPoint = CS::EntryPoint;
     type Label = CS::Label;
-    type NumWorkgroups = CS::NumWorkgroups;
-    type RuntimeChecks = CS::RuntimeChecks;
+    type EntryPoints = CS::EntryPoints;
     type Spirv = SpirvValue<'a>;
     type Dxil = CS::Dxil;
-    type Msl = CS::Msl;
     type Hlsl = CS::Hlsl;
+    type Metallib = CS::Metallib;
+    type Msl = CS::Msl;
     type Glsl = CS::Glsl;
     type Wgsl = CS::Wgsl;
 }
 pub struct SetDxil<CS>(CS);
 impl<'a, CS: State<'a>> State<'a> for SetDxil<CS> {
-    type EntryPoint = CS::EntryPoint;
     type Label = CS::Label;
-    type NumWorkgroups = CS::NumWorkgroups;
-    type RuntimeChecks = CS::RuntimeChecks;
+    type EntryPoints = CS::EntryPoints;
     type Spirv = CS::Spirv;
     type Dxil = DxilValue<'a>;
+    type Hlsl = CS::Hlsl;
+    type Metallib = CS::Metallib;
     type Msl = CS::Msl;
-    type Hlsl = CS::Hlsl;
-    type Glsl = CS::Glsl;
-    type Wgsl = CS::Wgsl;
-}
-pub struct SetMsl<CS>(CS);
-impl<'a, CS: State<'a>> State<'a> for SetMsl<CS> {
-    type EntryPoint = CS::EntryPoint;
-    type Label = CS::Label;
-    type NumWorkgroups = CS::NumWorkgroups;
-    type RuntimeChecks = CS::RuntimeChecks;
-    type Spirv = CS::Spirv;
-    type Dxil = CS::Dxil;
-    type Msl = MslValue<'a>;
-    type Hlsl = CS::Hlsl;
     type Glsl = CS::Glsl;
     type Wgsl = CS::Wgsl;
 }
 pub struct SetHlsl<CS>(CS);
 impl<'a, CS: State<'a>> State<'a> for SetHlsl<CS> {
-    type EntryPoint = CS::EntryPoint;
     type Label = CS::Label;
-    type NumWorkgroups = CS::NumWorkgroups;
-    type RuntimeChecks = CS::RuntimeChecks;
+    type EntryPoints = CS::EntryPoints;
     type Spirv = CS::Spirv;
     type Dxil = CS::Dxil;
-    type Msl = CS::Msl;
     type Hlsl = HlslValue<'a>;
+    type Metallib = CS::Metallib;
+    type Msl = CS::Msl;
+    type Glsl = CS::Glsl;
+    type Wgsl = CS::Wgsl;
+}
+pub struct SetMetallib<CS>(CS);
+impl<'a, CS: State<'a>> State<'a> for SetMetallib<CS> {
+    type Label = CS::Label;
+    type EntryPoints = CS::EntryPoints;
+    type Spirv = CS::Spirv;
+    type Dxil = CS::Dxil;
+    type Hlsl = CS::Hlsl;
+    type Metallib = MetallibValue<'a>;
+    type Msl = CS::Msl;
+    type Glsl = CS::Glsl;
+    type Wgsl = CS::Wgsl;
+}
+pub struct SetMsl<CS>(CS);
+impl<'a, CS: State<'a>> State<'a> for SetMsl<CS> {
+    type Label = CS::Label;
+    type EntryPoints = CS::EntryPoints;
+    type Spirv = CS::Spirv;
+    type Dxil = CS::Dxil;
+    type Hlsl = CS::Hlsl;
+    type Metallib = CS::Metallib;
+    type Msl = MslValue<'a>;
     type Glsl = CS::Glsl;
     type Wgsl = CS::Wgsl;
 }
 pub struct SetGlsl<CS>(CS);
 impl<'a, CS: State<'a>> State<'a> for SetGlsl<CS> {
-    type EntryPoint = CS::EntryPoint;
     type Label = CS::Label;
-    type NumWorkgroups = CS::NumWorkgroups;
-    type RuntimeChecks = CS::RuntimeChecks;
+    type EntryPoints = CS::EntryPoints;
     type Spirv = CS::Spirv;
     type Dxil = CS::Dxil;
-    type Msl = CS::Msl;
     type Hlsl = CS::Hlsl;
+    type Metallib = CS::Metallib;
+    type Msl = CS::Msl;
     type Glsl = GlslValue<'a>;
     type Wgsl = CS::Wgsl;
 }
 pub struct SetWgsl<CS>(CS);
 impl<'a, CS: State<'a>> State<'a> for SetWgsl<CS> {
-    type EntryPoint = CS::EntryPoint;
     type Label = CS::Label;
-    type NumWorkgroups = CS::NumWorkgroups;
-    type RuntimeChecks = CS::RuntimeChecks;
+    type EntryPoints = CS::EntryPoints;
     type Spirv = CS::Spirv;
     type Dxil = CS::Dxil;
-    type Msl = CS::Msl;
     type Hlsl = CS::Hlsl;
+    type Metallib = CS::Metallib;
+    type Msl = CS::Msl;
     type Glsl = CS::Glsl;
     type Wgsl = WgslValue<'a>;
 }
 impl<'a, CS: State<'a>> ShaderModuleDescriptorPassthroughBuilder<'a, CS> {
-    #[doc = "Setter for [wgpu::ShaderModuleDescriptorPassthrough::entry_point]. Optional, defaults to `\"\".into()`.\n"]
-    pub fn entry_point(
-        self,
-        entry_point: String,
-    ) -> ShaderModuleDescriptorPassthroughBuilder<'a, SetEntryPoint<CS>>
-    where
-        CS::EntryPoint: EntryPointIsEmpty,
-    {
-        ShaderModuleDescriptorPassthroughBuilder {
-            entry_point: EntryPointValue(entry_point),
-            label: self.label,
-            num_workgroups: self.num_workgroups,
-            runtime_checks: self.runtime_checks,
-            spirv: self.spirv,
-            dxil: self.dxil,
-            msl: self.msl,
-            hlsl: self.hlsl,
-            glsl: self.glsl,
-            wgsl: self.wgsl,
-        }
-    }
     #[doc = "Setter for [wgpu::ShaderModuleDescriptorPassthrough::label]. Optional, defaults to `None`.\n"]
     pub fn label(
         self,
@@ -416,56 +350,33 @@ impl<'a, CS: State<'a>> ShaderModuleDescriptorPassthroughBuilder<'a, CS> {
         CS::Label: LabelIsEmpty,
     {
         ShaderModuleDescriptorPassthroughBuilder {
-            entry_point: self.entry_point,
             label: LabelValue(label),
-            num_workgroups: self.num_workgroups,
-            runtime_checks: self.runtime_checks,
+            entry_points: self.entry_points,
             spirv: self.spirv,
             dxil: self.dxil,
-            msl: self.msl,
             hlsl: self.hlsl,
+            metallib: self.metallib,
+            msl: self.msl,
             glsl: self.glsl,
             wgsl: self.wgsl,
         }
     }
-    #[doc = "Setter for [wgpu::ShaderModuleDescriptorPassthrough::num_workgroups]. Optional, defaults to `(0,0,0)`.\n"]
-    pub fn num_workgroups(
+    #[doc = "Setter for [wgpu::ShaderModuleDescriptorPassthrough::entry_points]. Optional, defaults to [Cow::Borrowed(&[])].\n"]
+    pub fn entry_points(
         self,
-        num_workgroups: (u32, u32, u32),
-    ) -> ShaderModuleDescriptorPassthroughBuilder<'a, SetNumWorkgroups<CS>>
+        entry_points: Cow<'a, [wgpu::PassthroughShaderEntryPoint<'a>]>,
+    ) -> ShaderModuleDescriptorPassthroughBuilder<'a, SetEntryPoints<CS>>
     where
-        CS::NumWorkgroups: NumWorkgroupsIsEmpty,
+        CS::EntryPoints: EntryPointsIsEmpty,
     {
         ShaderModuleDescriptorPassthroughBuilder {
-            entry_point: self.entry_point,
             label: self.label,
-            num_workgroups: NumWorkgroupsValue(num_workgroups),
-            runtime_checks: self.runtime_checks,
+            entry_points: EntryPointsValue(entry_points),
             spirv: self.spirv,
             dxil: self.dxil,
-            msl: self.msl,
             hlsl: self.hlsl,
-            glsl: self.glsl,
-            wgsl: self.wgsl,
-        }
-    }
-    #[doc = "Setter for [wgpu::ShaderModuleDescriptorPassthrough::runtime_checks]. Optional, defaults to [wgpu::ShaderRuntimeChecks::unchecked()].\n"]
-    pub fn runtime_checks(
-        self,
-        runtime_checks: impl Nested<wgpu::ShaderRuntimeChecks>,
-    ) -> ShaderModuleDescriptorPassthroughBuilder<'a, SetRuntimeChecks<CS>>
-    where
-        CS::RuntimeChecks: RuntimeChecksIsEmpty,
-    {
-        ShaderModuleDescriptorPassthroughBuilder {
-            entry_point: self.entry_point,
-            label: self.label,
-            num_workgroups: self.num_workgroups,
-            runtime_checks: RuntimeChecksValue(Nested::unnest(runtime_checks)),
-            spirv: self.spirv,
-            dxil: self.dxil,
+            metallib: self.metallib,
             msl: self.msl,
-            hlsl: self.hlsl,
             glsl: self.glsl,
             wgsl: self.wgsl,
         }
@@ -479,14 +390,13 @@ impl<'a, CS: State<'a>> ShaderModuleDescriptorPassthroughBuilder<'a, CS> {
         CS::Spirv: SpirvIsEmpty,
     {
         ShaderModuleDescriptorPassthroughBuilder {
-            entry_point: self.entry_point,
             label: self.label,
-            num_workgroups: self.num_workgroups,
-            runtime_checks: self.runtime_checks,
+            entry_points: self.entry_points,
             spirv: SpirvValue(Some(spirv)),
             dxil: self.dxil,
-            msl: self.msl,
             hlsl: self.hlsl,
+            metallib: self.metallib,
+            msl: self.msl,
             glsl: self.glsl,
             wgsl: self.wgsl,
         }
@@ -500,14 +410,13 @@ impl<'a, CS: State<'a>> ShaderModuleDescriptorPassthroughBuilder<'a, CS> {
         CS::Spirv: SpirvIsEmpty,
     {
         ShaderModuleDescriptorPassthroughBuilder {
-            entry_point: self.entry_point,
             label: self.label,
-            num_workgroups: self.num_workgroups,
-            runtime_checks: self.runtime_checks,
+            entry_points: self.entry_points,
             spirv: SpirvValue(spirv),
             dxil: self.dxil,
-            msl: self.msl,
             hlsl: self.hlsl,
+            metallib: self.metallib,
+            msl: self.msl,
             glsl: self.glsl,
             wgsl: self.wgsl,
         }
@@ -521,14 +430,13 @@ impl<'a, CS: State<'a>> ShaderModuleDescriptorPassthroughBuilder<'a, CS> {
         CS::Dxil: DxilIsEmpty,
     {
         ShaderModuleDescriptorPassthroughBuilder {
-            entry_point: self.entry_point,
             label: self.label,
-            num_workgroups: self.num_workgroups,
-            runtime_checks: self.runtime_checks,
+            entry_points: self.entry_points,
             spirv: self.spirv,
             dxil: DxilValue(Some(dxil)),
-            msl: self.msl,
             hlsl: self.hlsl,
+            metallib: self.metallib,
+            msl: self.msl,
             glsl: self.glsl,
             wgsl: self.wgsl,
         }
@@ -542,53 +450,13 @@ impl<'a, CS: State<'a>> ShaderModuleDescriptorPassthroughBuilder<'a, CS> {
         CS::Dxil: DxilIsEmpty,
     {
         ShaderModuleDescriptorPassthroughBuilder {
-            entry_point: self.entry_point,
             label: self.label,
-            num_workgroups: self.num_workgroups,
-            runtime_checks: self.runtime_checks,
+            entry_points: self.entry_points,
             spirv: self.spirv,
             dxil: DxilValue(dxil),
+            hlsl: self.hlsl,
+            metallib: self.metallib,
             msl: self.msl,
-            hlsl: self.hlsl,
-            glsl: self.glsl,
-            wgsl: self.wgsl,
-        }
-    }
-    #[doc = "Setter for [wgpu::ShaderModuleDescriptorPassthrough::msl]. Optional, defaults to `None`.\n"]
-    pub fn msl(self, msl: Cow<'a, str>) -> ShaderModuleDescriptorPassthroughBuilder<'a, SetMsl<CS>>
-    where
-        CS::Msl: MslIsEmpty,
-    {
-        ShaderModuleDescriptorPassthroughBuilder {
-            entry_point: self.entry_point,
-            label: self.label,
-            num_workgroups: self.num_workgroups,
-            runtime_checks: self.runtime_checks,
-            spirv: self.spirv,
-            dxil: self.dxil,
-            msl: MslValue(Some(msl)),
-            hlsl: self.hlsl,
-            glsl: self.glsl,
-            wgsl: self.wgsl,
-        }
-    }
-    #[doc = "Setter for [wgpu::ShaderModuleDescriptorPassthrough::msl]. Optional, defaults to `None`.\n"]
-    pub fn maybe_msl(
-        self,
-        msl: Option<Cow<'a, str>>,
-    ) -> ShaderModuleDescriptorPassthroughBuilder<'a, SetMsl<CS>>
-    where
-        CS::Msl: MslIsEmpty,
-    {
-        ShaderModuleDescriptorPassthroughBuilder {
-            entry_point: self.entry_point,
-            label: self.label,
-            num_workgroups: self.num_workgroups,
-            runtime_checks: self.runtime_checks,
-            spirv: self.spirv,
-            dxil: self.dxil,
-            msl: MslValue(msl),
-            hlsl: self.hlsl,
             glsl: self.glsl,
             wgsl: self.wgsl,
         }
@@ -602,14 +470,13 @@ impl<'a, CS: State<'a>> ShaderModuleDescriptorPassthroughBuilder<'a, CS> {
         CS::Hlsl: HlslIsEmpty,
     {
         ShaderModuleDescriptorPassthroughBuilder {
-            entry_point: self.entry_point,
             label: self.label,
-            num_workgroups: self.num_workgroups,
-            runtime_checks: self.runtime_checks,
+            entry_points: self.entry_points,
             spirv: self.spirv,
             dxil: self.dxil,
-            msl: self.msl,
             hlsl: HlslValue(Some(hlsl)),
+            metallib: self.metallib,
+            msl: self.msl,
             glsl: self.glsl,
             wgsl: self.wgsl,
         }
@@ -623,14 +490,90 @@ impl<'a, CS: State<'a>> ShaderModuleDescriptorPassthroughBuilder<'a, CS> {
         CS::Hlsl: HlslIsEmpty,
     {
         ShaderModuleDescriptorPassthroughBuilder {
-            entry_point: self.entry_point,
             label: self.label,
-            num_workgroups: self.num_workgroups,
-            runtime_checks: self.runtime_checks,
+            entry_points: self.entry_points,
             spirv: self.spirv,
             dxil: self.dxil,
-            msl: self.msl,
             hlsl: HlslValue(hlsl),
+            metallib: self.metallib,
+            msl: self.msl,
+            glsl: self.glsl,
+            wgsl: self.wgsl,
+        }
+    }
+    #[doc = "Setter for [wgpu::ShaderModuleDescriptorPassthrough::metallib]. Optional, defaults to `None`.\n"]
+    pub fn metallib(
+        self,
+        metallib: Cow<'a, [u8]>,
+    ) -> ShaderModuleDescriptorPassthroughBuilder<'a, SetMetallib<CS>>
+    where
+        CS::Metallib: MetallibIsEmpty,
+    {
+        ShaderModuleDescriptorPassthroughBuilder {
+            label: self.label,
+            entry_points: self.entry_points,
+            spirv: self.spirv,
+            dxil: self.dxil,
+            hlsl: self.hlsl,
+            metallib: MetallibValue(Some(metallib)),
+            msl: self.msl,
+            glsl: self.glsl,
+            wgsl: self.wgsl,
+        }
+    }
+    #[doc = "Setter for [wgpu::ShaderModuleDescriptorPassthrough::metallib]. Optional, defaults to `None`.\n"]
+    pub fn maybe_metallib(
+        self,
+        metallib: Option<Cow<'a, [u8]>>,
+    ) -> ShaderModuleDescriptorPassthroughBuilder<'a, SetMetallib<CS>>
+    where
+        CS::Metallib: MetallibIsEmpty,
+    {
+        ShaderModuleDescriptorPassthroughBuilder {
+            label: self.label,
+            entry_points: self.entry_points,
+            spirv: self.spirv,
+            dxil: self.dxil,
+            hlsl: self.hlsl,
+            metallib: MetallibValue(metallib),
+            msl: self.msl,
+            glsl: self.glsl,
+            wgsl: self.wgsl,
+        }
+    }
+    #[doc = "Setter for [wgpu::ShaderModuleDescriptorPassthrough::msl]. Optional, defaults to `None`.\n"]
+    pub fn msl(self, msl: Cow<'a, str>) -> ShaderModuleDescriptorPassthroughBuilder<'a, SetMsl<CS>>
+    where
+        CS::Msl: MslIsEmpty,
+    {
+        ShaderModuleDescriptorPassthroughBuilder {
+            label: self.label,
+            entry_points: self.entry_points,
+            spirv: self.spirv,
+            dxil: self.dxil,
+            hlsl: self.hlsl,
+            metallib: self.metallib,
+            msl: MslValue(Some(msl)),
+            glsl: self.glsl,
+            wgsl: self.wgsl,
+        }
+    }
+    #[doc = "Setter for [wgpu::ShaderModuleDescriptorPassthrough::msl]. Optional, defaults to `None`.\n"]
+    pub fn maybe_msl(
+        self,
+        msl: Option<Cow<'a, str>>,
+    ) -> ShaderModuleDescriptorPassthroughBuilder<'a, SetMsl<CS>>
+    where
+        CS::Msl: MslIsEmpty,
+    {
+        ShaderModuleDescriptorPassthroughBuilder {
+            label: self.label,
+            entry_points: self.entry_points,
+            spirv: self.spirv,
+            dxil: self.dxil,
+            hlsl: self.hlsl,
+            metallib: self.metallib,
+            msl: MslValue(msl),
             glsl: self.glsl,
             wgsl: self.wgsl,
         }
@@ -644,14 +587,13 @@ impl<'a, CS: State<'a>> ShaderModuleDescriptorPassthroughBuilder<'a, CS> {
         CS::Glsl: GlslIsEmpty,
     {
         ShaderModuleDescriptorPassthroughBuilder {
-            entry_point: self.entry_point,
             label: self.label,
-            num_workgroups: self.num_workgroups,
-            runtime_checks: self.runtime_checks,
+            entry_points: self.entry_points,
             spirv: self.spirv,
             dxil: self.dxil,
-            msl: self.msl,
             hlsl: self.hlsl,
+            metallib: self.metallib,
+            msl: self.msl,
             glsl: GlslValue(Some(glsl)),
             wgsl: self.wgsl,
         }
@@ -665,14 +607,13 @@ impl<'a, CS: State<'a>> ShaderModuleDescriptorPassthroughBuilder<'a, CS> {
         CS::Glsl: GlslIsEmpty,
     {
         ShaderModuleDescriptorPassthroughBuilder {
-            entry_point: self.entry_point,
             label: self.label,
-            num_workgroups: self.num_workgroups,
-            runtime_checks: self.runtime_checks,
+            entry_points: self.entry_points,
             spirv: self.spirv,
             dxil: self.dxil,
-            msl: self.msl,
             hlsl: self.hlsl,
+            metallib: self.metallib,
+            msl: self.msl,
             glsl: GlslValue(glsl),
             wgsl: self.wgsl,
         }
@@ -686,14 +627,13 @@ impl<'a, CS: State<'a>> ShaderModuleDescriptorPassthroughBuilder<'a, CS> {
         CS::Wgsl: WgslIsEmpty,
     {
         ShaderModuleDescriptorPassthroughBuilder {
-            entry_point: self.entry_point,
             label: self.label,
-            num_workgroups: self.num_workgroups,
-            runtime_checks: self.runtime_checks,
+            entry_points: self.entry_points,
             spirv: self.spirv,
             dxil: self.dxil,
-            msl: self.msl,
             hlsl: self.hlsl,
+            metallib: self.metallib,
+            msl: self.msl,
             glsl: self.glsl,
             wgsl: WgslValue(Some(wgsl)),
         }
@@ -707,14 +647,13 @@ impl<'a, CS: State<'a>> ShaderModuleDescriptorPassthroughBuilder<'a, CS> {
         CS::Wgsl: WgslIsEmpty,
     {
         ShaderModuleDescriptorPassthroughBuilder {
-            entry_point: self.entry_point,
             label: self.label,
-            num_workgroups: self.num_workgroups,
-            runtime_checks: self.runtime_checks,
+            entry_points: self.entry_points,
             spirv: self.spirv,
             dxil: self.dxil,
-            msl: self.msl,
             hlsl: self.hlsl,
+            metallib: self.metallib,
+            msl: self.msl,
             glsl: self.glsl,
             wgsl: WgslValue(wgsl),
         }
@@ -723,14 +662,13 @@ impl<'a, CS: State<'a>> ShaderModuleDescriptorPassthroughBuilder<'a, CS> {
 pub trait Complete<'a>:
     State<
     'a,
-    EntryPoint: IsSetEntryPoint,
     Label: IsSetLabel<'a>,
-    NumWorkgroups: IsSetNumWorkgroups,
-    RuntimeChecks: IsSetRuntimeChecks,
+    EntryPoints: IsSetEntryPoints<'a>,
     Spirv: IsSetSpirv<'a>,
     Dxil: IsSetDxil<'a>,
-    Msl: IsSetMsl<'a>,
     Hlsl: IsSetHlsl<'a>,
+    Metallib: IsSetMetallib<'a>,
+    Msl: IsSetMsl<'a>,
     Glsl: IsSetGlsl<'a>,
     Wgsl: IsSetWgsl<'a>,
 >
@@ -740,14 +678,13 @@ impl<
         'a,
         CS: State<
             'a,
-            EntryPoint: IsSetEntryPoint,
             Label: IsSetLabel<'a>,
-            NumWorkgroups: IsSetNumWorkgroups,
-            RuntimeChecks: IsSetRuntimeChecks,
+            EntryPoints: IsSetEntryPoints<'a>,
             Spirv: IsSetSpirv<'a>,
             Dxil: IsSetDxil<'a>,
-            Msl: IsSetMsl<'a>,
             Hlsl: IsSetHlsl<'a>,
+            Metallib: IsSetMetallib<'a>,
+            Msl: IsSetMsl<'a>,
             Glsl: IsSetGlsl<'a>,
             Wgsl: IsSetWgsl<'a>,
         >,
@@ -757,14 +694,13 @@ impl<
 impl<'a, CS: Complete<'a>> ShaderModuleDescriptorPassthroughBuilder<'a, CS> {
     pub fn build(self) -> wgpu::ShaderModuleDescriptorPassthrough<'a> {
         wgpu::ShaderModuleDescriptorPassthrough {
-            entry_point: IsSetEntryPoint::get(self.entry_point),
             label: IsSetLabel::get(self.label),
-            num_workgroups: IsSetNumWorkgroups::get(self.num_workgroups),
-            runtime_checks: IsSetRuntimeChecks::get(self.runtime_checks),
+            entry_points: IsSetEntryPoints::get(self.entry_points),
             spirv: IsSetSpirv::get(self.spirv),
             dxil: IsSetDxil::get(self.dxil),
-            msl: IsSetMsl::get(self.msl),
             hlsl: IsSetHlsl::get(self.hlsl),
+            metallib: IsSetMetallib::get(self.metallib),
+            msl: IsSetMsl::get(self.msl),
             glsl: IsSetGlsl::get(self.glsl),
             wgsl: IsSetWgsl::get(self.wgsl),
         }

@@ -5,12 +5,13 @@ pub use super::super::Nested;
 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
 pub trait Field {}
 pub trait IsOptional {}
-#[doc = "\nBuilder for [`wgpu::InstanceDescriptor`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [backends](InstanceDescriptorBuilder::backends) Optional, defaults to [wgpu::Backends::all()]\n  - [flags](InstanceDescriptorBuilder::flags) Optional, defaults to [wgpu::InstanceFlags::from_build_config()]\n  - [memory_budget_thresholds](InstanceDescriptorBuilder::memory_budget_thresholds) Optional, defaults to [wgpu::MemoryBudgetThresholds::default()]\n  - [backend_options](InstanceDescriptorBuilder::backend_options) Optional, defaults to [wgpu::BackendOptions::default()]\n"]
+#[doc = "\nBuilder for [`wgpu::InstanceDescriptor`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [backends](InstanceDescriptorBuilder::backends) Optional, defaults to [wgpu::Backends::all()]\n  - [flags](InstanceDescriptorBuilder::flags) Optional, defaults to [wgpu::InstanceFlags::from_build_config()]\n  - [memory_budget_thresholds](InstanceDescriptorBuilder::memory_budget_thresholds) Optional, defaults to [wgpu::MemoryBudgetThresholds::default()]\n  - [backend_options](InstanceDescriptorBuilder::backend_options) Optional, defaults to [wgpu::BackendOptions::default()]\n  - [display](InstanceDescriptorBuilder::display) Optional, defaults to `None`\n"]
 pub struct InstanceDescriptorBuilder<CS: State> {
     backends: CS::Backends,
     flags: CS::Flags,
     memory_budget_thresholds: CS::MemoryBudgetThresholds,
     backend_options: CS::BackendOptions,
+    display: CS::Display,
 }
 impl InstanceDescriptorBuilder<Empty> {
     pub fn new() -> InstanceDescriptorBuilder<Empty> {
@@ -19,10 +20,11 @@ impl InstanceDescriptorBuilder<Empty> {
             flags: FlagsEmpty,
             memory_budget_thresholds: MemoryBudgetThresholdsEmpty,
             backend_options: BackendOptionsEmpty,
+            display: DisplayEmpty,
         }
     }
 }
-#[doc = "\nReturns [InstanceDescriptorBuilder] for building [`wgpu::InstanceDescriptor`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [backends](InstanceDescriptorBuilder::backends) Optional, defaults to [wgpu::Backends::all()]\n  - [flags](InstanceDescriptorBuilder::flags) Optional, defaults to [wgpu::InstanceFlags::from_build_config()]\n  - [memory_budget_thresholds](InstanceDescriptorBuilder::memory_budget_thresholds) Optional, defaults to [wgpu::MemoryBudgetThresholds::default()]\n  - [backend_options](InstanceDescriptorBuilder::backend_options) Optional, defaults to [wgpu::BackendOptions::default()]\n"]
+#[doc = "\nReturns [InstanceDescriptorBuilder] for building [`wgpu::InstanceDescriptor`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [backends](InstanceDescriptorBuilder::backends) Optional, defaults to [wgpu::Backends::all()]\n  - [flags](InstanceDescriptorBuilder::flags) Optional, defaults to [wgpu::InstanceFlags::from_build_config()]\n  - [memory_budget_thresholds](InstanceDescriptorBuilder::memory_budget_thresholds) Optional, defaults to [wgpu::MemoryBudgetThresholds::default()]\n  - [backend_options](InstanceDescriptorBuilder::backend_options) Optional, defaults to [wgpu::BackendOptions::default()]\n  - [display](InstanceDescriptorBuilder::display) Optional, defaults to `None`\n"]
 pub fn instance_descriptor() -> InstanceDescriptorBuilder<Empty> {
     InstanceDescriptorBuilder::new()
 }
@@ -102,11 +104,31 @@ impl IsSetBackendOptions for BackendOptionsValue {
         self.0
     }
 }
+pub struct DisplayEmpty;
+impl Field for DisplayEmpty {}
+pub trait DisplayIsEmpty {}
+impl DisplayIsEmpty for DisplayEmpty {}
+pub trait IsSetDisplay {
+    fn get(self) -> Option<alloc::boxed::Box<dyn wgpu::wgt::WgpuHasDisplayHandle>>;
+}
+impl IsSetDisplay for DisplayEmpty {
+    fn get(self) -> Option<alloc::boxed::Box<dyn wgpu::wgt::WgpuHasDisplayHandle>> {
+        None
+    }
+}
+pub struct DisplayValue(pub Option<alloc::boxed::Box<dyn wgpu::wgt::WgpuHasDisplayHandle>>);
+impl Field for DisplayValue {}
+impl IsSetDisplay for DisplayValue {
+    fn get(self) -> Option<alloc::boxed::Box<dyn wgpu::wgt::WgpuHasDisplayHandle>> {
+        self.0
+    }
+}
 pub trait State {
     type Backends: Field;
     type Flags: Field;
     type MemoryBudgetThresholds: Field;
     type BackendOptions: Field;
+    type Display: Field;
 }
 pub struct Empty;
 impl State for Empty {
@@ -114,6 +136,7 @@ impl State for Empty {
     type Flags = FlagsEmpty;
     type MemoryBudgetThresholds = MemoryBudgetThresholdsEmpty;
     type BackendOptions = BackendOptionsEmpty;
+    type Display = DisplayEmpty;
 }
 pub struct SetBackends<CS>(CS);
 impl<CS: State> State for SetBackends<CS> {
@@ -121,6 +144,7 @@ impl<CS: State> State for SetBackends<CS> {
     type Flags = CS::Flags;
     type MemoryBudgetThresholds = CS::MemoryBudgetThresholds;
     type BackendOptions = CS::BackendOptions;
+    type Display = CS::Display;
 }
 pub struct SetFlags<CS>(CS);
 impl<CS: State> State for SetFlags<CS> {
@@ -128,6 +152,7 @@ impl<CS: State> State for SetFlags<CS> {
     type Flags = FlagsValue;
     type MemoryBudgetThresholds = CS::MemoryBudgetThresholds;
     type BackendOptions = CS::BackendOptions;
+    type Display = CS::Display;
 }
 pub struct SetMemoryBudgetThresholds<CS>(CS);
 impl<CS: State> State for SetMemoryBudgetThresholds<CS> {
@@ -135,6 +160,7 @@ impl<CS: State> State for SetMemoryBudgetThresholds<CS> {
     type Flags = CS::Flags;
     type MemoryBudgetThresholds = MemoryBudgetThresholdsValue;
     type BackendOptions = CS::BackendOptions;
+    type Display = CS::Display;
 }
 pub struct SetBackendOptions<CS>(CS);
 impl<CS: State> State for SetBackendOptions<CS> {
@@ -142,6 +168,15 @@ impl<CS: State> State for SetBackendOptions<CS> {
     type Flags = CS::Flags;
     type MemoryBudgetThresholds = CS::MemoryBudgetThresholds;
     type BackendOptions = BackendOptionsValue;
+    type Display = CS::Display;
+}
+pub struct SetDisplay<CS>(CS);
+impl<CS: State> State for SetDisplay<CS> {
+    type Backends = CS::Backends;
+    type Flags = CS::Flags;
+    type MemoryBudgetThresholds = CS::MemoryBudgetThresholds;
+    type BackendOptions = CS::BackendOptions;
+    type Display = DisplayValue;
 }
 impl<CS: State> InstanceDescriptorBuilder<CS> {
     #[doc = "Setter for [wgpu::InstanceDescriptor::backends]. Optional, defaults to [wgpu::Backends::all()].\n"]
@@ -154,6 +189,7 @@ impl<CS: State> InstanceDescriptorBuilder<CS> {
             flags: self.flags,
             memory_budget_thresholds: self.memory_budget_thresholds,
             backend_options: self.backend_options,
+            display: self.display,
         }
     }
     #[doc = "Setter for [wgpu::InstanceDescriptor::flags]. Optional, defaults to [wgpu::InstanceFlags::from_build_config()].\n"]
@@ -166,6 +202,7 @@ impl<CS: State> InstanceDescriptorBuilder<CS> {
             flags: FlagsValue(flags),
             memory_budget_thresholds: self.memory_budget_thresholds,
             backend_options: self.backend_options,
+            display: self.display,
         }
     }
     #[doc = "Setter for [wgpu::InstanceDescriptor::memory_budget_thresholds]. Optional, defaults to [wgpu::MemoryBudgetThresholds::default()].\n"]
@@ -183,6 +220,7 @@ impl<CS: State> InstanceDescriptorBuilder<CS> {
                 memory_budget_thresholds,
             )),
             backend_options: self.backend_options,
+            display: self.display,
         }
     }
     #[doc = "Setter for [wgpu::InstanceDescriptor::backend_options]. Optional, defaults to [wgpu::BackendOptions::default()].\n"]
@@ -198,6 +236,39 @@ impl<CS: State> InstanceDescriptorBuilder<CS> {
             flags: self.flags,
             memory_budget_thresholds: self.memory_budget_thresholds,
             backend_options: BackendOptionsValue(Nested::unnest(backend_options)),
+            display: self.display,
+        }
+    }
+    #[doc = "Setter for [wgpu::InstanceDescriptor::display]. Optional, defaults to `None`.\n"]
+    pub fn display(
+        self,
+        display: alloc::boxed::Box<dyn wgpu::wgt::WgpuHasDisplayHandle>,
+    ) -> InstanceDescriptorBuilder<SetDisplay<CS>>
+    where
+        CS::Display: DisplayIsEmpty,
+    {
+        InstanceDescriptorBuilder {
+            backends: self.backends,
+            flags: self.flags,
+            memory_budget_thresholds: self.memory_budget_thresholds,
+            backend_options: self.backend_options,
+            display: DisplayValue(Some(display)),
+        }
+    }
+    #[doc = "Setter for [wgpu::InstanceDescriptor::display]. Optional, defaults to `None`.\n"]
+    pub fn maybe_display(
+        self,
+        display: Option<alloc::boxed::Box<dyn wgpu::wgt::WgpuHasDisplayHandle>>,
+    ) -> InstanceDescriptorBuilder<SetDisplay<CS>>
+    where
+        CS::Display: DisplayIsEmpty,
+    {
+        InstanceDescriptorBuilder {
+            backends: self.backends,
+            flags: self.flags,
+            memory_budget_thresholds: self.memory_budget_thresholds,
+            backend_options: self.backend_options,
+            display: DisplayValue(display),
         }
     }
 }
@@ -207,6 +278,7 @@ pub trait Complete:
     Flags: IsSetFlags,
     MemoryBudgetThresholds: IsSetMemoryBudgetThresholds,
     BackendOptions: IsSetBackendOptions,
+    Display: IsSetDisplay,
 >
 {
 }
@@ -216,6 +288,7 @@ impl<
             Flags: IsSetFlags,
             MemoryBudgetThresholds: IsSetMemoryBudgetThresholds,
             BackendOptions: IsSetBackendOptions,
+            Display: IsSetDisplay,
         >,
     > Complete for CS
 {
@@ -229,6 +302,7 @@ impl<CS: Complete> InstanceDescriptorBuilder<CS> {
                 self.memory_budget_thresholds,
             ),
             backend_options: IsSetBackendOptions::get(self.backend_options),
+            display: IsSetDisplay::get(self.display),
         }
     }
 }
@@ -250,8 +324,33 @@ mod tests {
     #[test]
     pub fn test_default() {
         assert_eq!(
-            format!("{:#?}", super::instance_descriptor().build()),
-            format!("{:#?}", wgpu::InstanceDescriptor::default()),
+            format!("{:#?}", super::IsSetBackends::get(super::BackendsEmpty)),
+            format!("{:#?}", wgpu::Backends::default()),
+        );
+        assert_eq!(
+            format!("{:#?}", super::IsSetFlags::get(super::FlagsEmpty)),
+            format!("{:#?}", wgpu::InstanceFlags::default()),
+        );
+        assert_eq!(
+            format!(
+                "{:#?}",
+                super::IsSetMemoryBudgetThresholds::get(super::MemoryBudgetThresholdsEmpty)
+            ),
+            format!("{:#?}", wgpu::MemoryBudgetThresholds::default()),
+        );
+        assert_eq!(
+            format!(
+                "{:#?}",
+                super::IsSetBackendOptions::get(super::BackendOptionsEmpty)
+            ),
+            format!("{:#?}", wgpu::BackendOptions::default()),
+        );
+        assert_eq!(
+            format!("{:#?}", super::IsSetDisplay::get(super::DisplayEmpty)),
+            format!(
+                "{:#?}",
+                Option::<alloc::boxed::Box<dyn wgpu::wgt::WgpuHasDisplayHandle>>::default()
+            ),
         );
     }
 }

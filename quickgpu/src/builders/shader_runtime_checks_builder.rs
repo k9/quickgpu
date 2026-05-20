@@ -5,11 +5,13 @@ pub use super::super::Nested;
 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
 pub trait Field {}
 pub trait IsOptional {}
-#[doc = "\nBuilder for [`wgpu::ShaderRuntimeChecks`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [bounds_checks](ShaderRuntimeChecksBuilder::bounds_checks) Optional, defaults to `true`\n  - [force_loop_bounding](ShaderRuntimeChecksBuilder::force_loop_bounding) Optional, defaults to `true`\n  - [ray_query_initialization_tracking](ShaderRuntimeChecksBuilder::ray_query_initialization_tracking) Optional, defaults to `true`\n"]
+#[doc = "\nBuilder for [`wgpu::ShaderRuntimeChecks`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [bounds_checks](ShaderRuntimeChecksBuilder::bounds_checks) Optional, defaults to `true`\n  - [force_loop_bounding](ShaderRuntimeChecksBuilder::force_loop_bounding) Optional, defaults to `true`\n  - [ray_query_initialization_tracking](ShaderRuntimeChecksBuilder::ray_query_initialization_tracking) Optional, defaults to `true`\n  - [task_shader_dispatch_tracking](ShaderRuntimeChecksBuilder::task_shader_dispatch_tracking) Optional, defaults to `true`\n  - [mesh_shader_primitive_indices_clamp](ShaderRuntimeChecksBuilder::mesh_shader_primitive_indices_clamp) Optional, defaults to `true`\n"]
 pub struct ShaderRuntimeChecksBuilder<CS: State> {
     bounds_checks: CS::BoundsChecks,
     force_loop_bounding: CS::ForceLoopBounding,
     ray_query_initialization_tracking: CS::RayQueryInitializationTracking,
+    task_shader_dispatch_tracking: CS::TaskShaderDispatchTracking,
+    mesh_shader_primitive_indices_clamp: CS::MeshShaderPrimitiveIndicesClamp,
 }
 impl ShaderRuntimeChecksBuilder<Empty> {
     pub fn new() -> ShaderRuntimeChecksBuilder<Empty> {
@@ -17,10 +19,12 @@ impl ShaderRuntimeChecksBuilder<Empty> {
             bounds_checks: BoundsChecksEmpty,
             force_loop_bounding: ForceLoopBoundingEmpty,
             ray_query_initialization_tracking: RayQueryInitializationTrackingEmpty,
+            task_shader_dispatch_tracking: TaskShaderDispatchTrackingEmpty,
+            mesh_shader_primitive_indices_clamp: MeshShaderPrimitiveIndicesClampEmpty,
         }
     }
 }
-#[doc = "\nReturns [ShaderRuntimeChecksBuilder] for building [`wgpu::ShaderRuntimeChecks`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [bounds_checks](ShaderRuntimeChecksBuilder::bounds_checks) Optional, defaults to `true`\n  - [force_loop_bounding](ShaderRuntimeChecksBuilder::force_loop_bounding) Optional, defaults to `true`\n  - [ray_query_initialization_tracking](ShaderRuntimeChecksBuilder::ray_query_initialization_tracking) Optional, defaults to `true`\n"]
+#[doc = "\nReturns [ShaderRuntimeChecksBuilder] for building [`wgpu::ShaderRuntimeChecks`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [bounds_checks](ShaderRuntimeChecksBuilder::bounds_checks) Optional, defaults to `true`\n  - [force_loop_bounding](ShaderRuntimeChecksBuilder::force_loop_bounding) Optional, defaults to `true`\n  - [ray_query_initialization_tracking](ShaderRuntimeChecksBuilder::ray_query_initialization_tracking) Optional, defaults to `true`\n  - [task_shader_dispatch_tracking](ShaderRuntimeChecksBuilder::task_shader_dispatch_tracking) Optional, defaults to `true`\n  - [mesh_shader_primitive_indices_clamp](ShaderRuntimeChecksBuilder::mesh_shader_primitive_indices_clamp) Optional, defaults to `true`\n"]
 pub fn shader_runtime_checks() -> ShaderRuntimeChecksBuilder<Empty> {
     ShaderRuntimeChecksBuilder::new()
 }
@@ -81,34 +85,98 @@ impl IsSetRayQueryInitializationTracking for RayQueryInitializationTrackingValue
         self.0
     }
 }
+pub struct TaskShaderDispatchTrackingEmpty;
+impl Field for TaskShaderDispatchTrackingEmpty {}
+pub trait TaskShaderDispatchTrackingIsEmpty {}
+impl TaskShaderDispatchTrackingIsEmpty for TaskShaderDispatchTrackingEmpty {}
+pub trait IsSetTaskShaderDispatchTracking {
+    fn get(self) -> bool;
+}
+impl IsSetTaskShaderDispatchTracking for TaskShaderDispatchTrackingEmpty {
+    fn get(self) -> bool {
+        true
+    }
+}
+pub struct TaskShaderDispatchTrackingValue(pub bool);
+impl Field for TaskShaderDispatchTrackingValue {}
+impl IsSetTaskShaderDispatchTracking for TaskShaderDispatchTrackingValue {
+    fn get(self) -> bool {
+        self.0
+    }
+}
+pub struct MeshShaderPrimitiveIndicesClampEmpty;
+impl Field for MeshShaderPrimitiveIndicesClampEmpty {}
+pub trait MeshShaderPrimitiveIndicesClampIsEmpty {}
+impl MeshShaderPrimitiveIndicesClampIsEmpty for MeshShaderPrimitiveIndicesClampEmpty {}
+pub trait IsSetMeshShaderPrimitiveIndicesClamp {
+    fn get(self) -> bool;
+}
+impl IsSetMeshShaderPrimitiveIndicesClamp for MeshShaderPrimitiveIndicesClampEmpty {
+    fn get(self) -> bool {
+        true
+    }
+}
+pub struct MeshShaderPrimitiveIndicesClampValue(pub bool);
+impl Field for MeshShaderPrimitiveIndicesClampValue {}
+impl IsSetMeshShaderPrimitiveIndicesClamp for MeshShaderPrimitiveIndicesClampValue {
+    fn get(self) -> bool {
+        self.0
+    }
+}
 pub trait State {
     type BoundsChecks: Field;
     type ForceLoopBounding: Field;
     type RayQueryInitializationTracking: Field;
+    type TaskShaderDispatchTracking: Field;
+    type MeshShaderPrimitiveIndicesClamp: Field;
 }
 pub struct Empty;
 impl State for Empty {
     type BoundsChecks = BoundsChecksEmpty;
     type ForceLoopBounding = ForceLoopBoundingEmpty;
     type RayQueryInitializationTracking = RayQueryInitializationTrackingEmpty;
+    type TaskShaderDispatchTracking = TaskShaderDispatchTrackingEmpty;
+    type MeshShaderPrimitiveIndicesClamp = MeshShaderPrimitiveIndicesClampEmpty;
 }
 pub struct SetBoundsChecks<CS>(CS);
 impl<CS: State> State for SetBoundsChecks<CS> {
     type BoundsChecks = BoundsChecksValue;
     type ForceLoopBounding = CS::ForceLoopBounding;
     type RayQueryInitializationTracking = CS::RayQueryInitializationTracking;
+    type TaskShaderDispatchTracking = CS::TaskShaderDispatchTracking;
+    type MeshShaderPrimitiveIndicesClamp = CS::MeshShaderPrimitiveIndicesClamp;
 }
 pub struct SetForceLoopBounding<CS>(CS);
 impl<CS: State> State for SetForceLoopBounding<CS> {
     type BoundsChecks = CS::BoundsChecks;
     type ForceLoopBounding = ForceLoopBoundingValue;
     type RayQueryInitializationTracking = CS::RayQueryInitializationTracking;
+    type TaskShaderDispatchTracking = CS::TaskShaderDispatchTracking;
+    type MeshShaderPrimitiveIndicesClamp = CS::MeshShaderPrimitiveIndicesClamp;
 }
 pub struct SetRayQueryInitializationTracking<CS>(CS);
 impl<CS: State> State for SetRayQueryInitializationTracking<CS> {
     type BoundsChecks = CS::BoundsChecks;
     type ForceLoopBounding = CS::ForceLoopBounding;
     type RayQueryInitializationTracking = RayQueryInitializationTrackingValue;
+    type TaskShaderDispatchTracking = CS::TaskShaderDispatchTracking;
+    type MeshShaderPrimitiveIndicesClamp = CS::MeshShaderPrimitiveIndicesClamp;
+}
+pub struct SetTaskShaderDispatchTracking<CS>(CS);
+impl<CS: State> State for SetTaskShaderDispatchTracking<CS> {
+    type BoundsChecks = CS::BoundsChecks;
+    type ForceLoopBounding = CS::ForceLoopBounding;
+    type RayQueryInitializationTracking = CS::RayQueryInitializationTracking;
+    type TaskShaderDispatchTracking = TaskShaderDispatchTrackingValue;
+    type MeshShaderPrimitiveIndicesClamp = CS::MeshShaderPrimitiveIndicesClamp;
+}
+pub struct SetMeshShaderPrimitiveIndicesClamp<CS>(CS);
+impl<CS: State> State for SetMeshShaderPrimitiveIndicesClamp<CS> {
+    type BoundsChecks = CS::BoundsChecks;
+    type ForceLoopBounding = CS::ForceLoopBounding;
+    type RayQueryInitializationTracking = CS::RayQueryInitializationTracking;
+    type TaskShaderDispatchTracking = CS::TaskShaderDispatchTracking;
+    type MeshShaderPrimitiveIndicesClamp = MeshShaderPrimitiveIndicesClampValue;
 }
 impl<CS: State> ShaderRuntimeChecksBuilder<CS> {
     #[doc = "Setter for [wgpu::ShaderRuntimeChecks::bounds_checks]. Optional, defaults to `true`.\n"]
@@ -123,6 +191,8 @@ impl<CS: State> ShaderRuntimeChecksBuilder<CS> {
             bounds_checks: BoundsChecksValue(bounds_checks),
             force_loop_bounding: self.force_loop_bounding,
             ray_query_initialization_tracking: self.ray_query_initialization_tracking,
+            task_shader_dispatch_tracking: self.task_shader_dispatch_tracking,
+            mesh_shader_primitive_indices_clamp: self.mesh_shader_primitive_indices_clamp,
         }
     }
     #[doc = "Setter for [wgpu::ShaderRuntimeChecks::force_loop_bounding]. Optional, defaults to `true`.\n"]
@@ -137,6 +207,8 @@ impl<CS: State> ShaderRuntimeChecksBuilder<CS> {
             bounds_checks: self.bounds_checks,
             force_loop_bounding: ForceLoopBoundingValue(force_loop_bounding),
             ray_query_initialization_tracking: self.ray_query_initialization_tracking,
+            task_shader_dispatch_tracking: self.task_shader_dispatch_tracking,
+            mesh_shader_primitive_indices_clamp: self.mesh_shader_primitive_indices_clamp,
         }
     }
     #[doc = "Setter for [wgpu::ShaderRuntimeChecks::ray_query_initialization_tracking]. Optional, defaults to `true`.\n"]
@@ -153,6 +225,44 @@ impl<CS: State> ShaderRuntimeChecksBuilder<CS> {
             ray_query_initialization_tracking: RayQueryInitializationTrackingValue(
                 ray_query_initialization_tracking,
             ),
+            task_shader_dispatch_tracking: self.task_shader_dispatch_tracking,
+            mesh_shader_primitive_indices_clamp: self.mesh_shader_primitive_indices_clamp,
+        }
+    }
+    #[doc = "Setter for [wgpu::ShaderRuntimeChecks::task_shader_dispatch_tracking]. Optional, defaults to `true`.\n"]
+    pub fn task_shader_dispatch_tracking(
+        self,
+        task_shader_dispatch_tracking: bool,
+    ) -> ShaderRuntimeChecksBuilder<SetTaskShaderDispatchTracking<CS>>
+    where
+        CS::TaskShaderDispatchTracking: TaskShaderDispatchTrackingIsEmpty,
+    {
+        ShaderRuntimeChecksBuilder {
+            bounds_checks: self.bounds_checks,
+            force_loop_bounding: self.force_loop_bounding,
+            ray_query_initialization_tracking: self.ray_query_initialization_tracking,
+            task_shader_dispatch_tracking: TaskShaderDispatchTrackingValue(
+                task_shader_dispatch_tracking,
+            ),
+            mesh_shader_primitive_indices_clamp: self.mesh_shader_primitive_indices_clamp,
+        }
+    }
+    #[doc = "Setter for [wgpu::ShaderRuntimeChecks::mesh_shader_primitive_indices_clamp]. Optional, defaults to `true`.\n"]
+    pub fn mesh_shader_primitive_indices_clamp(
+        self,
+        mesh_shader_primitive_indices_clamp: bool,
+    ) -> ShaderRuntimeChecksBuilder<SetMeshShaderPrimitiveIndicesClamp<CS>>
+    where
+        CS::MeshShaderPrimitiveIndicesClamp: MeshShaderPrimitiveIndicesClampIsEmpty,
+    {
+        ShaderRuntimeChecksBuilder {
+            bounds_checks: self.bounds_checks,
+            force_loop_bounding: self.force_loop_bounding,
+            ray_query_initialization_tracking: self.ray_query_initialization_tracking,
+            task_shader_dispatch_tracking: self.task_shader_dispatch_tracking,
+            mesh_shader_primitive_indices_clamp: MeshShaderPrimitiveIndicesClampValue(
+                mesh_shader_primitive_indices_clamp,
+            ),
         }
     }
 }
@@ -161,6 +271,8 @@ pub trait Complete:
     BoundsChecks: IsSetBoundsChecks,
     ForceLoopBounding: IsSetForceLoopBounding,
     RayQueryInitializationTracking: IsSetRayQueryInitializationTracking,
+    TaskShaderDispatchTracking: IsSetTaskShaderDispatchTracking,
+    MeshShaderPrimitiveIndicesClamp: IsSetMeshShaderPrimitiveIndicesClamp,
 >
 {
 }
@@ -169,6 +281,8 @@ impl<
             BoundsChecks: IsSetBoundsChecks,
             ForceLoopBounding: IsSetForceLoopBounding,
             RayQueryInitializationTracking: IsSetRayQueryInitializationTracking,
+            TaskShaderDispatchTracking: IsSetTaskShaderDispatchTracking,
+            MeshShaderPrimitiveIndicesClamp: IsSetMeshShaderPrimitiveIndicesClamp,
         >,
     > Complete for CS
 {
@@ -180,6 +294,12 @@ impl<CS: Complete> ShaderRuntimeChecksBuilder<CS> {
             force_loop_bounding: IsSetForceLoopBounding::get(self.force_loop_bounding),
             ray_query_initialization_tracking: IsSetRayQueryInitializationTracking::get(
                 self.ray_query_initialization_tracking,
+            ),
+            task_shader_dispatch_tracking: IsSetTaskShaderDispatchTracking::get(
+                self.task_shader_dispatch_tracking,
+            ),
+            mesh_shader_primitive_indices_clamp: IsSetMeshShaderPrimitiveIndicesClamp::get(
+                self.mesh_shader_primitive_indices_clamp,
             ),
         }
     }

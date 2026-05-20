@@ -5,7 +5,7 @@ pub use super::super::Nested;
 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
 pub trait Field {}
 pub trait IsOptional {}
-#[doc = "\nBuilder for [`wgpu::SamplerDescriptor`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [address_mode_u](SamplerDescriptorBuilder::address_mode_u) Optional, defaults to [wgpu::AddressMode::ClampToEdge]\n  - [address_mode_v](SamplerDescriptorBuilder::address_mode_v) Optional, defaults to [wgpu::AddressMode::ClampToEdge]\n  - [address_mode_w](SamplerDescriptorBuilder::address_mode_w) Optional, defaults to [wgpu::AddressMode::ClampToEdge]\n  - [mag_filter](SamplerDescriptorBuilder::mag_filter) Optional, defaults to [wgpu::FilterMode::Nearest]\n  - [min_filter](SamplerDescriptorBuilder::min_filter) Optional, defaults to [wgpu::FilterMode::Nearest]\n  - [mipmap_filter](SamplerDescriptorBuilder::mipmap_filter) Optional, defaults to [wgpu::FilterMode::Nearest]\n  - [lod_min_clamp](SamplerDescriptorBuilder::lod_min_clamp) Optional, defaults to `0.0`\n  - [lod_max_clamp](SamplerDescriptorBuilder::lod_max_clamp) Optional, defaults to `32.0`\n  - [compare](SamplerDescriptorBuilder::compare) Optional, defaults to `None`\n  - [anisotropy_clamp](SamplerDescriptorBuilder::anisotropy_clamp) Optional, defaults to `1`\n  - [border_color](SamplerDescriptorBuilder::border_color) Optional, defaults to `None`\n"]
+#[doc = "\nBuilder for [`wgpu::SamplerDescriptor`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [address_mode_u](SamplerDescriptorBuilder::address_mode_u) Optional, defaults to [wgpu::AddressMode::ClampToEdge]\n  - [address_mode_v](SamplerDescriptorBuilder::address_mode_v) Optional, defaults to [wgpu::AddressMode::ClampToEdge]\n  - [address_mode_w](SamplerDescriptorBuilder::address_mode_w) Optional, defaults to [wgpu::AddressMode::ClampToEdge]\n  - [mag_filter](SamplerDescriptorBuilder::mag_filter) Optional, defaults to [wgpu::FilterMode::Nearest]\n  - [min_filter](SamplerDescriptorBuilder::min_filter) Optional, defaults to [wgpu::FilterMode::Nearest]\n  - [mipmap_filter](SamplerDescriptorBuilder::mipmap_filter) Optional, defaults to [wgpu::MipmapFilterMode::Nearest]\n  - [lod_min_clamp](SamplerDescriptorBuilder::lod_min_clamp) Optional, defaults to `0.0`\n  - [lod_max_clamp](SamplerDescriptorBuilder::lod_max_clamp) Optional, defaults to `32.0`\n  - [compare](SamplerDescriptorBuilder::compare) Optional, defaults to `None`\n  - [anisotropy_clamp](SamplerDescriptorBuilder::anisotropy_clamp) Optional, defaults to `1`\n  - [border_color](SamplerDescriptorBuilder::border_color) Optional, defaults to `None`\n"]
 pub struct SamplerDescriptorBuilder<'a, CS: State<'a>> {
     label: CS::Label,
     address_mode_u: CS::AddressModeU,
@@ -38,7 +38,7 @@ impl<'a> SamplerDescriptorBuilder<'a, Empty> {
         }
     }
 }
-#[doc = "\nReturns [SamplerDescriptorBuilder] for building [`wgpu::SamplerDescriptor`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [address_mode_u](SamplerDescriptorBuilder::address_mode_u) Optional, defaults to [wgpu::AddressMode::ClampToEdge]\n  - [address_mode_v](SamplerDescriptorBuilder::address_mode_v) Optional, defaults to [wgpu::AddressMode::ClampToEdge]\n  - [address_mode_w](SamplerDescriptorBuilder::address_mode_w) Optional, defaults to [wgpu::AddressMode::ClampToEdge]\n  - [mag_filter](SamplerDescriptorBuilder::mag_filter) Optional, defaults to [wgpu::FilterMode::Nearest]\n  - [min_filter](SamplerDescriptorBuilder::min_filter) Optional, defaults to [wgpu::FilterMode::Nearest]\n  - [mipmap_filter](SamplerDescriptorBuilder::mipmap_filter) Optional, defaults to [wgpu::FilterMode::Nearest]\n  - [lod_min_clamp](SamplerDescriptorBuilder::lod_min_clamp) Optional, defaults to `0.0`\n  - [lod_max_clamp](SamplerDescriptorBuilder::lod_max_clamp) Optional, defaults to `32.0`\n  - [compare](SamplerDescriptorBuilder::compare) Optional, defaults to `None`\n  - [anisotropy_clamp](SamplerDescriptorBuilder::anisotropy_clamp) Optional, defaults to `1`\n  - [border_color](SamplerDescriptorBuilder::border_color) Optional, defaults to `None`\n"]
+#[doc = "\nReturns [SamplerDescriptorBuilder] for building [`wgpu::SamplerDescriptor`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [address_mode_u](SamplerDescriptorBuilder::address_mode_u) Optional, defaults to [wgpu::AddressMode::ClampToEdge]\n  - [address_mode_v](SamplerDescriptorBuilder::address_mode_v) Optional, defaults to [wgpu::AddressMode::ClampToEdge]\n  - [address_mode_w](SamplerDescriptorBuilder::address_mode_w) Optional, defaults to [wgpu::AddressMode::ClampToEdge]\n  - [mag_filter](SamplerDescriptorBuilder::mag_filter) Optional, defaults to [wgpu::FilterMode::Nearest]\n  - [min_filter](SamplerDescriptorBuilder::min_filter) Optional, defaults to [wgpu::FilterMode::Nearest]\n  - [mipmap_filter](SamplerDescriptorBuilder::mipmap_filter) Optional, defaults to [wgpu::MipmapFilterMode::Nearest]\n  - [lod_min_clamp](SamplerDescriptorBuilder::lod_min_clamp) Optional, defaults to `0.0`\n  - [lod_max_clamp](SamplerDescriptorBuilder::lod_max_clamp) Optional, defaults to `32.0`\n  - [compare](SamplerDescriptorBuilder::compare) Optional, defaults to `None`\n  - [anisotropy_clamp](SamplerDescriptorBuilder::anisotropy_clamp) Optional, defaults to `1`\n  - [border_color](SamplerDescriptorBuilder::border_color) Optional, defaults to `None`\n"]
 pub fn sampler_descriptor<'a>(
     label: wgpu::Label<'a>,
 ) -> SamplerDescriptorBuilder<'a, SetLabel<Empty>> {
@@ -163,17 +163,17 @@ impl Field for MipmapFilterEmpty {}
 pub trait MipmapFilterIsEmpty {}
 impl MipmapFilterIsEmpty for MipmapFilterEmpty {}
 pub trait IsSetMipmapFilter {
-    fn get(self) -> wgpu::FilterMode;
+    fn get(self) -> wgpu::MipmapFilterMode;
 }
 impl IsSetMipmapFilter for MipmapFilterEmpty {
-    fn get(self) -> wgpu::FilterMode {
-        wgpu::FilterMode::Nearest
+    fn get(self) -> wgpu::MipmapFilterMode {
+        wgpu::MipmapFilterMode::Nearest
     }
 }
-pub struct MipmapFilterValue(pub wgpu::FilterMode);
+pub struct MipmapFilterValue(pub wgpu::MipmapFilterMode);
 impl Field for MipmapFilterValue {}
 impl IsSetMipmapFilter for MipmapFilterValue {
-    fn get(self) -> wgpu::FilterMode {
+    fn get(self) -> wgpu::MipmapFilterMode {
         self.0
     }
 }
@@ -617,10 +617,10 @@ impl<'a, CS: State<'a>> SamplerDescriptorBuilder<'a, CS> {
             border_color: self.border_color,
         }
     }
-    #[doc = "Setter for [wgpu::SamplerDescriptor::mipmap_filter]. Optional, defaults to [wgpu::FilterMode::Nearest].\n"]
+    #[doc = "Setter for [wgpu::SamplerDescriptor::mipmap_filter]. Optional, defaults to [wgpu::MipmapFilterMode::Nearest].\n"]
     pub fn mipmap_filter(
         self,
-        mipmap_filter: wgpu::FilterMode,
+        mipmap_filter: wgpu::MipmapFilterMode,
     ) -> SamplerDescriptorBuilder<'a, SetMipmapFilter<CS>>
     where
         CS::MipmapFilter: MipmapFilterIsEmpty,

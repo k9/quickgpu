@@ -50,17 +50,17 @@ impl Field for BindGroupLayoutsEmpty {}
 pub trait BindGroupLayoutsIsEmpty {}
 impl BindGroupLayoutsIsEmpty for BindGroupLayoutsEmpty {}
 pub trait IsSetBindGroupLayouts<'a> {
-    fn get(self) -> &'a [&'a wgpu::BindGroupLayout];
+    fn get(self) -> &'a [Option<&'a wgpu::BindGroupLayout>];
 }
 impl<'a> IsSetBindGroupLayouts<'a> for BindGroupLayoutsEmpty {
-    fn get(self) -> &'a [&'a wgpu::BindGroupLayout] {
+    fn get(self) -> &'a [Option<&'a wgpu::BindGroupLayout>] {
         ::core::default::Default::default()
     }
 }
-pub struct BindGroupLayoutsValue<'a>(pub &'a [&'a wgpu::BindGroupLayout]);
+pub struct BindGroupLayoutsValue<'a>(pub &'a [Option<&'a wgpu::BindGroupLayout>]);
 impl<'a> Field for BindGroupLayoutsValue<'a> {}
 impl<'a> IsSetBindGroupLayouts<'a> for BindGroupLayoutsValue<'a> {
-    fn get(self) -> &'a [&'a wgpu::BindGroupLayout] {
+    fn get(self) -> &'a [Option<&'a wgpu::BindGroupLayout>] {
         self.0
     }
 }
@@ -127,7 +127,7 @@ impl<'a, CS: State<'a>> PipelineLayoutDescriptorBuilder<'a, CS> {
     #[doc = "Setter for [wgpu::PipelineLayoutDescriptor::bind_group_layouts]. Optional, defaults to [::core::default::Default::default()].\n"]
     pub fn bind_group_layouts(
         self,
-        bind_group_layouts: &'a [&'a wgpu::BindGroupLayout],
+        bind_group_layouts: &'a [Option<&'a wgpu::BindGroupLayout>],
     ) -> PipelineLayoutDescriptorBuilder<'a, SetBindGroupLayouts<CS>>
     where
         CS::BindGroupLayouts: BindGroupLayoutsIsEmpty,

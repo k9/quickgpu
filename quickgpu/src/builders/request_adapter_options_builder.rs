@@ -5,11 +5,12 @@ pub use super::super::Nested;
 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
 pub trait Field {}
 pub trait IsOptional {}
-#[doc = "\nBuilder for [`wgpu::RequestAdapterOptions`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [power_preference](RequestAdapterOptionsBuilder::power_preference) Optional, defaults to [wgpu::PowerPreference::None]\n  - [force_fallback_adapter](RequestAdapterOptionsBuilder::force_fallback_adapter) Optional, defaults to `false`\n  - [compatible_surface](RequestAdapterOptionsBuilder::compatible_surface) Optional, defaults to `None`\n"]
+#[doc = "\nBuilder for [`wgpu::RequestAdapterOptions`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [power_preference](RequestAdapterOptionsBuilder::power_preference) Optional, defaults to [wgpu::PowerPreference::None]\n  - [force_fallback_adapter](RequestAdapterOptionsBuilder::force_fallback_adapter) Optional, defaults to `false`\n  - [compatible_surface](RequestAdapterOptionsBuilder::compatible_surface) Optional, defaults to `None`\n  - [apply_limit_buckets](RequestAdapterOptionsBuilder::apply_limit_buckets) Optional, defaults to `false`\n"]
 pub struct RequestAdapterOptionsBuilder<'a, 'b: 'a, CS: State<'a, 'b>> {
     power_preference: CS::PowerPreference,
     force_fallback_adapter: CS::ForceFallbackAdapter,
     compatible_surface: CS::CompatibleSurface,
+    apply_limit_buckets: CS::ApplyLimitBuckets,
 }
 impl<'a, 'b: 'a> RequestAdapterOptionsBuilder<'a, 'b, Empty> {
     pub fn new() -> RequestAdapterOptionsBuilder<'a, 'b, Empty> {
@@ -17,10 +18,11 @@ impl<'a, 'b: 'a> RequestAdapterOptionsBuilder<'a, 'b, Empty> {
             power_preference: PowerPreferenceEmpty,
             force_fallback_adapter: ForceFallbackAdapterEmpty,
             compatible_surface: CompatibleSurfaceEmpty,
+            apply_limit_buckets: ApplyLimitBucketsEmpty,
         }
     }
 }
-#[doc = "\nReturns [RequestAdapterOptionsBuilder] for building [`wgpu::RequestAdapterOptions`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [power_preference](RequestAdapterOptionsBuilder::power_preference) Optional, defaults to [wgpu::PowerPreference::None]\n  - [force_fallback_adapter](RequestAdapterOptionsBuilder::force_fallback_adapter) Optional, defaults to `false`\n  - [compatible_surface](RequestAdapterOptionsBuilder::compatible_surface) Optional, defaults to `None`\n"]
+#[doc = "\nReturns [RequestAdapterOptionsBuilder] for building [`wgpu::RequestAdapterOptions`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [power_preference](RequestAdapterOptionsBuilder::power_preference) Optional, defaults to [wgpu::PowerPreference::None]\n  - [force_fallback_adapter](RequestAdapterOptionsBuilder::force_fallback_adapter) Optional, defaults to `false`\n  - [compatible_surface](RequestAdapterOptionsBuilder::compatible_surface) Optional, defaults to `None`\n  - [apply_limit_buckets](RequestAdapterOptionsBuilder::apply_limit_buckets) Optional, defaults to `false`\n"]
 pub fn request_adapter_options<'a, 'b: 'a>() -> RequestAdapterOptionsBuilder<'a, 'b, Empty> {
     RequestAdapterOptionsBuilder::new()
 }
@@ -81,34 +83,65 @@ impl<'a, 'b> IsSetCompatibleSurface<'a, 'b> for CompatibleSurfaceValue<'a, 'b> {
         self.0
     }
 }
+pub struct ApplyLimitBucketsEmpty;
+impl Field for ApplyLimitBucketsEmpty {}
+pub trait ApplyLimitBucketsIsEmpty {}
+impl ApplyLimitBucketsIsEmpty for ApplyLimitBucketsEmpty {}
+pub trait IsSetApplyLimitBuckets {
+    fn get(self) -> bool;
+}
+impl IsSetApplyLimitBuckets for ApplyLimitBucketsEmpty {
+    fn get(self) -> bool {
+        false
+    }
+}
+pub struct ApplyLimitBucketsValue(pub bool);
+impl Field for ApplyLimitBucketsValue {}
+impl IsSetApplyLimitBuckets for ApplyLimitBucketsValue {
+    fn get(self) -> bool {
+        self.0
+    }
+}
 pub trait State<'a, 'b: 'a> {
     type PowerPreference: Field;
     type ForceFallbackAdapter: Field;
     type CompatibleSurface: Field;
+    type ApplyLimitBuckets: Field;
 }
 pub struct Empty;
 impl<'a, 'b: 'a> State<'a, 'b> for Empty {
     type PowerPreference = PowerPreferenceEmpty;
     type ForceFallbackAdapter = ForceFallbackAdapterEmpty;
     type CompatibleSurface = CompatibleSurfaceEmpty;
+    type ApplyLimitBuckets = ApplyLimitBucketsEmpty;
 }
 pub struct SetPowerPreference<CS>(CS);
 impl<'a, 'b: 'a, CS: State<'a, 'b>> State<'a, 'b> for SetPowerPreference<CS> {
     type PowerPreference = PowerPreferenceValue;
     type ForceFallbackAdapter = CS::ForceFallbackAdapter;
     type CompatibleSurface = CS::CompatibleSurface;
+    type ApplyLimitBuckets = CS::ApplyLimitBuckets;
 }
 pub struct SetForceFallbackAdapter<CS>(CS);
 impl<'a, 'b: 'a, CS: State<'a, 'b>> State<'a, 'b> for SetForceFallbackAdapter<CS> {
     type PowerPreference = CS::PowerPreference;
     type ForceFallbackAdapter = ForceFallbackAdapterValue;
     type CompatibleSurface = CS::CompatibleSurface;
+    type ApplyLimitBuckets = CS::ApplyLimitBuckets;
 }
 pub struct SetCompatibleSurface<CS>(CS);
 impl<'a, 'b: 'a, CS: State<'a, 'b>> State<'a, 'b> for SetCompatibleSurface<CS> {
     type PowerPreference = CS::PowerPreference;
     type ForceFallbackAdapter = CS::ForceFallbackAdapter;
     type CompatibleSurface = CompatibleSurfaceValue<'a, 'b>;
+    type ApplyLimitBuckets = CS::ApplyLimitBuckets;
+}
+pub struct SetApplyLimitBuckets<CS>(CS);
+impl<'a, 'b: 'a, CS: State<'a, 'b>> State<'a, 'b> for SetApplyLimitBuckets<CS> {
+    type PowerPreference = CS::PowerPreference;
+    type ForceFallbackAdapter = CS::ForceFallbackAdapter;
+    type CompatibleSurface = CS::CompatibleSurface;
+    type ApplyLimitBuckets = ApplyLimitBucketsValue;
 }
 impl<'a, 'b: 'a, CS: State<'a, 'b>> RequestAdapterOptionsBuilder<'a, 'b, CS> {
     #[doc = "Setter for [wgpu::RequestAdapterOptions::power_preference]. Optional, defaults to [wgpu::PowerPreference::None].\n"]
@@ -123,6 +156,7 @@ impl<'a, 'b: 'a, CS: State<'a, 'b>> RequestAdapterOptionsBuilder<'a, 'b, CS> {
             power_preference: PowerPreferenceValue(power_preference),
             force_fallback_adapter: self.force_fallback_adapter,
             compatible_surface: self.compatible_surface,
+            apply_limit_buckets: self.apply_limit_buckets,
         }
     }
     #[doc = "Setter for [wgpu::RequestAdapterOptions::force_fallback_adapter]. Optional, defaults to `false`.\n"]
@@ -137,6 +171,7 @@ impl<'a, 'b: 'a, CS: State<'a, 'b>> RequestAdapterOptionsBuilder<'a, 'b, CS> {
             power_preference: self.power_preference,
             force_fallback_adapter: ForceFallbackAdapterValue(force_fallback_adapter),
             compatible_surface: self.compatible_surface,
+            apply_limit_buckets: self.apply_limit_buckets,
         }
     }
     #[doc = "Setter for [wgpu::RequestAdapterOptions::compatible_surface]. Optional, defaults to `None`.\n"]
@@ -151,6 +186,7 @@ impl<'a, 'b: 'a, CS: State<'a, 'b>> RequestAdapterOptionsBuilder<'a, 'b, CS> {
             power_preference: self.power_preference,
             force_fallback_adapter: self.force_fallback_adapter,
             compatible_surface: CompatibleSurfaceValue(Some(compatible_surface)),
+            apply_limit_buckets: self.apply_limit_buckets,
         }
     }
     #[doc = "Setter for [wgpu::RequestAdapterOptions::compatible_surface]. Optional, defaults to `None`.\n"]
@@ -165,6 +201,22 @@ impl<'a, 'b: 'a, CS: State<'a, 'b>> RequestAdapterOptionsBuilder<'a, 'b, CS> {
             power_preference: self.power_preference,
             force_fallback_adapter: self.force_fallback_adapter,
             compatible_surface: CompatibleSurfaceValue(compatible_surface),
+            apply_limit_buckets: self.apply_limit_buckets,
+        }
+    }
+    #[doc = "Setter for [wgpu::RequestAdapterOptions::apply_limit_buckets]. Optional, defaults to `false`.\n"]
+    pub fn apply_limit_buckets(
+        self,
+        apply_limit_buckets: bool,
+    ) -> RequestAdapterOptionsBuilder<'a, 'b, SetApplyLimitBuckets<CS>>
+    where
+        CS::ApplyLimitBuckets: ApplyLimitBucketsIsEmpty,
+    {
+        RequestAdapterOptionsBuilder {
+            power_preference: self.power_preference,
+            force_fallback_adapter: self.force_fallback_adapter,
+            compatible_surface: self.compatible_surface,
+            apply_limit_buckets: ApplyLimitBucketsValue(apply_limit_buckets),
         }
     }
 }
@@ -175,6 +227,7 @@ pub trait Complete<'a, 'b: 'a>:
     PowerPreference: IsSetPowerPreference,
     ForceFallbackAdapter: IsSetForceFallbackAdapter,
     CompatibleSurface: IsSetCompatibleSurface<'a, 'b>,
+    ApplyLimitBuckets: IsSetApplyLimitBuckets,
 >
 {
 }
@@ -187,6 +240,7 @@ impl<
             PowerPreference: IsSetPowerPreference,
             ForceFallbackAdapter: IsSetForceFallbackAdapter,
             CompatibleSurface: IsSetCompatibleSurface<'a, 'b>,
+            ApplyLimitBuckets: IsSetApplyLimitBuckets,
         >,
     > Complete<'a, 'b> for CS
 {
@@ -197,6 +251,7 @@ impl<'a, 'b: 'a, CS: Complete<'a, 'b>> RequestAdapterOptionsBuilder<'a, 'b, CS> 
             power_preference: IsSetPowerPreference::get(self.power_preference),
             force_fallback_adapter: IsSetForceFallbackAdapter::get(self.force_fallback_adapter),
             compatible_surface: IsSetCompatibleSurface::get(self.compatible_surface),
+            apply_limit_buckets: IsSetApplyLimitBuckets::get(self.apply_limit_buckets),
         }
     }
 }
