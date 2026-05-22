@@ -4,6 +4,7 @@ use syn::{GenericParam, parse_quote};
 
 use crate::{
     generate::{
+        Version,
         base::{make_fn, make_new_impl, make_struct},
         setter::make_setters,
         state::{make_empty, make_state},
@@ -16,16 +17,16 @@ use crate::{
 
 pub struct GeneratedBuilder {
     pub name: String,
-    pub use_statement: String,
+    pub builder_use: String,
     pub builder_mod: String,
     pub code: String,
 }
 
-pub fn builder_code(builder_struct: &BuilderStruct) -> GeneratedBuilder {
+pub fn builder_code(builder_struct: &BuilderStruct, version: Version) -> GeneratedBuilder {
     let label = builder_struct
         .fields
         .iter()
-        .find(|f| f.field.ident.as_ref().unwrap().to_string() == "label");
+        .find(|f| *f.field.ident.as_ref().unwrap() == "label");
 
     let field_types = builder_struct
         .fields
@@ -33,17 +34,17 @@ pub fn builder_code(builder_struct: &BuilderStruct) -> GeneratedBuilder {
         .map(make_field_types)
         .collect::<TokenStream>();
 
-    let state = make_state(&builder_struct);
-    let empty = make_empty(&builder_struct);
-    let set_types = make_set_types(&builder_struct);
+    let state = make_state(builder_struct);
+    let empty = make_empty(builder_struct);
+    let set_types = make_set_types(builder_struct);
 
     let module = builder_struct.ident(StructIdent::BuilderMod);
-    let fn_ident = builder_struct.ident(StructIdent::Fn);
+    let builder_fn_ident = builder_struct.ident(StructIdent::Fn);
 
-    let struct_definition = make_struct(&builder_struct);
+    let struct_definition = make_struct(builder_struct);
     let new_impl = make_new_impl(builder_struct);
     let builder_fn = make_fn(builder_struct, label);
-    let setters = make_setters(builder_struct);
+    let setters = make_setters(builder_struct, version);
 
     let nested_impl = if builder_struct.generate_nested_impl {
         make_nested(builder_struct)
@@ -51,14 +52,16 @@ pub fn builder_code(builder_struct: &BuilderStruct) -> GeneratedBuilder {
         quote!()
     };
 
-    let tests = builder_tests(&builder_struct, label.is_some());
+    let tests = builder_tests(builder_struct, label.is_some());
+
+    let wgpu_ident = version.wgpu_ident();
 
     let code = quote!(
         pub use super::super::Nested;
         pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
 
         #[allow(unused_imports)]
-        use wgpu::util::DeviceExt;
+        use #wgpu_ident::util::DeviceExt;
 
         pub trait Field {}
         pub trait IsOptional {}
@@ -79,9 +82,9 @@ pub fn builder_code(builder_struct: &BuilderStruct) -> GeneratedBuilder {
     )
     .to_string();
 
-    let use_statement = quote!(
+    let builder_use = quote!(
         #[doc(inline)]
-        pub use builders::#module::#fn_ident;
+        pub use builders::#module::#builder_fn_ident;
     )
     .to_string();
 
@@ -92,7 +95,7 @@ pub fn builder_code(builder_struct: &BuilderStruct) -> GeneratedBuilder {
 
     GeneratedBuilder {
         name: module.to_string(),
-        use_statement,
+        builder_use,
         builder_mod,
         code,
     }
@@ -136,7 +139,7 @@ pub fn add_state_param(
     add_with_zero_fields: bool,
 ) -> UniqueGenerics {
     let mut generics_with_state = struct_generics.clone();
-    if add_with_zero_fields || fields.len() > 0 {
+    if add_with_zero_fields || !fields.is_empty() {
         generics_with_state.insert(param);
     }
 
@@ -147,7 +150,7 @@ pub fn make_build_impl(builder_struct: &BuilderStruct) -> TokenStream {
     let params = builder_struct.generics.as_params();
     let args = builder_struct.generics.as_args();
     let mut state_args = builder_struct.generics.as_args_vec();
-    if builder_struct.fields.len() > 0 {
+    if !builder_struct.fields.is_empty() {
         state_args.push(parse_quote!(Complete));
     }
 

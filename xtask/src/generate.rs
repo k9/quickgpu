@@ -1,5 +1,5 @@
 use clap::ValueEnum;
-use quote::{ToTokens, quote as q};
+use quote::{ToTokens, format_ident, quote as q};
 use std::collections::HashMap;
 use syn::{Ident, ReturnType, TypePath};
 use xshell::Shell;
@@ -14,7 +14,7 @@ use discover_exports::{
 
 use crate::{
     generate::{
-        shared::{cargo_toml, intro},
+        shared::{custom, intro},
         struct_entry::{Output, filter_struct, output_struct},
     },
     utils::{relative_path, rustfmt, without_args},
@@ -54,6 +54,20 @@ pub enum Version {
     V28,
 }
 
+impl Version {
+    pub fn wgpu_source(&self) -> String {
+        match self {
+            Version::V27 => "wgpu_27",
+            Version::V28 => "wgpu_28",
+        }
+        .to_string()
+    }
+
+    pub fn wgpu_ident(&self) -> Ident {
+        format_ident!("{}", self.wgpu_source())
+    }
+}
+
 pub struct CreateWithDevice {
     pub path: TypePath,
     pub name: Ident,
@@ -64,21 +78,12 @@ pub struct CreateWithDevice {
 pub fn generate(version: Version) -> anyhow::Result<()> {
     let mut analysis = Analysis::default();
 
-    let wgpu_source = match version {
-        Version::V27 => "wgpu_v27",
-        Version::V28 => "wgpu_v28",
-    };
-
-    let crate_name = match version {
-        Version::V27 => "quickgpu27",
-        Version::V28 => "quickgpu",
-    };
-
+    let wgpu_source = version.wgpu_source();
     let wgpu = {
         parse_crate(
             &mut analysis,
             relative_path("expanded/wgpu_types.rs"),
-            relative_path(format!("{wgpu_source}/wgpu-types")),
+            relative_path(format!("{}/wgpu-types", version.wgpu_source())),
             "wgpu_types",
             vec![],
         )
@@ -87,7 +92,7 @@ pub fn generate(version: Version) -> anyhow::Result<()> {
         parse_crate(
             &mut analysis,
             relative_path("expanded/wgpu_core.rs"),
-            relative_path(format!("{wgpu_source}/wgpu-core")),
+            relative_path(format!("{}/wgpu-core", version.wgpu_source())),
             "wgpu_core",
             vec!["wgpu_types".to_string()],
         )
@@ -96,7 +101,7 @@ pub fn generate(version: Version) -> anyhow::Result<()> {
         parse_crate(
             &mut analysis,
             relative_path("expanded/wgpu_hal.rs"),
-            relative_path(format!("{wgpu_source}/wgpu-hal")),
+            relative_path(format!("{}/wgpu-hal", version.wgpu_source())),
             "wgpu_hal",
             vec!["wgpu_core".to_string()],
         )
@@ -105,49 +110,54 @@ pub fn generate(version: Version) -> anyhow::Result<()> {
         parse_crate(
             &mut analysis,
             relative_path("expanded/naga.rs"),
-            relative_path(format!("{wgpu_source}/naga")),
+            relative_path(format!("{}/naga", version.wgpu_source())),
             "wgpu_hal",
             vec![],
         )
         .unwrap();
 
-        let wgpu = parse_crate(
+        parse_crate(
             &mut analysis,
             relative_path("expanded/wgpu.rs"),
-            relative_path(format!("{wgpu_source}/wgpu")),
-            "wgpu",
+            relative_path(format!("{}/wgpu", version.wgpu_source())),
+            &wgpu_source,
             vec![],
         )
-        .unwrap();
-
-        wgpu
+        .unwrap()
     };
 
-    let intro_path = relative_path(format!("{crate_name}/INTRO.md"));
+    let intro_path = relative_path("quickgpu/INTRO.md".to_string());
     std::fs::write(intro_path.clone(), intro(version))?;
 
-    let cargo_path = relative_path(format!("{crate_name}/Cargo.toml"));
-    std::fs::write(cargo_path.clone(), cargo_toml(version))?;
-
-    let builders_path = relative_path(format!("{crate_name}/src/builders/"));
+    let base_path = relative_path(format!("quickgpu/src/{}/", version.wgpu_source()));
     let sh = Shell::new()?;
-    sh.remove_path(builders_path.clone())?;
+    sh.remove_path(base_path.clone())?;
+    sh.create_dir(base_path)?;
+
+    let builders_path = relative_path(format!("quickgpu/src/{}/builders/", version.wgpu_source()));
+    let sh = Shell::new()?;
     sh.create_dir(builders_path)?;
+
+    let custom = custom(version);
 
     let mut builders = vec![];
     let mut builder_entries = HashMap::new();
 
     let mut create_with_device = vec![];
 
-    let resolution =
-        resolve_path(&wgpu, wgpu.crate_root, &path_from_string("wgpu::Device")).unwrap();
+    let resolution = resolve_path(
+        &wgpu,
+        wgpu.crate_root,
+        &path_from_string(&format!("{}::Device", version.wgpu_source())),
+    )
+    .unwrap();
 
     resolve_impls(&wgpu, resolution)
         .unwrap()
         .iter()
         .for_each(|impl_| {
             impl_.items.iter().for_each(|item| {
-                if let Some(create_with) = should_create_with(item) {
+                if let Some(create_with) = should_create_with(item, version) {
                     create_with_device.push(create_with);
                 }
             });
@@ -182,6 +192,7 @@ pub fn generate(version: Version) -> anyhow::Result<()> {
     for (index, path) in builder_entries_sorted {
         builders.push(output_struct(
             &wgpu,
+            version,
             *index,
             path.clone(),
             &builder_entries,
@@ -207,7 +218,8 @@ pub fn generate(version: Version) -> anyhow::Result<()> {
         );
 
         let output_path =
-            relative_path(format!("{crate_name}/src/builders/")).join(format!("{}.rs", name));
+            relative_path(format!("quickgpu/src/{}/builders/", version.wgpu_source()))
+                .join(format!("{}.rs", name));
 
         std::fs::write(output_path.clone(), combined)?;
         rustfmt(output_path)?;
@@ -224,41 +236,42 @@ pub fn generate(version: Version) -> anyhow::Result<()> {
         })
         .collect::<String>();
 
-    let output_path = relative_path(format!("{crate_name}/src/builders/mod.rs"));
+    let output_path = relative_path(format!(
+        "quickgpu/src/{}/builders/mod.rs",
+        version.wgpu_source()
+    ));
+
     std::fs::write(output_path.clone(), builder_mods)?;
     rustfmt(output_path)?;
 
-    let use_statements = builders
+    let builder_uses = builders
         .iter()
-        .map(|Output { use_statement, .. }| {
+        .map(|Output { builder_use, .. }| {
             format!(
                 "
-{use_statement}
+{builder_use}
 "
             )
         })
         .collect::<String>();
 
-    let use_statements = format!(
+    let mod_src = format!(
         r#"
-#![doc=include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/INTRO.md"))]
+{custom}
 
-pub mod custom;
-pub use custom::*;
-pub mod builders;
-
-{use_statements}
+{builder_uses}
 "#
     );
 
-    let output_path = relative_path(format!("{crate_name}/src/lib.rs"));
-    std::fs::write(output_path.clone(), use_statements)?;
+    let output_path = relative_path(format!("quickgpu/src/{}/mod.rs", version.wgpu_source()));
+    std::fs::write(output_path.clone(), mod_src)?;
     rustfmt(output_path)?;
 
     Ok(())
 }
 
-fn should_create_with(item: &syn::ImplItem) -> Option<CreateWithDevice> {
+fn should_create_with(item: &syn::ImplItem, version: Version) -> Option<CreateWithDevice> {
+    let wgpu_ident = version.wgpu_ident();
     if let syn::ImplItem::Fn(item_fn) = item
         && item_fn.sig.unsafety.is_none()
         && let name = item_fn.sig.ident.to_string()
@@ -266,7 +279,7 @@ fn should_create_with(item: &syn::ImplItem) -> Option<CreateWithDevice> {
         && item_fn.sig.inputs.len() == 2
         && let Some(syn::FnArg::Receiver(reciever)) = item_fn.sig.inputs.get(0)
         && ([
-            quote::quote!(&wgpu::Device).to_string(),
+            quote::quote!(&#wgpu_ident::Device).to_string(),
             quote::quote!(wgpu::util::DeviceExt).to_string(),
         ]
         .contains(&reciever.ty.clone().into_token_stream().to_string()))
@@ -289,16 +302,13 @@ fn should_create_with(item: &syn::ImplItem) -> Option<CreateWithDevice> {
                 });
             }
             syn::Type::Reference(type_reference) => {
-                match *type_reference.elem {
-                    syn::Type::Path(path) => {
-                        return Some(CreateWithDevice {
-                            path,
-                            name: item_fn.sig.ident.clone(),
-                            use_reference: true,
-                            output: item_fn.sig.output.clone(),
-                        });
-                    }
-                    _ => (),
+                if let syn::Type::Path(path) = *type_reference.elem {
+                    return Some(CreateWithDevice {
+                        path,
+                        name: item_fn.sig.ident.clone(),
+                        use_reference: true,
+                        output: item_fn.sig.output.clone(),
+                    });
                 };
             }
             _ => (),

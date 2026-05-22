@@ -4,7 +4,7 @@ use syn::{AngleBracketedGenericArguments, Type, parse_quote};
 
 use crate::{
     generate::{
-        CreateWithDevice,
+        CreateWithDevice, Version,
         builder::add_state_param,
         docs::setter_docs,
         struct_entry::{BuilderField, BuilderStruct, FieldIdent, StructIdent},
@@ -12,7 +12,7 @@ use crate::{
     utils::{OptionType, option_argument, option_type},
 };
 
-pub fn make_setters(builder_struct: &BuilderStruct) -> TokenStream {
+pub fn make_setters(builder_struct: &BuilderStruct, version: Version) -> TokenStream {
     let setter_fns = builder_struct
         .fields
         .iter()
@@ -20,7 +20,7 @@ pub fn make_setters(builder_struct: &BuilderStruct) -> TokenStream {
         .collect::<TokenStream>();
 
     let builder = builder_struct.ident(StructIdent::Builder);
-    let build_fn = make_build(builder_struct);
+    let build_fn = make_build(builder_struct, version);
 
     let args = builder_struct.generics.as_args();
     let generics_with_state = add_state_param(
@@ -45,7 +45,7 @@ fn make_setter(builder_struct: &BuilderStruct, f: &BuilderField) -> TokenStream 
     let set = f.ident(FieldIdent::Set);
 
     let ty = &f.field.ty;
-    let option_arg = if option_type(&f.field) == OptionType::Option
+    let option_arg = if option_type(f.field) == OptionType::Option
         && let Some(arg) = option_argument(&mut ty.clone())
     {
         Some(arg.clone())
@@ -57,10 +57,10 @@ fn make_setter(builder_struct: &BuilderStruct, f: &BuilderField) -> TokenStream 
     set_args.push(parse_quote!(#set <CS>));
     let set_args = quote!(<#(#set_args),*>);
 
-    let mut code = make_setter_fn(builder_struct, f, &option_arg, &ty, &set_args, false);
+    let mut code = make_setter_fn(builder_struct, f, &option_arg, ty, &set_args, false);
 
     if option_arg.is_some() {
-        let maybe_code = make_setter_fn(builder_struct, f, &option_arg, &ty, &set_args, true);
+        let maybe_code = make_setter_fn(builder_struct, f, &option_arg, ty, &set_args, true);
 
         code = quote!(
             #code
@@ -143,7 +143,7 @@ fn make_setter_fn(
     )
 }
 
-fn make_build(builder_struct: &BuilderStruct) -> TokenStream {
+fn make_build(builder_struct: &BuilderStruct, version: Version) -> TokenStream {
     let params = builder_struct.generics.as_params();
     let args = builder_struct.generics.as_args();
     let builder = builder_struct.ident(StructIdent::Builder);
@@ -193,6 +193,7 @@ fn make_build(builder_struct: &BuilderStruct) -> TokenStream {
 
     let path = &builder_struct.path;
 
+    let wgpu_ident = version.wgpu_ident();
     let create_with_device = match builder_struct.create_with_device {
         Some(CreateWithDevice {
             use_reference,
@@ -203,7 +204,7 @@ fn make_build(builder_struct: &BuilderStruct) -> TokenStream {
             let reference = if *use_reference { quote!(&) } else { quote!() };
 
             quote! {
-                pub fn create_with(self, device: &wgpu::Device) #output {
+                pub fn create_with(self, device: &#wgpu_ident::Device) #output {
                    device.#name(#reference self.build())
                 }
             }

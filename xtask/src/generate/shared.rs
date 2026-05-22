@@ -1,16 +1,14 @@
 use crate::generate::Version;
+use quote::quote;
 
 pub fn intro(version: Version) -> String {
-    let package_name = match version {
-        Version::V27 => "quickgpu27",
-        Version::V28 => "quickgpu",
-    };
+    let wgpu_source = version.wgpu_source();
 
     format!(
         r#"
 <!-- intro that gets used in README and in crate docs -->
 
-`{package_name}` wraps the [wgpu] API allowing users to write shorter, clearer code.
+`quickgpu` wraps the [wgpu] API allowing users to write shorter, clearer code.
 It consists of builders for wgpu structs. As a wrapper library, quickgpu doesn't
 manage or own any state after a builder is done building. There's no need to convert
 all of your code to quickgpu, you can just use it where it's helpful.
@@ -32,16 +30,10 @@ There are different quickgpu crates for different wgpu major versions:
 - `quickgpu` supports `wgpu` version 28
 - `quickgpu27` supports `wgpu` version 27
 
-If you use `quickgpu27`, and don't want to type the "27" in your code,
-you can rename the dependency to `quickgpu`:
-in your Cargo.toml:
-```ignore
-quickgpu = {{ package = "quickgpu27", version = "..." }}
-```
 
 # Using builders
 
-To create a builder for [wgpu::FragmentState], you can call the
+To create a builder for `wgpu::FragmentState`, you can call the
 `fragment_state()` helper function, which returns a `FragmentStateBuilder`.
 Alternatively, you can create a `FragmentStateBuilder` directly.
 
@@ -54,11 +46,11 @@ can nest builders, and skip calling `build()` on the inner builder. In order to 
 calling `build()` on the elements of a slice, use the `builders` helper function.
 
  ```
-# use wgpu::*;
-# use {package_name}::*;
+# use {wgpu_source}::*;
+# use quickgpu::*;
 # use bytemuck::{{Pod, Zeroable}};
 #
-# let (device, _queue) = wgpu::Device::noop(&wgpu::DeviceDescriptor::default());
+# let (device, _queue) = {wgpu_source}::Device::noop(&{wgpu_source}::DeviceDescriptor::default());
 # let shader = device.create_shader_module(include_wgsl!("../example/shaders/base.wgsl"));
 # let format = TextureFormat::R8Unorm;
 #
@@ -76,7 +68,7 @@ let render_pipeline = render_pipeline_descriptor(Some("Render Pipeline"))
             .entry_point("vs_main")
             // Use builders() to convert builders to values before passing as a slice
             .buffers(&builders([vertex_buffer_layout()
-                .array_stride(size_of::<VertexInput>() as wgpu::BufferAddress)
+                .array_stride(size_of::<VertexInput>() as {wgpu_source}::BufferAddress)
                 .attributes(&builders([
                     vertex_attribute()
                         .format(VertexFormat::Float32x4)
@@ -96,36 +88,39 @@ let render_pipeline = render_pipeline_descriptor(Some("Render Pipeline"))
     )
 }
 
-pub fn cargo_toml(version: Version) -> String {
-    let wgpu_version = match version {
-        Version::V27 => "^27.0.0",
-        Version::V28 => "^28.0.0",
-    };
+pub fn custom(version: Version) -> String {
+    let wgpu_ident = version.wgpu_ident();
+    quote!(
+        pub mod builders;
 
-    let package_name = match version {
-        Version::V27 => "quickgpu27",
-        Version::V28 => "quickgpu",
-    };
+        /// Nested is implemented on builder types to enable passing them directly
+        /// into other builders without needing to call build().
+        pub trait Nested<T> {
+            fn unnest(self) -> T;
+        }
 
-    format!(
-        r#"
-[package]
-name = "{package_name}"
-version = "0.0.9"
-edition = "2024"
-license = "MIT OR Apache-2.0"
-description = "quickgpu wraps the wgpu API allowing users to write shorter, clearer code"
-repository = "https://github.com/k9/quickgpu"
-homepage = "https://github.com/k9/quickgpu"
-documentation = "https://docs.rs/{package_name}"
-readme = "../README.md"
+        impl<T, N: Nested<T>> Nested<Option<T>> for Option<N> {
+            fn unnest(self) -> Option<T> {
+                self.map(|o| o.unnest())
+            }
+        }
 
-[dependencies]
-wgpu = {{ version = "{wgpu_version}" }}
+        /// Builds an array of builders into an array of values.
+        /// Useful when passing a slice of wgpu values into another builder.
+        pub fn builders<T, N: Nested<T>, const COUNT: usize>(a: [N; COUNT]) -> Vec<T> {
+            a.into_iter().map(|item| item.unnest()).collect()
+        }
 
-[dev-dependencies]
-bytemuck = {{ workspace = true }}
-wgpu = {{ version = "{wgpu_version}", features = ["noop"] }}
-"#
+        mod render_pass_builder {
+            use super::builders::render_pass_descriptor_builder::*;
+            use #wgpu_ident::CommandEncoder;
+
+            impl<'a, CS: Complete<'a>> RenderPassDescriptorBuilder<'a, CS> {
+                pub fn begin_with(self, encoder: &'a mut CommandEncoder) -> #wgpu_ident::RenderPass<'a> {
+                    encoder.begin_render_pass(&self.build())
+                }
+            }
+        }
     )
+    .to_string()
 }

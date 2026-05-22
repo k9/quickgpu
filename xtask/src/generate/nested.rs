@@ -23,10 +23,9 @@ impl<'a> VisitMut for BuilderResolve<'a> {
             }
 
             if path.path.segments.last().map(|s| s.ident.to_string()) == Some("Option".to_string())
+                && let Some(arg) = option_argument(ty)
             {
-                if let Some(arg) = option_argument(ty) {
-                    visit_mut::visit_generic_argument_mut(self, arg);
-                }
+                visit_mut::visit_generic_argument_mut(self, arg);
             }
         }
     }

@@ -37,16 +37,15 @@ Builder for [`{path_tokens}`]
 pub fn table(builder_ident: String, fields: &[BuilderField]) -> String {
     let fields = fields
         .iter()
-        .filter(|field| field.field.ident.as_ref().unwrap().to_string() != "label");
+        .filter(|field| *field.field.ident.as_ref().unwrap() != "label");
 
     let mut table_doc = if fields.clone().count() > 0 {
-        format!(
-            "
+        "
 Set all required fields and any optional fields, then call `build()`.
 
 Builder field setters:
 "
-        )
+        .to_string()
     } else {
         "".to_string()
     };
@@ -80,7 +79,7 @@ fn default_string(field: &BuilderField) -> String {
 }
 
 pub fn setter_docs(path: &syn::Path, field: &BuilderField) -> String {
-    let default_string = default_string(&field);
+    let default_string = default_string(field);
     let field_ident = field.field.ident.as_ref().unwrap().into_token_stream();
     let path = path.into_token_stream().to_string().replace(" ", "");
 

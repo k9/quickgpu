@@ -25,9 +25,8 @@ impl VisitMut for TyVisitor {
         let old_args = args.args.clone();
         args.args = Punctuated::new();
         for arg in old_args.iter() {
-            match arg {
-                GenericArgument::Type(_) => args.args.push(arg.clone()),
-                _ => (),
+            if let GenericArgument::Type(_) = arg {
+                args.args.push(arg.clone())
             }
         }
 

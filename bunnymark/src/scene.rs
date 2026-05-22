@@ -1,6 +1,6 @@
 use bytemuck::{Pod, Zeroable};
 use nanorand::{Rng, WyRand};
-use quickgpu::{
+use quickgpu::wgpu_28::{
     bind_group_descriptor, bind_group_entry, bind_group_layout_descriptor, bind_group_layout_entry,
     buffer_binding, buffer_descriptor, buffer_init_descriptor, color, color_target_state,
     command_encoder_descriptor, extent_3_d, fragment_state, operations, pipeline_layout_descriptor,

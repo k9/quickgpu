@@ -10,9 +10,13 @@ homepage = "https://github.com/k9/quickgpu"
 documentation = "https://docs.rs/quickgpu"
 readme = "../README.md"
 
+[features]
+wgpu_27 = ["dep:wgpu_27"]
+wgpu_28 = ["dep:wgpu_28"]
+
 [dependencies]
-wgpu = { version = "^28.0.0" }
+wgpu_27 = { package = "wgpu", version = "^27.0.0", optional = true }
+wgpu_28 = { package = "wgpu", version = "^28.0.0", optional = true }
 
 [dev-dependencies]
 bytemuck = { workspace = true }
-wgpu = { version = "^28.0.0", features = ["noop"] }

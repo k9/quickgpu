@@ -23,16 +23,10 @@ There are different quickgpu crates for different wgpu major versions:
 - `quickgpu` supports `wgpu` version 28
 - `quickgpu27` supports `wgpu` version 27
 
-If you use `quickgpu27`, and don't want to type the "27" in your code,
-you can rename the dependency to `quickgpu`:
-in your Cargo.toml:
-```ignore
-quickgpu = { package = "quickgpu27", version = "..." }
-```
 
 # Using builders
 
-To create a builder for [wgpu::FragmentState], you can call the
+To create a builder for `wgpu::FragmentState`, you can call the
 `fragment_state()` helper function, which returns a `FragmentStateBuilder`.
 Alternatively, you can create a `FragmentStateBuilder` directly.
 
@@ -45,11 +39,11 @@ can nest builders, and skip calling `build()` on the inner builder. In order to 
 calling `build()` on the elements of a slice, use the `builders` helper function.
 
  ```
-# use wgpu::*;
+# use wgpu_28::*;
 # use quickgpu::*;
 # use bytemuck::{Pod, Zeroable};
 #
-# let (device, _queue) = wgpu::Device::noop(&wgpu::DeviceDescriptor::default());
+# let (device, _queue) = wgpu_28::Device::noop(&wgpu_28::DeviceDescriptor::default());
 # let shader = device.create_shader_module(include_wgsl!("../example/shaders/base.wgsl"));
 # let format = TextureFormat::R8Unorm;
 #
@@ -67,7 +61,7 @@ let render_pipeline = render_pipeline_descriptor(Some("Render Pipeline"))
             .entry_point("vs_main")
             // Use builders() to convert builders to values before passing as a slice
             .buffers(&builders([vertex_buffer_layout()
-                .array_stride(size_of::<VertexInput>() as wgpu::BufferAddress)
+                .array_stride(size_of::<VertexInput>() as wgpu_28::BufferAddress)
                 .attributes(&builders([
                     vertex_attribute()
                         .format(VertexFormat::Float32x4)

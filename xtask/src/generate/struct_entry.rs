@@ -20,7 +20,7 @@ use discover_exports::{
 
 use crate::{
     generate::{
-        CreateWithDevice,
+        CreateWithDevice, Version,
         builder::{GeneratedBuilder, builder_code},
         nested::BuilderResolve,
     },
@@ -103,8 +103,8 @@ impl<'a> BuilderField<'a> {
 pub struct Output {
     pub name: String,
     pub comment: String,
-    pub use_statement: String,
     pub builder_mod: String,
+    pub builder_use: String,
     pub code: String,
 }
 
@@ -113,13 +113,9 @@ pub(crate) fn filter_struct(
     index: EntryIndex,
     path: &Path,
 ) -> Option<(EntryIndex, ItemStruct, bool)> {
-    let Some(ident) = ident_from_path(path) else {
-        return None;
-    };
+    let ident = ident_from_path(path)?;
 
-    let Some((index, item, generate_nested_impl)) = get_index_and_item(ctx, index) else {
-        return None;
-    };
+    let (index, item, generate_nested_impl) = get_index_and_item(ctx, index)?;
 
     if SKIP.contains(&ident.to_string().as_str()) {
         log::debug!("Skipping {} since it's in skip list", ident);
@@ -149,6 +145,7 @@ pub fn ident_from_path(path: &Path) -> Option<Ident> {
 
 pub(crate) fn output_struct(
     ctx: &Ctx,
+    version: Version,
     index: EntryIndex,
     path: Path,
     builders: &HashMap<String, (EntryIndex, Path)>,
@@ -207,7 +204,7 @@ pub(crate) fn output_struct(
 
         // If struct doesn't have an overall default, look for field type's default.
         if field.default_value.is_none() {
-            let is_option = option_type(&field.field) != OptionType::None;
+            let is_option = option_type(field.field) != OptionType::None;
 
             if default_impl.is_some() || is_option {
                 field.default_value = Some(q!(Default::default()));
@@ -226,7 +223,7 @@ pub(crate) fn output_struct(
                 field.default_value = Some(q!(#path::default()));
             }
 
-            if option_type(&field.field) != OptionType::None {
+            if option_type(field.field) != OptionType::None {
                 field.default_value = Some(q!(None));
             } else {
                 match q!(#ty).to_string().as_str() {
@@ -246,15 +243,15 @@ pub(crate) fn output_struct(
                         field.default_value = Some(q!(false));
                     }
                     _ => {
-                        if let Some(default_impl) = default_impl {
-                            if let Some(expr) = get_default_expr(&default_impl) {
-                                match expr {
-                                    // Don't use literal struct since it's too long for docs
-                                    Expr::Struct(_) => (),
-                                    // For all other defaults, include in docs
-                                    expr => field.default_value = Some(q!(#expr)),
-                                };
-                            }
+                        if let Some(default_impl) = default_impl
+                            && let Some(expr) = get_default_expr(&default_impl)
+                        {
+                            match expr {
+                                // Don't use literal struct since it's too long for docs
+                                Expr::Struct(_) => (),
+                                // For all other defaults, include in docs
+                                expr => field.default_value = Some(q!(#expr)),
+                            };
                         }
                     }
                 };
@@ -284,15 +281,15 @@ pub(crate) fn output_struct(
     let comment = "".to_string();
     let GeneratedBuilder {
         name,
-        use_statement,
+        builder_use,
         builder_mod,
         code,
-    } = builder_code(&builder_struct);
+    } = builder_code(&builder_struct, version);
 
     Output {
         name,
         comment,
-        use_statement,
+        builder_use,
         builder_mod,
         code,
     }
@@ -306,7 +303,7 @@ fn get_default_impl(ctx: &Ctx<'_>, field: &mut BuilderField<'_>) -> Option<syn::
         impls
             .iter()
             .find(|item| get_default_trait_item(item).is_some())
-            .map(|item| item.clone())
+            .cloned()
     } else {
         None
     }
@@ -314,7 +311,7 @@ fn get_default_impl(ctx: &Ctx<'_>, field: &mut BuilderField<'_>) -> Option<syn::
 
 pub fn apply_struct_impl(
     builder_struct: &mut BuilderStruct,
-    consts: &Vec<(Path, syn::ImplItemConst)>,
+    consts: &[(Path, syn::ImplItemConst)],
     impl_item: &syn::ItemImpl,
 ) {
     if let Some(expr) = get_default_expr(impl_item) {
@@ -367,7 +364,7 @@ fn get_default_trait_item(impl_item: &syn::ItemImpl) -> Option<&Path> {
         && trait_item
             .segments
             .last()
-            .is_some_and(|segment| segment.ident.to_string() == "Default")
+            .is_some_and(|segment| segment.ident == "Default")
     {
         Some(trait_item)
     } else {
@@ -400,7 +397,7 @@ fn set_field_default(field: &mut BuilderField<'_>, expr_fields: &Punctuated<Fiel
                 panic!("Unnamed field in default");
             };
 
-            field.field.ident.as_ref().unwrap().to_string() == const_ident.to_string()
+            field.field.ident.as_ref().unwrap() == const_ident
         })
         .unwrap();
 

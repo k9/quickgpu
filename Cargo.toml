@@ -1,12 +1,5 @@
 [workspace]
-members = [
-  "xtask",
-  "quickgpu",
-  "quickgpu27",
-  "discover_exports",
-  "example",
-  "bunnymark",
-]
+members = ["xtask", "quickgpu", "discover_exports", "example", "bunnymark"]
 exclude = ["discover_exports/test_workspace", "wgpu"]
 resolver = "2"
 

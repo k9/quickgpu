@@ -75,7 +75,7 @@ impl UniqueGenerics {
             }
         }
 
-        if args.len() > 0 {
+        if !args.is_empty() {
             quote!(<#(#args),*>)
         } else {
             quote!()
@@ -134,7 +134,7 @@ impl<'a> Visit<'a> for GatherGenerics<'a> {
     fn visit_lifetime(&mut self, lifetime: &'a syn::Lifetime) {
         let param = parse_quote!(#lifetime);
         if let Some(param) = self.params.get(&param) {
-            self.used.insert(&param);
+            self.used.insert(param);
         }
 
         visit::visit_lifetime(self, lifetime);
@@ -145,7 +145,7 @@ impl<'a> Visit<'a> for GatherGenerics<'a> {
             let ident = &last.ident;
             let param = parse_quote!(#ident);
             if let Some(param) = self.params.get(&param) {
-                self.used.insert(&param);
+                self.used.insert(param);
             }
         }
 

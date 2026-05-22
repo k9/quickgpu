@@ -92,7 +92,7 @@ pub fn make_fn(builder_struct: &BuilderStruct, label: Option<&BuilderField>) -> 
     }
 
     let mut state_args = builder_struct.generics.as_args_vec();
-    if builder_struct.fields.len() > 0 {
+    if !builder_struct.fields.is_empty() {
         state_args.push(parse_quote!(#return_state));
     }
 

@@ -1,5 +1,10 @@
 use bytemuck::{Pod, Zeroable};
-use quickgpu::*;
+use quickgpu::wgpu_27::{
+    buffer_init_descriptor, builders, command_encoder_descriptor, fragment_state,
+    multisample_state, operations, primitive_state, render_pass_color_attachment,
+    render_pass_descriptor, render_pipeline_descriptor, vertex_attribute, vertex_buffer_layout,
+    vertex_state,
+};
 use wgpu::{
     Buffer, Color, CommandBuffer, Device, LoadOp, PipelineCompilationOptions, RenderPipeline,
     TextureFormat, VertexFormat, include_wgsl,
