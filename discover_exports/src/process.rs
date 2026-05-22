@@ -42,7 +42,7 @@ pub fn process_crate<'a>(
     dependencies: Vec<String>,
 ) -> AResult<Ctx<'a>> {
     let mut ctx = analysis.add_crate(crate_name.to_string(), contents)?;
-    let crate_root = ctx.crate_root.clone();
+    let crate_root = ctx.crate_root;
 
     for name in dependencies {
         add_extern_crate(&mut ctx, crate_root, id(name.as_str()), id(name.as_str()));
@@ -67,10 +67,10 @@ fn add_extern_crate(
         if let Ok(AnalysisEntry::Mod(krate)) = ctx.entry(*n)
             && let Some(name) = &krate.root_of_crate
         {
-            return name.to_string() == extern_crate_name.to_string();
+            return extern_crate_name == *name;
         }
 
-        return false;
+        false
     }) else {
         log::debug!("Skipping extern crate {}", extern_crate_name);
         return;
@@ -110,7 +110,7 @@ pub fn process_subtree(ctx: &mut Ctx, parent_mod: NodeIndex) -> AResult<()> {
         bail!("Couldn't get subtree node")
     };
 
-    let content = content.iter().cloned().collect::<Vec<_>>();
+    let content = content.to_vec();
 
     for item in content {
         process_item(ctx, parent_mod, item)?;
@@ -221,7 +221,7 @@ fn process_enum(
         AnalysisEdge::new(EdgeSource::Normal, Some(ident)),
     )?;
 
-    Ok(for variant in &item.variants {
+    for variant in &item.variants {
         let variant_node = ctx
             .graph_mut()
             .add_node(AnalysisEntry::Variant(AnalysisVariant::new(
@@ -234,7 +234,9 @@ fn process_enum(
             variant_node,
             AnalysisEdge::new(EdgeSource::Normal, Some(variant.ident.clone())),
         )?;
-    })
+    }
+
+    Ok(())
 }
 
 fn process_type(
@@ -293,7 +295,7 @@ fn process_impl(
         AnalysisEdge::new(EdgeSource::Normal, None),
     )?;
 
-    Ok(for inner in &item.items {
+    for inner in &item.items {
         match inner {
             ImplItem::Const(c) => {
                 let ident = c.ident.clone();
@@ -303,8 +305,6 @@ fn process_impl(
                             c.clone(),
                             item.trait_.is_some(),
                         )));
-
-                if item.trait_.is_some() {}
 
                 update_edge(
                     ctx,
@@ -345,7 +345,9 @@ fn process_impl(
             }
             _ => (),
         }
-    })
+    }
+
+    Ok(())
 }
 
 fn process_extern_crate(ctx: &mut Ctx<'_>, parent_mod: NodeIndex, item: ItemExternCrate) {

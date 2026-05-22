@@ -56,18 +56,18 @@ pub fn resolve_next_segment(
 ) -> AResult<NodeIndex> {
     let ident = &path_segment.ident;
 
-    if ident.to_string() == "self" {
+    if *ident == "self" {
         Ok(current)
-    } else if ident.to_string() == "Self" {
+    } else if *ident == "Self" {
         get_parent(
             ctx,
             current,
             &[EdgeSource::Normal, EdgeSource::LinkToImplItem],
         )
         .map(|p| p.1)
-    } else if ident.to_string() == "crate" {
+    } else if *ident == "crate" {
         Ok(ctx.crate_root)
-    } else if ident.to_string() == "super" {
+    } else if *ident == "super" {
         if let Some(path_context) = get_path_context(ctx, current) {
             get_parent(
                 ctx,
@@ -79,11 +79,11 @@ pub fn resolve_next_segment(
             bail!("Couldn't resolve super from {:?}", path_segment);
         }
     } else if let Some(path_context) = get_path_context(ctx, current)
-        && let Some(child_index) = find_neighbor(ctx, path_context, &ident)
+        && let Some(child_index) = find_neighbor(ctx, path_context, ident)
     {
         // Neighbors in the source tree
         Ok(child_index)
-    } else if let Some(child_index) = find_neighbor(ctx, current, &ident) {
+    } else if let Some(child_index) = find_neighbor(ctx, current, ident) {
         // Associated items
         Ok(child_index)
     } else if let Ok(node) = resolve_prelude(ctx, ident) {
@@ -103,7 +103,7 @@ fn resolve_prelude(ctx: &Ctx, path_segment: &Ident) -> AResult<NodeIndex> {
     let root = ctx.crate_root;
     if let AnalysisEntry::Mod(module) = ctx.krate()?
         && let Some(root_of) = &module.root_of_crate
-        && root_of.to_string() == path_segment.to_string()
+        && root_of == path_segment
     {
         Ok(root)
     } else if let Some(neighbor) = find_neighbor(ctx, root, path_segment)
@@ -242,7 +242,7 @@ impl<'a> VisitMut for AliasGenericsResolver<'a> {
         if let Some(position) = self
             .from_types
             .iter()
-            .position(|from_ty| q!(#ty).to_string() == from_ty.to_string())
+            .position(|from_ty| *from_ty == q!(#ty).to_string())
         {
             *ty = self.to_types[position].clone();
         }
@@ -254,7 +254,7 @@ impl<'a> VisitMut for AliasGenericsResolver<'a> {
         if let Some(position) = self
             .from_lifetimes
             .iter()
-            .position(|from_lifetime| lifetime.ident.to_string() == from_lifetime.to_string())
+            .position(|from_lifetime| *from_lifetime == lifetime.ident)
         {
             *lifetime = self.to_lifetimes[position].clone();
         }
@@ -354,7 +354,7 @@ pub enum PathType {
     TopLevelPublicOnly,
 }
 
-pub fn calculate_paths<'a>(ctx: &'a mut Ctx) -> AResult<()> {
+pub fn calculate_paths(ctx: &mut Ctx) -> AResult<()> {
     let mut current = Path {
         leading_colon: None,
         segments: Punctuated::new(),
@@ -389,8 +389,8 @@ pub fn calculate_paths<'a>(ctx: &'a mut Ctx) -> AResult<()> {
     Ok(())
 }
 
-pub fn calculate_paths_recurse<'a>(
-    ctx: &'a mut Ctx,
+pub fn calculate_paths_recurse(
+    ctx: &mut Ctx,
     node_index: NodeIndex,
     current: Path,
     path_type: PathType,

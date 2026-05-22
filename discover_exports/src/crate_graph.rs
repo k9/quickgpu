@@ -66,15 +66,14 @@ pub fn for_each_node(
     Ok(())
 }
 
-pub fn find_neighbor<'a>(ctx: &Ctx, from: NodeIndex, ident: &syn::Ident) -> Option<NodeIndex> {
+pub fn find_neighbor(ctx: &Ctx, from: NodeIndex, ident: &syn::Ident) -> Option<NodeIndex> {
     let mut neighbors = ctx.graph().neighbors(from).detach();
     while let Some((edge_index, neighbor)) = neighbors.next(ctx.graph()) {
         if let Some(edge) = ctx.graph().edge_weight(edge_index)
             && let Some(name) = edge.name.as_ref()
+            && name == ident
         {
-            if name == ident {
-                return Some(neighbor);
-            }
+            return Some(neighbor);
         }
     }
 
@@ -118,14 +117,14 @@ pub fn get_parent(
     bail!("Couldn't get parent");
 }
 
-pub fn update_edge<'a>(
-    ctx: &'a mut Ctx,
+pub fn update_edge(
+    ctx: &mut Ctx,
     from: NodeIndex,
     to: NodeIndex,
     edge: AnalysisEdge,
 ) -> AResult<EdgeIndex> {
-    let mut connecting = ctx.graph().edges_connecting(from, to);
-    while let Some(existing_index) = connecting.next() {
+    let connecting = ctx.graph().edges_connecting(from, to);
+    for existing_index in connecting {
         let existing = existing_index.weight();
 
         if edge.source == existing.source {

@@ -40,7 +40,7 @@ pub fn relative_path(p: impl Into<PathBuf>) -> PathBuf {
 pub fn path_from_string(path: &str) -> Path {
     let mut segments = Punctuated::new();
 
-    path.split("::").into_iter().for_each(|s| {
+    path.split("::").for_each(|s| {
         segments.push(PathSegment {
             ident: id(s),
             arguments: PathArguments::None,

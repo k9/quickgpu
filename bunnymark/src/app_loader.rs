@@ -107,38 +107,38 @@ impl ApplicationHandler for AppLoader {
     }
 
     fn window_event(&mut self, event_loop: &ActiveEventLoop, _id: WindowId, event: WindowEvent) {
-        if let Ok(mut guard) = self.app.lock() {
-            if let Some(app) = &mut *guard {
-                if app.surface_config.width == 1 {
-                    resize(app, app.window.inner_size());
-                }
-
-                match event {
-                    WindowEvent::Resized(new_size) => {
-                        resize(app, new_size);
-                    }
-                    WindowEvent::RedrawRequested => {
-                        redraw(app);
-                        self.frame_counter.update();
-                        app.window.request_redraw();
-                    }
-                    WindowEvent::CloseRequested => {
-                        event_loop.exit();
-                    }
-                    WindowEvent::KeyboardInput {
-                        event:
-                            KeyEvent {
-                                logical_key: Key::Named(NamedKey::Space),
-                                state: ElementState::Pressed,
-                                ..
-                            },
-                        ..
-                    } => {
-                        app.scene.spawn_bunnies();
-                    }
-                    _ => {}
-                };
+        if let Ok(mut guard) = self.app.lock()
+            && let Some(app) = &mut *guard
+        {
+            if app.surface_config.width == 1 {
+                resize(app, app.window.inner_size());
             }
+
+            match event {
+                WindowEvent::Resized(new_size) => {
+                    resize(app, new_size);
+                }
+                WindowEvent::RedrawRequested => {
+                    redraw(app);
+                    self.frame_counter.update();
+                    app.window.request_redraw();
+                }
+                WindowEvent::CloseRequested => {
+                    event_loop.exit();
+                }
+                WindowEvent::KeyboardInput {
+                    event:
+                        KeyEvent {
+                            logical_key: Key::Named(NamedKey::Space),
+                            state: ElementState::Pressed,
+                            ..
+                        },
+                    ..
+                } => {
+                    app.scene.spawn_bunnies();
+                }
+                _ => {}
+            };
         }
     }
 }

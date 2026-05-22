@@ -166,10 +166,6 @@ impl AnalysisEntry {
     }
 
     pub fn has_impls(&self) -> bool {
-        match self {
-            AnalysisEntry::Struct(_) => true,
-            AnalysisEntry::Enum(_) => true,
-            _ => false,
-        }
+        matches!(self, AnalysisEntry::Struct(_) | AnalysisEntry::Enum(_))
     }
 }
