@@ -63,8 +63,19 @@ impl Version {
         .to_string()
     }
 
-    pub fn wgpu_ident(&self) -> Ident {
+    pub fn wgpu_source_ident(&self) -> Ident {
         format_ident!("{}", self.wgpu_source())
+    }
+
+    pub fn wgpu_version_mod(&self) -> Ident {
+        format_ident!(
+            "{}",
+            match self {
+                Version::V27 => "w27",
+                Version::V28 => "w28",
+            }
+            .to_string()
+        )
     }
 }
 
@@ -129,12 +140,15 @@ pub fn generate(version: Version) -> anyhow::Result<()> {
     let intro_path = relative_path("quickgpu/INTRO.md".to_string());
     std::fs::write(intro_path.clone(), intro(version))?;
 
-    let base_path = relative_path(format!("quickgpu/src/{}/", version.wgpu_source()));
+    let base_path = relative_path(format!("quickgpu/src/{}/", version.wgpu_version_mod()));
     let sh = Shell::new()?;
     sh.remove_path(base_path.clone())?;
     sh.create_dir(base_path)?;
 
-    let builders_path = relative_path(format!("quickgpu/src/{}/builders/", version.wgpu_source()));
+    let builders_path = relative_path(format!(
+        "quickgpu/src/{}/builders/",
+        version.wgpu_version_mod()
+    ));
     let sh = Shell::new()?;
     sh.create_dir(builders_path)?;
 
@@ -219,9 +233,11 @@ pub fn generate(version: Version) -> anyhow::Result<()> {
         "
         );
 
-        let output_path =
-            relative_path(format!("quickgpu/src/{}/builders/", version.wgpu_source()))
-                .join(format!("{}.rs", name));
+        let output_path = relative_path(format!(
+            "quickgpu/src/{}/builders/",
+            version.wgpu_version_mod()
+        ))
+        .join(format!("{}.rs", name));
 
         std::fs::write(output_path.clone(), combined)?;
         rustfmt(output_path)?;
@@ -240,7 +256,7 @@ pub fn generate(version: Version) -> anyhow::Result<()> {
 
     let output_path = relative_path(format!(
         "quickgpu/src/{}/builders/mod.rs",
-        version.wgpu_source()
+        version.wgpu_version_mod()
     ));
 
     std::fs::write(output_path.clone(), builder_mods)?;
@@ -265,7 +281,10 @@ pub fn generate(version: Version) -> anyhow::Result<()> {
 "#
     );
 
-    let output_path = relative_path(format!("quickgpu/src/{}/mod.rs", version.wgpu_source()));
+    let output_path = relative_path(format!(
+        "quickgpu/src/{}/mod.rs",
+        version.wgpu_version_mod()
+    ));
     std::fs::write(output_path.clone(), mod_src)?;
     rustfmt(output_path)?;
 
@@ -273,7 +292,7 @@ pub fn generate(version: Version) -> anyhow::Result<()> {
 }
 
 fn should_create_with(item: &syn::ImplItem, version: Version) -> Option<CreateWithDevice> {
-    let wgpu_ident = version.wgpu_ident();
+    let wgpu_ident = version.wgpu_source_ident();
     if let syn::ImplItem::Fn(item_fn) = item
         && item_fn.sig.unsafety.is_none()
         && let name = item_fn.sig.ident.to_string()

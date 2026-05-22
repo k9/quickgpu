@@ -196,7 +196,7 @@ pub(crate) fn output_struct(
     };
 
     for impl_item in &impls {
-        apply_struct_impl(&mut builder_struct, &consts, impl_item);
+        apply_struct_impl(version, &mut builder_struct, &consts, impl_item);
     }
 
     for field in builder_struct.fields.iter_mut() {
@@ -310,6 +310,7 @@ fn get_default_impl(ctx: &Ctx<'_>, field: &mut BuilderField<'_>) -> Option<syn::
 }
 
 pub fn apply_struct_impl(
+    version: Version,
     builder_struct: &mut BuilderStruct,
     consts: &[(Path, syn::ImplItemConst)],
     impl_item: &syn::ItemImpl,
@@ -317,6 +318,7 @@ pub fn apply_struct_impl(
     if let Some(expr) = get_default_expr(impl_item) {
         builder_struct.has_default = true;
 
+        let wgpu_source_ident = version.wgpu_source_ident();
         if let Expr::Path(expr_path) = expr {
             let const_value = consts
                 .iter()
@@ -340,7 +342,9 @@ pub fn apply_struct_impl(
             for field in builder_struct.fields.iter_mut() {
                 set_field_default(field, &expr.fields);
             }
-        } else if q!(#expr).to_string() == q!(wgpu::ShaderRuntimeChecks::checked()).to_string() {
+        } else if q!(#expr).to_string()
+            == q!(#wgpu_source_ident::ShaderRuntimeChecks::checked()).to_string()
+        {
             for field in builder_struct.fields.iter_mut() {
                 field.default_value = Some(q!(true));
             }

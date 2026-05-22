@@ -193,7 +193,7 @@ fn make_build(builder_struct: &BuilderStruct, version: Version) -> TokenStream {
 
     let path = &builder_struct.path;
 
-    let wgpu_ident = version.wgpu_ident();
+    let wgpu_source_ident = version.wgpu_source_ident();
     let create_with_device = match builder_struct.create_with_device {
         Some(CreateWithDevice {
             use_reference,
@@ -204,7 +204,7 @@ fn make_build(builder_struct: &BuilderStruct, version: Version) -> TokenStream {
             let reference = if *use_reference { quote!(&) } else { quote!() };
 
             quote! {
-                pub fn create_with(self, device: &#wgpu_ident::Device) #output {
+                pub fn create_with(self, device: &#wgpu_source_ident::Device) #output {
                    device.#name(#reference self.build())
                 }
             }

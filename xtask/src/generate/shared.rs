@@ -2,7 +2,8 @@ use crate::generate::Version;
 use quote::quote;
 
 pub fn intro(version: Version) -> String {
-    let wgpu_source = version.wgpu_source();
+    let wgpu_source_ident = version.wgpu_source_ident();
+    let wgpu_version_mod = version.wgpu_version_mod();
 
     format!(
         r#"
@@ -46,11 +47,11 @@ can nest builders, and skip calling `build()` on the inner builder. In order to 
 calling `build()` on the elements of a slice, use the `builders` helper function.
 
  ```
-# use {wgpu_source}::*;
-# use quickgpu::*;
+# use {wgpu_source_ident}::*;
+# use quickgpu::{wgpu_version_mod}::*;
 # use bytemuck::{{Pod, Zeroable}};
 #
-# let (device, _queue) = {wgpu_source}::Device::noop(&{wgpu_source}::DeviceDescriptor::default());
+# let (device, _queue) = {wgpu_source_ident}::Device::noop(&{wgpu_source_ident}::DeviceDescriptor::default());
 # let shader = device.create_shader_module(include_wgsl!("../example/shaders/base.wgsl"));
 # let format = TextureFormat::R8Unorm;
 #
@@ -68,7 +69,7 @@ let render_pipeline = render_pipeline_descriptor(Some("Render Pipeline"))
             .entry_point("vs_main")
             // Use builders() to convert builders to values before passing as a slice
             .buffers(&builders([vertex_buffer_layout()
-                .array_stride(size_of::<VertexInput>() as {wgpu_source}::BufferAddress)
+                .array_stride(size_of::<VertexInput>() as {wgpu_source_ident}::BufferAddress)
                 .attributes(&builders([
                     vertex_attribute()
                         .format(VertexFormat::Float32x4)
@@ -89,7 +90,7 @@ let render_pipeline = render_pipeline_descriptor(Some("Render Pipeline"))
 }
 
 pub fn custom(version: Version) -> String {
-    let wgpu_ident = version.wgpu_ident();
+    let wgpu_source_ident = version.wgpu_source_ident();
     quote!(
         pub mod builders;
 
@@ -113,10 +114,10 @@ pub fn custom(version: Version) -> String {
 
         mod render_pass_builder {
             use super::builders::render_pass_descriptor_builder::*;
-            use #wgpu_ident::CommandEncoder;
+            use #wgpu_source_ident::CommandEncoder;
 
             impl<'a, CS: Complete<'a>> RenderPassDescriptorBuilder<'a, CS> {
-                pub fn begin_with(self, encoder: &'a mut CommandEncoder) -> #wgpu_ident::RenderPass<'a> {
+                pub fn begin_with(self, encoder: &'a mut CommandEncoder) -> #wgpu_source_ident::RenderPass<'a> {
                     encoder.begin_render_pass(&self.build())
                 }
             }

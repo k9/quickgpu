@@ -54,14 +54,14 @@ pub fn builder_code(builder_struct: &BuilderStruct, version: Version) -> Generat
 
     let tests = builder_tests(builder_struct, label.is_some());
 
-    let wgpu_ident = version.wgpu_ident();
+    let wgpu_source_ident = version.wgpu_source_ident();
 
     let code = quote!(
         pub use super::super::Nested;
         pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
 
         #[allow(unused_imports)]
-        use #wgpu_ident::util::DeviceExt;
+        use #wgpu_source_ident::util::DeviceExt;
 
         pub trait Field {}
         pub trait IsOptional {}

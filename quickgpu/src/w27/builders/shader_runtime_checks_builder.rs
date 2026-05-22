@@ -9,7 +9,7 @@ pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
 use wgpu_27::util::DeviceExt;
 pub trait Field {}
 pub trait IsOptional {}
-#[doc = "\nBuilder for [`wgpu_27::ShaderRuntimeChecks`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [bounds_checks](ShaderRuntimeChecksBuilder::bounds_checks) Required\n  - [force_loop_bounding](ShaderRuntimeChecksBuilder::force_loop_bounding) Required\n"]
+#[doc = "\nBuilder for [`wgpu_27::ShaderRuntimeChecks`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [bounds_checks](ShaderRuntimeChecksBuilder::bounds_checks) Optional, defaults to `true`\n  - [force_loop_bounding](ShaderRuntimeChecksBuilder::force_loop_bounding) Optional, defaults to `true`\n"]
 pub struct ShaderRuntimeChecksBuilder<CS: State> {
     bounds_checks: CS::BoundsChecks,
     force_loop_bounding: CS::ForceLoopBounding,
@@ -22,7 +22,7 @@ impl ShaderRuntimeChecksBuilder<Empty> {
         }
     }
 }
-#[doc = "\nReturns [ShaderRuntimeChecksBuilder] for building [`wgpu_27::ShaderRuntimeChecks`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [bounds_checks](ShaderRuntimeChecksBuilder::bounds_checks) Required\n  - [force_loop_bounding](ShaderRuntimeChecksBuilder::force_loop_bounding) Required\n"]
+#[doc = "\nReturns [ShaderRuntimeChecksBuilder] for building [`wgpu_27::ShaderRuntimeChecks`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [bounds_checks](ShaderRuntimeChecksBuilder::bounds_checks) Optional, defaults to `true`\n  - [force_loop_bounding](ShaderRuntimeChecksBuilder::force_loop_bounding) Optional, defaults to `true`\n"]
 pub fn shader_runtime_checks() -> ShaderRuntimeChecksBuilder<Empty> {
     ShaderRuntimeChecksBuilder::new()
 }
@@ -32,6 +32,11 @@ pub trait BoundsChecksIsEmpty {}
 impl BoundsChecksIsEmpty for BoundsChecksEmpty {}
 pub trait IsSetBoundsChecks {
     fn get(self) -> bool;
+}
+impl IsSetBoundsChecks for BoundsChecksEmpty {
+    fn get(self) -> bool {
+        true
+    }
 }
 pub struct BoundsChecksValue(pub bool);
 impl Field for BoundsChecksValue {}
@@ -46,6 +51,11 @@ pub trait ForceLoopBoundingIsEmpty {}
 impl ForceLoopBoundingIsEmpty for ForceLoopBoundingEmpty {}
 pub trait IsSetForceLoopBounding {
     fn get(self) -> bool;
+}
+impl IsSetForceLoopBounding for ForceLoopBoundingEmpty {
+    fn get(self) -> bool {
+        true
+    }
 }
 pub struct ForceLoopBoundingValue(pub bool);
 impl Field for ForceLoopBoundingValue {}
@@ -74,7 +84,7 @@ impl<CS: State> State for SetForceLoopBounding<CS> {
     type ForceLoopBounding = ForceLoopBoundingValue;
 }
 impl<CS: State> ShaderRuntimeChecksBuilder<CS> {
-    #[doc = "Setter for [wgpu_27::ShaderRuntimeChecks::bounds_checks]. Required.\n"]
+    #[doc = "Setter for [wgpu_27::ShaderRuntimeChecks::bounds_checks]. Optional, defaults to `true`.\n"]
     pub fn bounds_checks(
         self,
         bounds_checks: bool,
@@ -87,7 +97,7 @@ impl<CS: State> ShaderRuntimeChecksBuilder<CS> {
             force_loop_bounding: self.force_loop_bounding,
         }
     }
-    #[doc = "Setter for [wgpu_27::ShaderRuntimeChecks::force_loop_bounding]. Required.\n"]
+    #[doc = "Setter for [wgpu_27::ShaderRuntimeChecks::force_loop_bounding]. Optional, defaults to `true`.\n"]
     pub fn force_loop_bounding(
         self,
         force_loop_bounding: bool,
