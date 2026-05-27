@@ -118,10 +118,10 @@ pub use builders::draw_indexed_indirect_args_builder::draw_indexed_indirect_args
 pub use builders::draw_indirect_args_builder::draw_indirect_args;
 
 #[doc(inline)]
-pub use builders::dx_12_backend_options_builder::dx_12_backend_options;
+pub use builders::dx12_backend_options_builder::dx12_backend_options;
 
 #[doc(inline)]
-pub use builders::extent_3_d_builder::extent_3_d;
+pub use builders::extent3d_builder::extent3d;
 
 #[doc(inline)]
 pub use builders::external_texture_descriptor_builder::external_texture_descriptor;
@@ -160,10 +160,10 @@ pub use builders::noop_backend_options_builder::noop_backend_options;
 pub use builders::operations_builder::operations;
 
 #[doc(inline)]
-pub use builders::origin_2_d_builder::origin_2_d;
+pub use builders::origin2d_builder::origin2d;
 
 #[doc(inline)]
-pub use builders::origin_3_d_builder::origin_3_d;
+pub use builders::origin3d_builder::origin3d;
 
 #[doc(inline)]
 pub use builders::pipeline_cache_descriptor_builder::pipeline_cache_descriptor;

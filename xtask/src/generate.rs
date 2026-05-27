@@ -8,7 +8,7 @@ use discover_exports::{
     analysis::Analysis,
     crate_graph::for_each_node,
     process::parse_crate,
-    resolve::{PathType, resolve_impls, resolve_path},
+    resolve::{PathType, resolve_enum, resolve_impls, resolve_path},
     utils::path_from_string,
 };
 
@@ -17,7 +17,7 @@ use crate::{
         shared::{custom, intro},
         struct_entry::{Output, filter_struct, output_struct},
     },
-    utils::{relative_path, rustfmt, without_args},
+    utils::{final_path, relative_path, rustfmt, snake, without_args},
 };
 
 pub mod base;
@@ -183,6 +183,32 @@ pub fn generate(version: Version) -> anyhow::Result<()> {
             if filter_struct(&wgpu, index, &path).is_some() {
                 let idents = without_args(&path);
                 builder_entries.insert(q!(#idents).to_string(), (index, path.clone()));
+            }
+        },
+        PathType::TopLevelPublicOnly,
+    )
+    .unwrap();
+
+    for_each_node(
+        &wgpu,
+        |(index, path)| {
+            if let Ok(enum_item) = resolve_enum(&wgpu, index)
+                && let Ok(ident) = final_path(&path.to_token_stream().to_string())
+                && enum_item.variants.iter().any(|v| !v.fields.is_empty())
+            {
+                println!("{}", snake(ident));
+
+                for v in enum_item.variants {
+                    println!("  {}", snake(v.ident));
+
+                    for (i, f) in v.fields.iter().enumerate() {
+                        if let Some(f_ident) = &f.ident {
+                            println!("    {}", snake(f_ident));
+                        } else {
+                            println!("    {}", i);
+                        }
+                    }
+                }
             }
         },
         PathType::TopLevelPublicOnly,

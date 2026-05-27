@@ -6,10 +6,10 @@
 pub use super::super::Nested;
 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
 #[allow(unused_imports)]
-use wgpu_27::util::DeviceExt;
+use wgpu_28::util::DeviceExt;
 pub trait Field {}
 pub trait IsOptional {}
-#[doc = "\nBuilder for [`wgpu_27::Origin2d`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [x](Origin2dBuilder::x) Required\n  - [y](Origin2dBuilder::y) Required\n"]
+#[doc = "\nBuilder for [`wgpu_28::Origin2d`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [x](Origin2dBuilder::x) Required\n  - [y](Origin2dBuilder::y) Required\n"]
 pub struct Origin2dBuilder<CS: State> {
     x: CS::X,
     y: CS::Y,
@@ -22,8 +22,8 @@ impl Origin2dBuilder<Empty> {
         }
     }
 }
-#[doc = "\nReturns [Origin2dBuilder] for building [`wgpu_27::Origin2d`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [x](Origin2dBuilder::x) Required\n  - [y](Origin2dBuilder::y) Required\n"]
-pub fn origin_2_d() -> Origin2dBuilder<Empty> {
+#[doc = "\nReturns [Origin2dBuilder] for building [`wgpu_28::Origin2d`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [x](Origin2dBuilder::x) Required\n  - [y](Origin2dBuilder::y) Required\n"]
+pub fn origin2d() -> Origin2dBuilder<Empty> {
     Origin2dBuilder::new()
 }
 pub struct XEmpty;
@@ -74,7 +74,7 @@ impl<CS: State> State for SetY<CS> {
     type Y = YValue;
 }
 impl<CS: State> Origin2dBuilder<CS> {
-    #[doc = "Setter for [wgpu_27::Origin2d::x]. Required.\n"]
+    #[doc = "Setter for [wgpu_28::Origin2d::x]. Required.\n"]
     pub fn x(self, x: u32) -> Origin2dBuilder<SetX<CS>>
     where
         CS::X: XIsEmpty,
@@ -84,7 +84,7 @@ impl<CS: State> Origin2dBuilder<CS> {
             y: self.y,
         }
     }
-    #[doc = "Setter for [wgpu_27::Origin2d::y]. Required.\n"]
+    #[doc = "Setter for [wgpu_28::Origin2d::y]. Required.\n"]
     pub fn y(self, y: u32) -> Origin2dBuilder<SetY<CS>>
     where
         CS::Y: YIsEmpty,
@@ -98,20 +98,20 @@ impl<CS: State> Origin2dBuilder<CS> {
 pub trait Complete: State<X: IsSetX, Y: IsSetY> {}
 impl<CS: State<X: IsSetX, Y: IsSetY>> Complete for CS {}
 impl<CS: Complete> Origin2dBuilder<CS> {
-    pub fn build(self) -> wgpu_27::Origin2d {
-        wgpu_27::Origin2d {
+    pub fn build(self) -> wgpu_28::Origin2d {
+        wgpu_28::Origin2d {
             x: IsSetX::get(self.x),
             y: IsSetY::get(self.y),
         }
     }
 }
-impl Nested<wgpu_27::Origin2d> for wgpu_27::Origin2d {
-    fn unnest(self) -> wgpu_27::Origin2d {
+impl Nested<wgpu_28::Origin2d> for wgpu_28::Origin2d {
+    fn unnest(self) -> wgpu_28::Origin2d {
         self
     }
 }
-impl<CS: Complete> Nested<wgpu_27::Origin2d> for Origin2dBuilder<CS> {
-    fn unnest(self) -> wgpu_27::Origin2d {
+impl<CS: Complete> Nested<wgpu_28::Origin2d> for Origin2dBuilder<CS> {
+    fn unnest(self) -> wgpu_28::Origin2d {
         self.build()
     }
 }

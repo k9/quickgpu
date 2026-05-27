@@ -25,7 +25,7 @@ impl Dx12BackendOptionsBuilder<Empty> {
     }
 }
 #[doc = "\nReturns [Dx12BackendOptionsBuilder] for building [`wgpu_28::Dx12BackendOptions`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [shader_compiler](Dx12BackendOptionsBuilder::shader_compiler) Optional, defaults to [wgpu_28::Dx12Compiler::Fxc]\n  - [presentation_system](Dx12BackendOptionsBuilder::presentation_system) Optional, defaults to [wgpu_28::Dx12SwapchainKind::DxgiFromHwnd]\n  - [latency_waitable_object](Dx12BackendOptionsBuilder::latency_waitable_object) Optional, defaults to [wgpu_28::Dx12UseFrameLatencyWaitableObject::Wait]\n"]
-pub fn dx_12_backend_options() -> Dx12BackendOptionsBuilder<Empty> {
+pub fn dx12_backend_options() -> Dx12BackendOptionsBuilder<Empty> {
     Dx12BackendOptionsBuilder::new()
 }
 pub struct ShaderCompilerEmpty;
@@ -202,7 +202,7 @@ mod tests {
     #[test]
     pub fn test_default() {
         assert_eq!(
-            format!("{:#?}", super::dx_12_backend_options().build()),
+            format!("{:#?}", super::dx12_backend_options().build()),
             format!("{:#?}", wgpu_28::Dx12BackendOptions::default()),
         );
     }

@@ -60,9 +60,9 @@ pub mod draw_indexed_indirect_args_builder;
 
 pub mod draw_indirect_args_builder;
 
-pub mod dx_12_backend_options_builder;
+pub mod dx12_backend_options_builder;
 
-pub mod extent_3_d_builder;
+pub mod extent3d_builder;
 
 pub mod external_texture_descriptor_builder;
 
@@ -88,9 +88,9 @@ pub mod noop_backend_options_builder;
 
 pub mod operations_builder;
 
-pub mod origin_2_d_builder;
+pub mod origin2d_builder;
 
-pub mod origin_3_d_builder;
+pub mod origin3d_builder;
 
 pub mod pipeline_cache_descriptor_builder;
 

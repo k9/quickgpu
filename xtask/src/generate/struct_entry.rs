@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
 use anyhow::Context;
-use convert_case::{Case, Casing};
 use proc_macro2::TokenStream;
 use quote::{ToTokens, format_ident, quote as q};
 use syn::{
@@ -25,7 +24,7 @@ use crate::{
         nested::BuilderResolve,
     },
     type_helpers::{GatherGenerics, UniqueGenerics},
-    utils::{OptionType, option_type, without_args},
+    utils::{OptionType, option_type, snake, upper_camel, without_args},
 };
 
 use super::SKIP;
@@ -49,7 +48,7 @@ pub enum StructIdent {
 impl<'a> BuilderStruct<'a> {
     pub fn ident(&self, struct_ident: StructIdent) -> Ident {
         let ident = &self.original_ident;
-        let snake = format_ident!("{}", ident.to_string().to_case(Case::Snake));
+        let snake = format_ident!("{}", snake(ident));
 
         match struct_ident {
             StructIdent::Builder => format_ident!("{}Builder", ident),
@@ -83,7 +82,7 @@ impl<'a> BuilderField<'a> {
     pub fn ident(&self, field_ident: FieldIdent) -> Ident {
         let ident = self.field.ident.as_ref().unwrap();
 
-        let upper = format_ident!("{}", ident.to_string().to_case(Case::UpperCamel));
+        let upper = format_ident!("{}", upper_camel(ident));
 
         match field_ident {
             FieldIdent::Original => ident.clone(),

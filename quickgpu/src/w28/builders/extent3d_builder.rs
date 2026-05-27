@@ -25,7 +25,7 @@ impl Extent3dBuilder<Empty> {
     }
 }
 #[doc = "\nReturns [Extent3dBuilder] for building [`wgpu_28::Extent3d`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [width](Extent3dBuilder::width) Optional, defaults to `1`\n  - [height](Extent3dBuilder::height) Optional, defaults to `1`\n  - [depth_or_array_layers](Extent3dBuilder::depth_or_array_layers) Optional, defaults to `1`\n"]
-pub fn extent_3_d() -> Extent3dBuilder<Empty> {
+pub fn extent3d() -> Extent3dBuilder<Empty> {
     Extent3dBuilder::new()
 }
 pub struct WidthEmpty;
@@ -188,7 +188,7 @@ mod tests {
     #[test]
     pub fn test_default() {
         assert_eq!(
-            format!("{:#?}", super::extent_3_d().build()),
+            format!("{:#?}", super::extent3d().build()),
             format!("{:#?}", wgpu_28::Extent3d::default()),
         );
     }

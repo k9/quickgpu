@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use anyhow::Context;
+use convert_case::{Boundary, Case, Casing};
 use duct::cmd;
 use syn::{Field, GenericArgument, Path, PathArguments, Type};
 
@@ -25,6 +26,7 @@ pub fn final_path(path: &str) -> AResult<String> {
         .split("::")
         .last()
         .context("Problem parsing path")?
+        .trim()
         .to_string())
 }
 
@@ -68,4 +70,16 @@ pub fn option_argument(ty: &mut Type) -> Option<&mut GenericArgument> {
     } else {
         None
     }
+}
+
+pub fn snake(s: impl ToString) -> String {
+    #[allow(clippy::disallowed_methods)]
+    s.to_string()
+        .set_boundaries(&[Boundary::LowerUpper, Boundary::DigitUpper])
+        .to_case(Case::Snake)
+}
+
+pub fn upper_camel(s: impl ToString) -> String {
+    #[allow(clippy::disallowed_methods)]
+    s.to_string().to_case(Case::UpperCamel)
 }

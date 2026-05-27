@@ -1,5 +1,5 @@
 use quickgpu::w28::{
-    device_descriptor, extent_3_d, request_adapter_options, texture_descriptor,
+    device_descriptor, extent3d, request_adapter_options, texture_descriptor,
     texture_view_descriptor,
 };
 use std::sync::Arc;
@@ -171,7 +171,7 @@ pub fn create_framebuffer(
     let usage = wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::COPY_SRC;
 
     let frame_descriptor = texture_descriptor(None)
-        .size(extent_3_d().width(config.width).height(config.height))
+        .size(extent3d().width(config.width).height(config.height))
         .mip_level_count(1)
         .sample_count(1)
         .dimension(TextureDimension::D2)

@@ -1,0 +1,1 @@
+disallowed-methods = [{ path = "convert_case::Casing::to_case" }]

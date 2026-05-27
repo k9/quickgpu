@@ -6,10 +6,10 @@
 pub use super::super::Nested;
 pub use std::{borrow::Cow, num::NonZeroU32, ops::Range};
 #[allow(unused_imports)]
-use wgpu_28::util::DeviceExt;
+use wgpu_27::util::DeviceExt;
 pub trait Field {}
 pub trait IsOptional {}
-#[doc = "\nBuilder for [`wgpu_28::Origin3d`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [x](Origin3dBuilder::x) Optional, defaults to `0`\n  - [y](Origin3dBuilder::y) Optional, defaults to `0`\n  - [z](Origin3dBuilder::z) Optional, defaults to `0`\n"]
+#[doc = "\nBuilder for [`wgpu_27::Origin3d`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [x](Origin3dBuilder::x) Optional, defaults to `0`\n  - [y](Origin3dBuilder::y) Optional, defaults to `0`\n  - [z](Origin3dBuilder::z) Optional, defaults to `0`\n"]
 pub struct Origin3dBuilder<CS: State> {
     x: CS::X,
     y: CS::Y,
@@ -24,8 +24,8 @@ impl Origin3dBuilder<Empty> {
         }
     }
 }
-#[doc = "\nReturns [Origin3dBuilder] for building [`wgpu_28::Origin3d`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [x](Origin3dBuilder::x) Optional, defaults to `0`\n  - [y](Origin3dBuilder::y) Optional, defaults to `0`\n  - [z](Origin3dBuilder::z) Optional, defaults to `0`\n"]
-pub fn origin_3_d() -> Origin3dBuilder<Empty> {
+#[doc = "\nReturns [Origin3dBuilder] for building [`wgpu_27::Origin3d`]\n        \nSet all required fields and any optional fields, then call `build()`.\n\nBuilder field setters:\n  - [x](Origin3dBuilder::x) Optional, defaults to `0`\n  - [y](Origin3dBuilder::y) Optional, defaults to `0`\n  - [z](Origin3dBuilder::z) Optional, defaults to `0`\n"]
+pub fn origin3d() -> Origin3dBuilder<Empty> {
     Origin3dBuilder::new()
 }
 pub struct XEmpty;
@@ -115,7 +115,7 @@ impl<CS: State> State for SetZ<CS> {
     type Z = ZValue;
 }
 impl<CS: State> Origin3dBuilder<CS> {
-    #[doc = "Setter for [wgpu_28::Origin3d::x]. Optional, defaults to `0`.\n"]
+    #[doc = "Setter for [wgpu_27::Origin3d::x]. Optional, defaults to `0`.\n"]
     pub fn x(self, x: u32) -> Origin3dBuilder<SetX<CS>>
     where
         CS::X: XIsEmpty,
@@ -126,7 +126,7 @@ impl<CS: State> Origin3dBuilder<CS> {
             z: self.z,
         }
     }
-    #[doc = "Setter for [wgpu_28::Origin3d::y]. Optional, defaults to `0`.\n"]
+    #[doc = "Setter for [wgpu_27::Origin3d::y]. Optional, defaults to `0`.\n"]
     pub fn y(self, y: u32) -> Origin3dBuilder<SetY<CS>>
     where
         CS::Y: YIsEmpty,
@@ -137,7 +137,7 @@ impl<CS: State> Origin3dBuilder<CS> {
             z: self.z,
         }
     }
-    #[doc = "Setter for [wgpu_28::Origin3d::z]. Optional, defaults to `0`.\n"]
+    #[doc = "Setter for [wgpu_27::Origin3d::z]. Optional, defaults to `0`.\n"]
     pub fn z(self, z: u32) -> Origin3dBuilder<SetZ<CS>>
     where
         CS::Z: ZIsEmpty,
@@ -152,21 +152,21 @@ impl<CS: State> Origin3dBuilder<CS> {
 pub trait Complete: State<X: IsSetX, Y: IsSetY, Z: IsSetZ> {}
 impl<CS: State<X: IsSetX, Y: IsSetY, Z: IsSetZ>> Complete for CS {}
 impl<CS: Complete> Origin3dBuilder<CS> {
-    pub fn build(self) -> wgpu_28::Origin3d {
-        wgpu_28::Origin3d {
+    pub fn build(self) -> wgpu_27::Origin3d {
+        wgpu_27::Origin3d {
             x: IsSetX::get(self.x),
             y: IsSetY::get(self.y),
             z: IsSetZ::get(self.z),
         }
     }
 }
-impl Nested<wgpu_28::Origin3d> for wgpu_28::Origin3d {
-    fn unnest(self) -> wgpu_28::Origin3d {
+impl Nested<wgpu_27::Origin3d> for wgpu_27::Origin3d {
+    fn unnest(self) -> wgpu_27::Origin3d {
         self
     }
 }
-impl<CS: Complete> Nested<wgpu_28::Origin3d> for Origin3dBuilder<CS> {
-    fn unnest(self) -> wgpu_28::Origin3d {
+impl<CS: Complete> Nested<wgpu_27::Origin3d> for Origin3dBuilder<CS> {
+    fn unnest(self) -> wgpu_27::Origin3d {
         self.build()
     }
 }
@@ -178,8 +178,8 @@ mod tests {
     #[test]
     pub fn test_default() {
         assert_eq!(
-            format!("{:#?}", super::origin_3_d().build()),
-            format!("{:#?}", wgpu_28::Origin3d::default()),
+            format!("{:#?}", super::origin3d().build()),
+            format!("{:#?}", wgpu_27::Origin3d::default()),
         );
     }
 }

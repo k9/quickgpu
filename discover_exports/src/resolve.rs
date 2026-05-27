@@ -3,7 +3,7 @@ use petgraph::graph::NodeIndex;
 use proc_macro2::Span;
 use quote::quote as q;
 use syn::{
-    GenericParam, Ident, ImplItem, ImplItemConst, ItemImpl, ItemStruct, Lifetime, Path,
+    GenericParam, Ident, ImplItem, ImplItemConst, ItemEnum, ItemImpl, ItemStruct, Lifetime, Path,
     PathArguments, PathSegment, Token, Type,
     punctuated::Punctuated,
     visit_mut::{self, VisitMut},
@@ -114,6 +114,16 @@ fn resolve_prelude(ctx: &Ctx, path_segment: &Ident) -> AResult<NodeIndex> {
     } else {
         bail!("Couldn't find extern crate {:?}", path_segment);
     }
+}
+
+pub fn resolve_enum(ctx: &Ctx, node_index: NodeIndex) -> AResult<ItemEnum> {
+    let AnalysisEntry::Enum(enum_item) = ctx.entry(node_index)? else {
+        bail!("Can't get enum");
+    };
+
+    let enum_item = enum_item.item.clone();
+
+    Ok(enum_item)
 }
 
 pub fn resolve_struct(ctx: &Ctx, node_index: NodeIndex) -> AResult<ItemStruct> {

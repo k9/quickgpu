@@ -13,7 +13,7 @@ syn = { version = "2.0.113", features = [
 anyhow = "1.0.100"
 bytemuck = "1.24.0"
 clap = "4.5.54"
-convert_case = "0.10.0"
+convert_case = "0.11.0"
 discover_exports = { path = "discover_exports" }
 duct = "1.1.1"
 env_logger = "0.11.8"
