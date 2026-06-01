@@ -14,7 +14,7 @@ use discover_exports::{
 
 use crate::{
     generate::{
-        shared::{custom, intro},
+        shared::{create_binds_macro, custom, intro},
         struct_entry::{Output, filter_struct, output_struct},
     },
     utils::{final_path, relative_path, rustfmt, snake, without_args},
@@ -71,8 +71,8 @@ impl Version {
         format_ident!(
             "{}",
             match self {
-                Version::V27 => "w27",
-                Version::V28 => "w28",
+                Version::V27 => "v27",
+                Version::V28 => "v28",
             }
             .to_string()
         )
@@ -151,8 +151,6 @@ pub fn generate(version: Version) -> anyhow::Result<()> {
     ));
     let sh = Shell::new()?;
     sh.create_dir(builders_path)?;
-
-    let custom = custom(version);
 
     let mut builders = vec![];
     let mut builder_entries = HashMap::new();
@@ -288,6 +286,15 @@ pub fn generate(version: Version) -> anyhow::Result<()> {
     std::fs::write(output_path.clone(), builder_mods)?;
     rustfmt(output_path)?;
 
+    let create_binds = create_binds_macro(version);
+
+    let output_path = relative_path(format!(
+        "quickgpu/src/{}/create_binds.rs",
+        version.wgpu_version_mod()
+    ));
+
+    std::fs::write(output_path.clone(), create_binds)?;
+
     let builder_uses = builders
         .iter()
         .map(|Output { builder_use, .. }| {
@@ -299,6 +306,7 @@ pub fn generate(version: Version) -> anyhow::Result<()> {
         })
         .collect::<String>();
 
+    let custom = custom(version);
     let mod_src = format!(
         r#"
 {custom}
@@ -311,6 +319,7 @@ pub fn generate(version: Version) -> anyhow::Result<()> {
         "quickgpu/src/{}/mod.rs",
         version.wgpu_version_mod()
     ));
+
     std::fs::write(output_path.clone(), mod_src)?;
     rustfmt(output_path)?;
 

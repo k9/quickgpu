@@ -10,8 +10,10 @@ log = { workspace = true }
 pollster = { workspace = true }
 wgpu = "^28.0.0"
 winit = { workspace = true }
-quickgpu = { path = "../quickgpu", features = ["w28"] }
+quickgpu = { path = "../quickgpu", features = ["v28"] }
 nanorand = { workspace = true }
 png = { workspace = true }
 glam = { workspace = true }
 web-time = { workspace = true }
+bon = "3.9.1"
+pastey = "0.2.3"

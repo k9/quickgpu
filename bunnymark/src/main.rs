@@ -1,5 +1,9 @@
 pub mod app;
 pub mod app_loader;
+
+#[macro_use]
+pub mod binds;
+
 pub mod scene;
 
 use winit::event_loop::EventLoop;

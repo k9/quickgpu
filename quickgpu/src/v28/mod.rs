@@ -1,4 +1,7 @@
+use std::num::NonZero;
 pub mod builders;
+pub mod create_binds;
+pub use create_binds::*;
 #[doc = r" Nested is implemented on builder types to enable passing them directly"]
 #[doc = r" into other builders without needing to call build()."]
 pub trait Nested<T> {
@@ -16,13 +19,76 @@ pub fn builders<T, N: Nested<T>, const COUNT: usize>(a: [N; COUNT]) -> Vec<T> {
 }
 mod render_pass_builder {
     use super::builders::render_pass_descriptor_builder::*;
-    use wgpu_27::CommandEncoder;
+    use wgpu_28::CommandEncoder;
     impl<'a, CS: Complete<'a>> RenderPassDescriptorBuilder<'a, CS> {
-        pub fn begin_with(self, encoder: &'a mut CommandEncoder) -> wgpu_27::RenderPass<'a> {
+        pub fn begin_with(self, encoder: &'a mut CommandEncoder) -> wgpu_28::RenderPass<'a> {
             encoder.begin_render_pass(&self.build())
         }
     }
 }
+#[derive(bon :: Builder)]
+pub struct Binding {
+    pub binding: u32,
+    pub visibility: wgpu_28::ShaderStages,
+    pub ty: wgpu_28::BindingType,
+    pub count: Option<NonZero<u32>>,
+}
+pub trait NestedBinding {
+    fn unnest(self) -> Binding;
+}
+impl NestedBinding for Binding {
+    fn unnest(self) -> Binding {
+        self
+    }
+}
+impl<S: binding_builder::IsComplete> NestedBinding for BindingBuilder<S> {
+    fn unnest(self) -> Binding {
+        self.build()
+    }
+}
+pub fn binding_builder() -> BindingBuilder {
+    Binding::builder()
+}
+mod layout_entry {
+    use super::builders::bind_group_layout_entry_builder::*;
+    pub type LayoutEntryCustom =
+        BindGroupLayoutEntryBuilder<SetCount<SetTy<SetVisibility<SetBinding<Empty>>>>>;
+    impl super::Binding {
+        pub fn layout_entry(&self) -> LayoutEntryCustom {
+            bind_group_layout_entry()
+                .binding(self.binding)
+                .visibility(self.visibility)
+                .ty(self.ty)
+                .maybe_count(self.count)
+        }
+    }
+}
+pub use entry::EntryCustom;
+mod entry {
+    use super::builders::bind_group_entry_builder::*;
+    pub type EntryCustom<'a> = BindGroupEntryBuilder<'a, SetBinding<Empty>>;
+    impl super::Binding {
+        pub fn entry<'a>(&self) -> EntryCustom<'a> {
+            bind_group_entry().binding(self.binding)
+        }
+    }
+}
+mod layout {
+    use super::builders::bind_group_layout_descriptor_builder::*;
+    pub fn bindings_layout(
+        bindings: &[&super::Binding],
+        device: &wgpu_28::Device,
+    ) -> wgpu_28::BindGroupLayout {
+        let entries = bindings
+            .iter()
+            .map(|b| b.layout_entry().build())
+            .collect::<Vec<_>>();
+        bind_group_layout_descriptor(None)
+            .entries(&entries)
+            .create_with(device)
+    }
+}
+pub use layout::bindings_layout;
 
 #[doc(inline)]
 pub use builders::backend_options_builder::backend_options;
@@ -176,9 +242,6 @@ pub use builders::pipeline_layout_descriptor_builder::pipeline_layout_descriptor
 
 #[doc(inline)]
 pub use builders::primitive_state_builder::primitive_state;
-
-#[doc(inline)]
-pub use builders::push_constant_range_builder::push_constant_range;
 
 #[doc(inline)]
 pub use builders::query_set_descriptor_builder::query_set_descriptor;

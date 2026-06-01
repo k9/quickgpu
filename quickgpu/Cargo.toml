@@ -11,10 +11,11 @@ documentation = "https://docs.rs/quickgpu"
 readme = "../README.md"
 
 [features]
-w27 = ["dep:wgpu_27"]
-w28 = ["dep:wgpu_28"]
+v27 = ["dep:wgpu_27"]
+v28 = ["dep:wgpu_28"]
 
 [dependencies]
+bon = "3.9.1"
 wgpu_27 = { package = "wgpu", version = "^27.0.0", optional = true }
 wgpu_28 = { package = "wgpu", version = "^28.0.0", optional = true }
 

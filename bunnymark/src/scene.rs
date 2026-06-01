@@ -1,17 +1,7 @@
 use bytemuck::{Pod, Zeroable};
 use nanorand::{Rng, WyRand};
-use quickgpu::w28::{
-    bind_group_descriptor, bind_group_entry, bind_group_layout_descriptor, bind_group_layout_entry,
-    buffer_binding, buffer_descriptor, buffer_init_descriptor, builders, color, color_target_state,
-    command_encoder_descriptor, extent3d, fragment_state, operations, pipeline_layout_descriptor,
-    primitive_state, render_pass_color_attachment, render_pass_descriptor,
-    render_pipeline_descriptor, sampler_descriptor, texel_copy_buffer_layout, texture_descriptor,
-    texture_view_descriptor, vertex_state,
-};
-use wgpu::{
-    BindingResource, BindingType, BlendState, CommandBuffer, Device, FilterMode, MipmapFilterMode,
-    Queue, ShaderStages, TextureFormat, include_wgsl,
-};
+use quickgpu::v28::*;
+use wgpu::*;
 
 use crate::app::RenderTextures;
 
@@ -21,11 +11,14 @@ pub struct GPUState<'a> {
     pub queue: &'a Queue,
 }
 
+create_binds!(GlobalBinds, uniforms, texture, sampler);
+create_binds!(LocalBinds, bunny);
+
 pub struct Scene {
     view: wgpu::TextureView,
     sampler: wgpu::Sampler,
-    global_bind_group_layout: wgpu::BindGroupLayout,
     global_group: wgpu::BindGroup,
+    global_binds: GlobalBinds,
     local_group: wgpu::BindGroup,
     pipeline: wgpu::RenderPipeline,
     bunnies: Vec<Bunny>,
@@ -108,9 +101,9 @@ impl Scene {
     ) -> Self {
         let shader = device.create_shader_module(include_wgsl!("../shaders/base.wgsl"));
 
-        let global_bind_group_layout = bind_group_layout_descriptor(None)
-            .entries(&builders([
-                bind_group_layout_entry()
+        let global_binds = GlobalBinds::builder()
+            .uniforms(
+                Binding::builder()
                     .binding(0)
                     .visibility(ShaderStages::VERTEX)
                     .ty(BindingType::Buffer {
@@ -118,7 +111,9 @@ impl Scene {
                         has_dynamic_offset: false,
                         min_binding_size: wgpu::BufferSize::new(size_of::<Globals>() as _),
                     }),
-                bind_group_layout_entry()
+            )
+            .texture(
+                Binding::builder()
                     .binding(1)
                     .visibility(ShaderStages::FRAGMENT)
                     .ty(BindingType::Texture {
@@ -126,23 +121,31 @@ impl Scene {
                         view_dimension: wgpu::TextureViewDimension::D2,
                         multisampled: false,
                     }),
-                bind_group_layout_entry()
+            )
+            .sampler(
+                Binding::builder()
                     .binding(2)
                     .visibility(ShaderStages::FRAGMENT)
                     .ty(BindingType::Sampler(wgpu::SamplerBindingType::Filtering)),
-            ]))
-            .create_with(device);
+            )
+            .build();
 
-        let local_bind_group_layout = bind_group_layout_descriptor(None)
-            .entries(&builders([bind_group_layout_entry()
-                .binding(0)
-                .visibility(ShaderStages::VERTEX)
-                .ty(BindingType::Buffer {
-                    ty: wgpu::BufferBindingType::Uniform,
-                    has_dynamic_offset: true,
-                    min_binding_size: wgpu::BufferSize::new(size_of::<Bunny>() as _),
-                })]))
-            .create_with(device);
+        let global_bind_group_layout = global_binds.layout(device);
+
+        let local_binds = LocalBinds::builder()
+            .bunny(
+                Binding::builder()
+                    .binding(0)
+                    .visibility(ShaderStages::VERTEX)
+                    .ty(BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: true,
+                        min_binding_size: wgpu::BufferSize::new(size_of::<Bunny>() as _),
+                    }),
+            )
+            .build();
+
+        let local_bind_group_layout = local_binds.layout(device);
 
         let pipeline_layout = pipeline_layout_descriptor(None)
             .bind_group_layouts(&[&global_bind_group_layout, &local_bind_group_layout])
@@ -237,41 +240,31 @@ impl Scene {
 
         let view = texture.create_view(&texture_view_descriptor(None).build());
 
-        let global_group = bind_group_descriptor(None)
-            .layout(&global_bind_group_layout)
-            .entries(&builders([
-                bind_group_entry()
-                    .binding(0)
-                    .resource(global_buffer.as_entire_binding()),
-                bind_group_entry()
-                    .binding(1)
-                    .resource(BindingResource::TextureView(&view)),
-                bind_group_entry()
-                    .binding(2)
-                    .resource(BindingResource::Sampler(&sampler)),
-            ]))
-            .create_with(device);
+        let global_group = global_binds
+            .group()
+            .uniforms(global_buffer.as_entire_binding())
+            .texture(BindingResource::TextureView(&view))
+            .sampler(BindingResource::Sampler(&sampler))
+            .create(&global_bind_group_layout, device);
 
-        let local_group = bind_group_descriptor(None)
-            .layout(&local_bind_group_layout)
-            .entries(&builders([bind_group_entry().binding(0).resource(
-                BindingResource::Buffer(
-                    buffer_binding()
-                        .buffer(&local_buffer)
-                        .offset(0)
-                        .size(wgpu::BufferSize::new(size_of::<Bunny>() as _).unwrap())
-                        .build(),
-                ),
-            )]))
-            .create_with(device);
+        let local_group = local_binds
+            .group()
+            .bunny(BindingResource::Buffer(
+                buffer_binding()
+                    .buffer(&local_buffer)
+                    .offset(0)
+                    .size(wgpu::BufferSize::new(size_of::<Bunny>() as _).unwrap())
+                    .build(),
+            ))
+            .create(&local_bind_group_layout, device);
 
         let rng = WyRand::new_seed(42);
 
         let mut ex = Scene {
             view,
             sampler,
-            global_bind_group_layout,
             pipeline,
+            global_binds,
             global_group,
             local_group,
             bunnies: Vec::new(),
@@ -312,22 +305,13 @@ impl Scene {
             .usage(wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::UNIFORM)
             .create_with(device);
 
-        let global_group = bind_group_descriptor(None)
-            .layout(&self.global_bind_group_layout)
-            .entries(&builders([
-                bind_group_entry()
-                    .binding(0)
-                    .resource(global_buffer.as_entire_binding()),
-                bind_group_entry()
-                    .binding(1)
-                    .resource(BindingResource::TextureView(&self.view)),
-                bind_group_entry()
-                    .binding(2)
-                    .resource(BindingResource::Sampler(&self.sampler)),
-            ]))
-            .create_with(device);
-
-        self.global_group = global_group;
+        self.global_group = self
+            .global_binds
+            .group()
+            .uniforms(global_buffer.as_entire_binding())
+            .texture(BindingResource::TextureView(&self.view))
+            .sampler(BindingResource::Sampler(&self.sampler))
+            .create(&self.global_binds.layout(device), device);
     }
 
     #[must_use]

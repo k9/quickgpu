@@ -1,4 +1,4 @@
-use quickgpu::w28::{
+use quickgpu::v28::{
     device_descriptor, extent3d, request_adapter_options, texture_descriptor,
     texture_view_descriptor,
 };

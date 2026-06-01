@@ -91,8 +91,13 @@ let render_pipeline = render_pipeline_descriptor(Some("Render Pipeline"))
 
 pub fn custom(version: Version) -> String {
     let wgpu_source_ident = version.wgpu_source_ident();
+
     quote!(
+        use std::num::NonZero;
+
         pub mod builders;
+        pub mod create_binds;
+        pub use create_binds::*;
 
         /// Nested is implemented on builder types to enable passing them directly
         /// into other builders without needing to call build().
@@ -122,6 +127,145 @@ pub fn custom(version: Version) -> String {
                 }
             }
         }
+
+        #[derive(bon::Builder)]
+        pub struct Binding {
+            pub binding: u32,
+            pub visibility: #wgpu_source_ident::ShaderStages,
+            pub ty: #wgpu_source_ident::BindingType,
+            pub count: Option<NonZero<u32>>,
+        }
+
+        pub trait NestedBinding {
+            fn unnest(self) -> Binding;
+        }
+
+        impl NestedBinding for Binding {
+            fn unnest(self) -> Binding {
+                self
+            }
+        }
+
+        impl<S: binding_builder::IsComplete> NestedBinding for BindingBuilder<S> {
+            fn unnest(self) -> Binding {
+                self.build()
+            }
+        }
+
+        pub fn binding_builder() -> BindingBuilder {
+            Binding::builder()
+        }
+
+        mod layout_entry {
+            use super::builders::bind_group_layout_entry_builder::*;
+
+            pub type LayoutEntryCustom =
+                BindGroupLayoutEntryBuilder<SetCount<SetTy<SetVisibility<SetBinding<Empty>>>>>;
+            impl super::Binding {
+                pub fn layout_entry(&self) -> LayoutEntryCustom {
+                    bind_group_layout_entry()
+                        .binding(self.binding)
+                        .visibility(self.visibility)
+                        .ty(self.ty)
+                        .maybe_count(self.count)
+                }
+            }
+        }
+
+        pub use entry::EntryCustom;
+        mod entry {
+            use super::builders::bind_group_entry_builder::*;
+
+            pub type EntryCustom<'a> = BindGroupEntryBuilder<'a, SetBinding<Empty>>;
+            impl super::Binding {
+                pub fn entry<'a>(&self) -> EntryCustom<'a> {
+                    bind_group_entry().binding(self.binding)
+                }
+            }
+        }
+
+        mod layout {
+            use super::builders::bind_group_layout_descriptor_builder::*;
+
+            pub fn bindings_layout(
+                bindings: &[&super::Binding],
+                device: &#wgpu_source_ident::Device
+            ) -> #wgpu_source_ident::BindGroupLayout {
+                let entries = bindings
+                    .iter()
+                    .map(|b| b.layout_entry().build())
+                    .collect::<Vec<_>>();
+
+                bind_group_layout_descriptor(None)
+                    .entries(&entries)
+                    .create_with(device)
+            }
+        }
+
+        pub use layout::bindings_layout;
     )
     .to_string()
+}
+
+pub fn create_binds_macro(version: Version) -> String {
+    let wgpu_source = version.wgpu_source();
+
+    format!(
+        "
+        macro_rules! create_binds {{
+            // This macro takes an argument of designator `ident` and
+            // creates a function named `$func_name`.
+            // The `ident` designator is used for variable/function names.
+            ($binds_name:ident, $($name:ident),*) => {{
+                pub struct $binds_name {{
+                    $(pub $name: Binding),+
+                }}
+
+                #[bon::bon]
+                impl $binds_name {{
+                    #[builder]
+                    pub fn new(
+                        $($name: impl $crate::binds::NestedBinding),*
+                    ) -> $binds_name {{
+                        $binds_name {{
+                            $($name: $name.unnest()),*
+                        }}
+                    }}
+
+                    pub fn layout(
+                        &self,
+                        device: &{wgpu_source}::Device,
+                    ) -> {wgpu_source}::BindGroupLayout {{
+                        bind_group_layout_descriptor(None)
+                            .entries(&builders([
+                                $(self.$name.layout_entry()),*
+                            ]))
+                            .create_with(device)
+                    }}
+
+                    #[builder(finish_fn = create)]
+                    pub fn group<'a>(
+                        &self,
+                        #[builder(finish_fn)]
+                        with_layout: &'a {wgpu_source}::BindGroupLayout,
+                        #[builder(finish_fn)]
+                        with_device: &{wgpu_source}::Device,
+                        $($name: {wgpu_source}::BindingResource<'a>),*,
+                    ) -> {wgpu_source}::BindGroup {{
+                        $(let $name = self.$name.entry().resource($name));*;
+
+                        bind_group_descriptor(None)
+                            .entries(&builders([
+                                $($name),*
+                            ]))
+                            .layout(with_layout)
+                            .create_with(with_device)
+                    }}
+                }}
+            }};
+        }}
+
+        pub use create_binds;
+"
+    )
 }

@@ -1,5 +1,5 @@
 use bytemuck::{Pod, Zeroable};
-use quickgpu::w27::{
+use quickgpu::v27::{
     buffer_init_descriptor, builders, command_encoder_descriptor, fragment_state,
     multisample_state, operations, primitive_state, render_pass_color_attachment,
     render_pass_descriptor, render_pipeline_descriptor, vertex_attribute, vertex_buffer_layout,

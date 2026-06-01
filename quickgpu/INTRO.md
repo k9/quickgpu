@@ -40,7 +40,7 @@ calling `build()` on the elements of a slice, use the `builders` helper function
 
  ```
 # use wgpu_28::*;
-# use quickgpu::w28::*;
+# use quickgpu::v28::*;
 # use bytemuck::{Pod, Zeroable};
 #
 # let (device, _queue) = wgpu_28::Device::noop(&wgpu_28::DeviceDescriptor::default());
