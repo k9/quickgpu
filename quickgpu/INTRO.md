@@ -60,14 +60,14 @@ let render_pipeline = render_pipeline_descriptor(Some("Render Pipeline"))
             .module(&shader)
             .entry_point("vs_main")
             // Use builders() to convert builders to values before passing as a slice
-            .buffers(&builders([vertex_buffer_layout()
+            .buffers(&arr![vertex_buffer_layout()
                 .array_stride(size_of::<VertexInput>() as wgpu_28::BufferAddress)
-                .attributes(&builders([
+                .attributes(&arr![
                     vertex_attribute()
                         .format(VertexFormat::Float32x4)
                         .offset(0u64)
                         .shader_location(0u32)
-                ]))])),
+                ])]),
     )
     .fragment(
         fragment_state()

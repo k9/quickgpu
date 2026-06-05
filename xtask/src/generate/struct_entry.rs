@@ -42,16 +42,18 @@ pub struct BuilderStruct<'a> {
 pub enum StructIdent {
     Builder,
     BuilderMod,
+    Nested,
     Fn,
 }
 
 impl<'a> BuilderStruct<'a> {
-    pub fn ident(&self, struct_ident: StructIdent) -> Ident {
+    pub(crate) fn ident(&self, struct_ident: StructIdent) -> Ident {
         let ident = &self.original_ident;
         let snake = format_ident!("{}", snake(ident));
 
         match struct_ident {
             StructIdent::Builder => format_ident!("{}Builder", ident),
+            StructIdent::Nested => format_ident!("Nested{}", ident),
             StructIdent::BuilderMod => format_ident!("{}_builder", snake),
             StructIdent::Fn => format_ident!("{}", snake),
         }
@@ -66,35 +68,21 @@ pub struct BuilderField<'a> {
 }
 
 pub enum FieldIdent {
-    Original,
-    UpperCamel,
-    Value,
     Empty,
-    IsEmpty,
-    Set,
     IsSet,
-    Optional,
     SetterFn,
-    SetterMaybeFn,
 }
 
 impl<'a> BuilderField<'a> {
-    pub fn ident(&self, field_ident: FieldIdent) -> Ident {
+    pub(crate) fn ident(&self, field_ident: FieldIdent) -> Ident {
         let ident = self.field.ident.as_ref().unwrap();
 
         let upper = format_ident!("{}", upper_camel(ident));
 
         match field_ident {
-            FieldIdent::Original => ident.clone(),
-            FieldIdent::UpperCamel => upper,
-            FieldIdent::Value => format_ident!("{}Value", upper),
             FieldIdent::Empty => format_ident!("{}Empty", upper),
-            FieldIdent::IsEmpty => format_ident!("{}IsEmpty", upper),
-            FieldIdent::Optional => format_ident!("{}Optional", upper),
-            FieldIdent::Set => format_ident!("Set{}", upper),
             FieldIdent::IsSet => format_ident!("IsSet{}", upper),
             FieldIdent::SetterFn => format_ident!("{}", ident),
-            FieldIdent::SetterMaybeFn => format_ident!("maybe_{}", ident),
         }
     }
 }
@@ -138,7 +126,7 @@ pub(crate) fn filter_struct(
     Some((index, item, generate_nested_impl))
 }
 
-pub fn ident_from_path(path: &Path) -> Option<Ident> {
+pub(crate) fn ident_from_path(path: &Path) -> Option<Ident> {
     path.segments.last().map(|s| s.ident.clone())
 }
 
@@ -202,12 +190,13 @@ pub(crate) fn output_struct(
         let default_impl = get_default_impl(ctx, field);
 
         // If struct doesn't have an overall default, look for field type's default.
-        if field.default_value.is_none() {
-            let is_option = option_type(field.field) != OptionType::None;
+        //
+        let is_option = option_type(field.field) != OptionType::None;
 
-            if default_impl.is_some() || is_option {
-                field.default_value = Some(q!(Default::default()));
-            }
+        if is_option {
+            field.default_value = None;
+        } else if default_impl.is_some() && field.default_value.is_none() {
+            field.default_value = Some(q!(Default::default()));
         }
 
         if field
@@ -223,7 +212,7 @@ pub(crate) fn output_struct(
             }
 
             if option_type(field.field) != OptionType::None {
-                field.default_value = Some(q!(None));
+                field.default_value = None;
             } else {
                 match q!(#ty).to_string().as_str() {
                     "u32" => {
@@ -308,7 +297,7 @@ fn get_default_impl(ctx: &Ctx<'_>, field: &mut BuilderField<'_>) -> Option<syn::
     }
 }
 
-pub fn apply_struct_impl(
+pub(crate) fn apply_struct_impl(
     version: Version,
     builder_struct: &mut BuilderStruct,
     consts: &[(Path, syn::ImplItemConst)],

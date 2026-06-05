@@ -8,7 +8,7 @@ use discover_exports::{
     analysis::Analysis,
     crate_graph::for_each_node,
     process::parse_crate,
-    resolve::{PathType, resolve_enum, resolve_impls, resolve_path},
+    resolve::{PathType, resolve_impls, resolve_path},
     utils::path_from_string,
 };
 
@@ -17,19 +17,15 @@ use crate::{
         shared::{create_binds_macro, custom, intro},
         struct_entry::{Output, filter_struct, output_struct},
     },
-    utils::{final_path, relative_path, rustfmt, snake, without_args},
+    utils::{relative_path, rustfmt, without_args},
 };
 
-pub mod base;
 pub mod builder;
 pub mod docs;
 pub mod nested;
-pub mod setter;
 pub mod shared;
-pub mod state;
 mod struct_entry;
 pub mod tests;
-pub mod types;
 
 const SKIP: &[&str] = &[
     "AdapterInfo",
@@ -55,7 +51,7 @@ pub enum Version {
 }
 
 impl Version {
-    pub fn wgpu_source(&self) -> String {
+    pub(crate) fn wgpu_source(&self) -> String {
         match self {
             Version::V27 => "wgpu_27",
             Version::V28 => "wgpu_28",
@@ -63,11 +59,11 @@ impl Version {
         .to_string()
     }
 
-    pub fn wgpu_source_ident(&self) -> Ident {
+    pub(crate) fn wgpu_source_ident(&self) -> Ident {
         format_ident!("{}", self.wgpu_source())
     }
 
-    pub fn wgpu_version_mod(&self) -> Ident {
+    pub(crate) fn wgpu_version_mod(&self) -> Ident {
         format_ident!(
             "{}",
             match self {
@@ -86,7 +82,7 @@ pub struct CreateWithDevice {
     pub use_reference: bool,
 }
 
-pub fn generate(version: Version) -> anyhow::Result<()> {
+pub(crate) fn generate(version: Version) -> anyhow::Result<()> {
     let mut analysis = Analysis::default();
 
     let wgpu_source = version.wgpu_source();
@@ -181,32 +177,6 @@ pub fn generate(version: Version) -> anyhow::Result<()> {
             if filter_struct(&wgpu, index, &path).is_some() {
                 let idents = without_args(&path);
                 builder_entries.insert(q!(#idents).to_string(), (index, path.clone()));
-            }
-        },
-        PathType::TopLevelPublicOnly,
-    )
-    .unwrap();
-
-    for_each_node(
-        &wgpu,
-        |(index, path)| {
-            if let Ok(enum_item) = resolve_enum(&wgpu, index)
-                && let Ok(ident) = final_path(&path.to_token_stream().to_string())
-                && enum_item.variants.iter().any(|v| !v.fields.is_empty())
-            {
-                println!("{}", snake(ident));
-
-                for v in enum_item.variants {
-                    println!("  {}", snake(v.ident));
-
-                    for (i, f) in v.fields.iter().enumerate() {
-                        if let Some(f_ident) = &f.ident {
-                            println!("    {}", snake(f_ident));
-                        } else {
-                            println!("    {}", i);
-                        }
-                    }
-                }
             }
         },
         PathType::TopLevelPublicOnly,

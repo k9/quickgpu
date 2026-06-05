@@ -13,7 +13,7 @@ pub struct UniqueGenerics {
 
 impl UniqueGenerics {
     /// Wrap syn's Generics and only insert unique ones
-    pub fn new(generics: Option<Generics>) -> Self {
+    pub(crate) fn new(generics: Option<Generics>) -> Self {
         let mut unique = Self {
             inner: Generics::default(),
         };
@@ -27,45 +27,31 @@ impl UniqueGenerics {
         unique
     }
 
-    pub fn insert(&mut self, param: &GenericParam) {
+    pub(crate) fn insert(&mut self, param: &GenericParam) {
         if self.get(param).is_none() {
             self.inner.params.push(param.clone());
         }
     }
 
-    pub fn get(&self, param: &GenericParam) -> Option<&GenericParam> {
+    pub(crate) fn get(&self, param: &GenericParam) -> Option<&GenericParam> {
         self.inner.params.iter().find(|existing| {
             as_arg(existing).into_token_stream().to_string()
                 == as_arg(param).into_token_stream().to_string()
         })
     }
 
-    pub fn get_mut(&mut self, param: &GenericParam) -> Option<&mut GenericParam> {
+    pub(crate) fn get_mut(&mut self, param: &GenericParam) -> Option<&mut GenericParam> {
         self.inner.params.iter_mut().find(|existing| {
             as_arg(existing).into_token_stream().to_string()
                 == as_arg(param).into_token_stream().to_string()
         })
     }
 
-    pub fn as_params(&self) -> TokenStream {
+    pub(crate) fn as_params(&self) -> TokenStream {
         self.inner.clone().into_token_stream()
     }
 
-    pub fn as_params_vec(&self) -> Vec<GenericParam> {
-        let lifetimes = self
-            .inner
-            .lifetimes()
-            .map(|l| GenericParam::Lifetime(l.clone()));
-
-        let types = self
-            .inner
-            .type_params()
-            .map(|t| GenericParam::Type(t.clone()));
-
-        lifetimes.chain(types).collect()
-    }
-
-    pub fn as_args(&self) -> TokenStream {
+    pub(crate) fn as_args(&self) -> TokenStream {
         let inner = self.inner.clone();
         let mut args = vec![];
 
@@ -80,19 +66,6 @@ impl UniqueGenerics {
         } else {
             quote!()
         }
-    }
-
-    pub fn as_args_vec(&self) -> Vec<GenericArgument> {
-        let inner = self.inner.clone();
-        let mut args = vec![];
-
-        for param in &inner.params {
-            if let Some(arg) = as_arg(param) {
-                args.push(arg);
-            }
-        }
-
-        args
     }
 }
 
@@ -122,7 +95,7 @@ impl<'a> GatherGenerics<'a> {
     ///
     /// For example: Given the generic params of a struct,
     /// which of them are used in the definition of one of its fields?
-    pub fn new(params: &'a UniqueGenerics) -> Self {
+    pub(crate) fn new(params: &'a UniqueGenerics) -> Self {
         Self {
             params,
             used: UniqueGenerics::new(None),
@@ -161,7 +134,7 @@ mod tests {
     use crate::type_helpers::{GatherGenerics, UniqueGenerics};
 
     #[test]
-    pub fn basics() {
+    pub(crate) fn basics() {
         let a_struct: ItemStruct = parse_quote!(
             pub struct A<'a, 'b, T: Special> {}
         );

@@ -8,20 +8,20 @@ use syn::{Field, GenericArgument, Path, PathArguments, Type};
 use crate::AResult;
 
 // Relative to the workspace root
-pub fn relative_path(p: impl Into<PathBuf>) -> PathBuf {
+pub(crate) fn relative_path(p: impl Into<PathBuf>) -> PathBuf {
     std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("..")
         .join(p.into())
         .to_path_buf()
 }
 
-pub fn rustfmt(path: PathBuf) -> AResult<()> {
+pub(crate) fn rustfmt(path: PathBuf) -> AResult<()> {
     cmd!("rustfmt", path.into_os_string()).run()?;
 
     Ok(())
 }
 
-pub fn final_path(path: &str) -> AResult<String> {
+pub(crate) fn final_path(path: &str) -> AResult<String> {
     Ok(path
         .split("::")
         .last()
@@ -37,7 +37,7 @@ pub enum OptionType {
     Label,
 }
 
-pub fn option_type(field: &Field) -> OptionType {
+pub(crate) fn option_type(field: &Field) -> OptionType {
     if let Type::Path(path) = &field.ty {
         let ident = path.path.segments.last().map(|s| s.ident.to_string());
 
@@ -51,7 +51,7 @@ pub fn option_type(field: &Field) -> OptionType {
     OptionType::None
 }
 
-pub fn without_args(path: &Path) -> Path {
+pub(crate) fn without_args(path: &Path) -> Path {
     let mut path = path.clone();
     for segment in path.segments.iter_mut() {
         segment.arguments = PathArguments::None;
@@ -60,7 +60,7 @@ pub fn without_args(path: &Path) -> Path {
     path
 }
 
-pub fn option_argument(ty: &mut Type) -> Option<&mut GenericArgument> {
+pub(crate) fn option_argument(ty: &mut Type) -> Option<&mut GenericArgument> {
     if let Type::Path(path) = ty
         && let Some(last) = path.path.segments.last_mut()
         && let PathArguments::AngleBracketed(arguments) = &mut last.arguments
@@ -72,14 +72,14 @@ pub fn option_argument(ty: &mut Type) -> Option<&mut GenericArgument> {
     }
 }
 
-pub fn snake(s: impl ToString) -> String {
+pub(crate) fn snake(s: impl ToString) -> String {
     #[allow(clippy::disallowed_methods)]
     s.to_string()
         .set_boundaries(&[Boundary::LowerUpper, Boundary::DigitUpper])
         .to_case(Case::Snake)
 }
 
-pub fn upper_camel(s: impl ToString) -> String {
+pub(crate) fn upper_camel(s: impl ToString) -> String {
     #[allow(clippy::disallowed_methods)]
     s.to_string().to_case(Case::UpperCamel)
 }

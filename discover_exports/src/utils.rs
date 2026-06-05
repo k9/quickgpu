@@ -20,7 +20,6 @@ pub fn write_expanded(output_path: &PathBuf, crate_path: &PathBuf) -> AResult<()
         bail!("Failed to create {:?}", &output_path);
     };
 
-    dbg!(crate_path);
     Command::new("cargo")
         .arg("expand")
         .current_dir(crate_path)

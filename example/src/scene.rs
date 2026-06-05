@@ -1,10 +1,5 @@
 use bytemuck::{Pod, Zeroable};
-use quickgpu::v27::{
-    buffer_init_descriptor, builders, command_encoder_descriptor, fragment_state,
-    multisample_state, operations, primitive_state, render_pass_color_attachment,
-    render_pass_descriptor, render_pipeline_descriptor, vertex_attribute, vertex_buffer_layout,
-    vertex_state,
-};
+use quickgpu::v27::*;
 use wgpu::{
     Buffer, Color, CommandBuffer, Device, LoadOp, PipelineCompilationOptions, RenderPipeline,
     TextureFormat, VertexFormat, include_wgsl,
@@ -54,18 +49,20 @@ impl Scene {
                 vertex_state()
                     .module(&shader)
                     .entry_point("vs_main")
-                    .buffers(&builders([vertex_buffer_layout()
-                        .array_stride(size_of::<VertexInput>() as wgpu::BufferAddress)
-                        .attributes(&builders([
-                            vertex_attribute()
-                                .format(VertexFormat::Float32x4)
-                                .offset(0u64)
-                                .shader_location(0u32),
-                            vertex_attribute()
-                                .format(VertexFormat::Float32x2)
-                                .offset(4 * 4u64)
-                                .shader_location(1u32),
-                        ]))])),
+                    .buffers(&arr![
+                        vertex_buffer_layout()
+                            .array_stride(size_of::<VertexInput>() as wgpu::BufferAddress)
+                            .attributes(&arr![
+                                vertex_attribute()
+                                    .format(VertexFormat::Float32x4)
+                                    .offset(0u64)
+                                    .shader_location(0u32),
+                                vertex_attribute()
+                                    .format(VertexFormat::Float32x2)
+                                    .offset(4 * 4u64)
+                                    .shader_location(1u32),
+                            ])
+                    ]),
             )
             .fragment(
                 fragment_state()
@@ -106,12 +103,12 @@ impl Scene {
         let mut encoder = command_encoder_descriptor(None).create_with(device);
 
         {
-            let color_attachments = builders([Some(
+            let color_attachments = arr_option![Some(
                 render_pass_color_attachment()
                     .view(render_textures.view)
                     .maybe_resolve_target(render_textures.resolve_target)
                     .ops(operations().load(LoadOp::Clear(Color::WHITE))),
-            )]);
+            )];
 
             let mut render_pass = render_pass_descriptor(Some("Render Pass"))
                 .color_attachments(&color_attachments)

@@ -45,7 +45,7 @@ fn main() -> AResult<()> {
     Ok(())
 }
 
-pub fn versions(version_filter: Option<Version>) -> Vec<Version> {
+pub(crate) fn versions(version_filter: Option<Version>) -> Vec<Version> {
     match version_filter {
         Some(Version::V27) => vec![Version::V27],
         Some(Version::V28) => vec![Version::V28],
@@ -53,7 +53,7 @@ pub fn versions(version_filter: Option<Version>) -> Vec<Version> {
     }
 }
 
-pub fn build(version_filter: Option<Version>) -> AResult<()> {
+pub(crate) fn build(version_filter: Option<Version>) -> AResult<()> {
     for version in versions(version_filter) {
         generate(Some(version))?;
         document(Some(version))?;
@@ -61,14 +61,14 @@ pub fn build(version_filter: Option<Version>) -> AResult<()> {
     Ok(())
 }
 
-pub fn generate(version_filter: Option<Version>) -> AResult<()> {
+pub(crate) fn generate(version_filter: Option<Version>) -> AResult<()> {
     for version in versions(version_filter) {
         generate::generate(version)?;
     }
     Ok(())
 }
 
-pub fn document(version_filter: Option<Version>) -> AResult<()> {
+pub(crate) fn document(version_filter: Option<Version>) -> AResult<()> {
     for version in versions(version_filter) {
         let package_name = match version {
             Version::V27 => "quickgpu27",

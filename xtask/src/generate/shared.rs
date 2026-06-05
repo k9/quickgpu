@@ -1,7 +1,7 @@
 use crate::generate::Version;
-use quote::quote;
+use quote::{format_ident, quote};
 
-pub fn intro(version: Version) -> String {
+pub(crate) fn intro(version: Version) -> String {
     let wgpu_source_ident = version.wgpu_source_ident();
     let wgpu_version_mod = version.wgpu_version_mod();
 
@@ -68,14 +68,14 @@ let render_pipeline = render_pipeline_descriptor(Some("Render Pipeline"))
             .module(&shader)
             .entry_point("vs_main")
             // Use builders() to convert builders to values before passing as a slice
-            .buffers(&builders([vertex_buffer_layout()
+            .buffers(&arr![vertex_buffer_layout()
                 .array_stride(size_of::<VertexInput>() as {wgpu_source_ident}::BufferAddress)
-                .attributes(&builders([
+                .attributes(&arr![
                     vertex_attribute()
                         .format(VertexFormat::Float32x4)
                         .offset(0u64)
                         .shader_location(0u32)
-                ]))])),
+                ])]),
     )
     .fragment(
         fragment_state()
@@ -89,39 +89,34 @@ let render_pipeline = render_pipeline_descriptor(Some("Render Pipeline"))
     )
 }
 
-pub fn custom(version: Version) -> String {
+pub(crate) fn custom(version: Version) -> String {
     let wgpu_source_ident = version.wgpu_source_ident();
+    let wgpu_version_mod = version.wgpu_version_mod();
+    let binds_macro = format_ident!("_create_binds_{}", wgpu_version_mod);
+    let arr_macro = format_ident!("_arr_{}", wgpu_version_mod);
+    let arr_option_macro = format_ident!("_arr_option_{}", wgpu_version_mod);
 
     quote!(
         use std::num::NonZero;
 
         pub mod builders;
-        pub mod create_binds;
-        pub use create_binds::*;
 
-        /// Nested is implemented on builder types to enable passing them directly
-        /// into other builders without needing to call build().
-        pub trait Nested<T> {
-            fn unnest(self) -> T;
-        }
+        mod create_binds;
 
-        impl<T, N: Nested<T>> Nested<Option<T>> for Option<N> {
-            fn unnest(self) -> Option<T> {
-                self.map(|o| o.unnest())
-            }
-        }
+        #[doc(inline)]
+        pub use crate::#binds_macro as create_binds;
 
-        /// Builds an array of builders into an array of values.
-        /// Useful when passing a slice of wgpu values into another builder.
-        pub fn builders<T, N: Nested<T>, const COUNT: usize>(a: [N; COUNT]) -> Vec<T> {
-            a.into_iter().map(|item| item.unnest()).collect()
-        }
+        #[doc(inline)]
+        pub use crate::#arr_macro as arr;
+
+        #[doc(inline)]
+        pub use crate::#arr_option_macro as arr_option;
 
         mod render_pass_builder {
             use super::builders::render_pass_descriptor_builder::*;
             use #wgpu_source_ident::CommandEncoder;
 
-            impl<'a, CS: Complete<'a>> RenderPassDescriptorBuilder<'a, CS> {
+            impl<'a, CS: state::IsComplete> RenderPassDescriptorBuilder<'a, CS> {
                 pub fn begin_with(self, encoder: &'a mut CommandEncoder) -> #wgpu_source_ident::RenderPass<'a> {
                     encoder.begin_render_pass(&self.build())
                 }
@@ -159,8 +154,10 @@ pub fn custom(version: Version) -> String {
         mod layout_entry {
             use super::builders::bind_group_layout_entry_builder::*;
 
-            pub type LayoutEntryCustom =
-                BindGroupLayoutEntryBuilder<SetCount<SetTy<SetVisibility<SetBinding<Empty>>>>>;
+            pub type LayoutEntryCustom = BindGroupLayoutEntryBuilder<
+                state::SetCount<state::SetTy<state::SetVisibility<state::SetBinding<state::Empty>>>>,
+            >;
+
             impl super::Binding {
                 pub fn layout_entry(&self) -> LayoutEntryCustom {
                     bind_group_layout_entry()
@@ -176,7 +173,7 @@ pub fn custom(version: Version) -> String {
         mod entry {
             use super::builders::bind_group_entry_builder::*;
 
-            pub type EntryCustom<'a> = BindGroupEntryBuilder<'a, SetBinding<Empty>>;
+            pub type EntryCustom<'a> = BindGroupEntryBuilder<'a, state::SetBinding<state::Empty>>;
             impl super::Binding {
                 pub fn entry<'a>(&self) -> EntryCustom<'a> {
                     bind_group_entry().binding(self.binding)
@@ -203,69 +200,83 @@ pub fn custom(version: Version) -> String {
         }
 
         pub use layout::bindings_layout;
+
+        pub use builders::*;
     )
     .to_string()
 }
 
-pub fn create_binds_macro(version: Version) -> String {
-    let wgpu_source = version.wgpu_source();
+pub(crate) fn create_binds_macro(version: Version) -> String {
+    let wgpu_source = format!("quickgpu::{}", version.wgpu_source());
+    let wgpu_version_mod = version.wgpu_version_mod();
 
     format!(
         "
-        macro_rules! create_binds {{
-            // This macro takes an argument of designator `ident` and
-            // creates a function named `$func_name`.
-            // The `ident` designator is used for variable/function names.
-            ($binds_name:ident, $($name:ident),*) => {{
-                pub struct $binds_name {{
-                    $(pub $name: Binding),+
-                }}
-
-                #[bon::bon]
-                impl $binds_name {{
-                    #[builder]
-                    pub fn new(
-                        $($name: impl $crate::binds::NestedBinding),*
-                    ) -> $binds_name {{
-                        $binds_name {{
-                            $($name: $name.unnest()),*
-                        }}
-                    }}
-
-                    pub fn layout(
-                        &self,
-                        device: &{wgpu_source}::Device,
-                    ) -> {wgpu_source}::BindGroupLayout {{
-                        bind_group_layout_descriptor(None)
-                            .entries(&builders([
-                                $(self.$name.layout_entry()),*
-                            ]))
-                            .create_with(device)
-                    }}
-
-                    #[builder(finish_fn = create)]
-                    pub fn group<'a>(
-                        &self,
-                        #[builder(finish_fn)]
-                        with_layout: &'a {wgpu_source}::BindGroupLayout,
-                        #[builder(finish_fn)]
-                        with_device: &{wgpu_source}::Device,
-                        $($name: {wgpu_source}::BindingResource<'a>),*,
-                    ) -> {wgpu_source}::BindGroup {{
-                        $(let $name = self.$name.entry().resource($name));*;
-
-                        bind_group_descriptor(None)
-                            .entries(&builders([
-                                $($name),*
-                            ]))
-                            .layout(with_layout)
-                            .create_with(with_device)
-                    }}
-                }}
-            }};
+#[macro_export]
+#[doc(hidden)]
+macro_rules! _create_binds_{wgpu_version_mod} {{
+    ($binds_name:ident, $($name:ident),*) => {{
+        pub struct $binds_name {{
+            $(pub $name: Binding),+
         }}
 
-        pub use create_binds;
+        #[bon::bon]
+        impl $binds_name {{
+            #[builder]
+            pub fn new(
+                $($name: impl quickgpu::{wgpu_version_mod}::NestedBinding),*
+            ) -> $binds_name {{
+                $binds_name {{
+                    $($name: $name.unnest()),*
+                }}
+            }}
+
+            pub fn layout(
+                &self,
+                device: &{wgpu_source}::Device,
+            ) -> {wgpu_source}::BindGroupLayout {{
+                bind_group_layout_descriptor(None)
+                    .entries(&arr![
+                        $(self.$name.layout_entry()),*
+                    ])
+                    .create_with(device)
+            }}
+
+            #[builder(finish_fn = create)]
+            pub fn group<'a>(
+                &self,
+                #[builder(finish_fn)]
+                with_layout: &'a {wgpu_source}::BindGroupLayout,
+                #[builder(finish_fn)]
+                with_device: &{wgpu_source}::Device,
+                $($name: {wgpu_source}::BindingResource<'a>),*,
+            ) -> {wgpu_source}::BindGroup {{
+                $(let $name = self.$name.entry().resource($name));*;
+
+                bind_group_descriptor(None)
+                    .entries(&arr![
+                        $($name),*
+                    ])
+                    .layout(with_layout)
+                    .create_with(with_device)
+            }}
+        }}
+    }};
+}}
+
+#[macro_export]
+#[doc(hidden)]
+macro_rules! _arr_{wgpu_version_mod} {{
+    () => ([]);
+    ($($item:expr),+ $(,)?) => ([$($item.unnest()),+]);
+}}
+
+#[macro_export]
+#[doc(hidden)]
+macro_rules! _arr_option_{wgpu_version_mod} {{
+    () => ([]);
+    ($($item:expr),+ $(,)?) => ([$($item.map_or(None, |o| Some(o.unnest()))),+]);
+}}
 "
     )
 }
