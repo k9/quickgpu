@@ -4,3 +4,6 @@
 [submodule "wgpu_v28"]
 	path = wgpu_28
 	url = https://github.com/gfx-rs/wgpu.git
+[submodule "wgpu_29"]
+	path = wgpu_29
+	url = https://github.com/gfx-rs/wgpu.git

@@ -163,17 +163,16 @@ impl Scene {
                 fragment_state()
                     .module(&shader)
                     .entry_point("fs_main")
-                    .targets(&[Some(
+                    .targets(&arr_option![Some(
                         color_target_state()
                             .format(format)
                             .blend(BlendState::ALPHA_BLENDING)
-                            .build(),
                     )]),
             )
             .primitive(
                 primitive_state()
-                    .topology(wgpu::PrimitiveTopology::TriangleStrip)
-                    .strip_index_format(wgpu::IndexFormat::Uint16),
+                    .topology(PrimitiveTopology::TriangleStrip)
+                    .strip_index_format(IndexFormat::Uint16),
             )
             .create_with(device);
 
@@ -213,8 +212,6 @@ impl Scene {
 
         let sampler = sampler_descriptor(None)
             .mag_filter(FilterMode::Linear)
-            .min_filter(FilterMode::Nearest)
-            .mipmap_filter(MipmapFilterMode::Nearest)
             .create_with(device);
 
         let globals = Globals {
@@ -226,7 +223,7 @@ impl Scene {
 
         let global_buffer = buffer_init_descriptor(Some("global"))
             .contents(bytemuck::bytes_of(&globals))
-            .usage(wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::UNIFORM)
+            .usage(BufferUsages::COPY_DST | BufferUsages::UNIFORM)
             .create_with(device);
 
         let uniform_alignment =

@@ -48,13 +48,19 @@ const SKIP: &[&str] = &[
 pub enum Version {
     V27,
     V28,
+    V29,
 }
 
 impl Version {
+    pub(crate) fn latest() -> Version {
+        Version::V29
+    }
+
     pub(crate) fn wgpu_source(&self) -> String {
         match self {
             Version::V27 => "wgpu_27",
             Version::V28 => "wgpu_28",
+            Version::V29 => "wgpu_29",
         }
         .to_string()
     }
@@ -63,12 +69,13 @@ impl Version {
         format_ident!("{}", self.wgpu_source())
     }
 
-    pub(crate) fn wgpu_version_mod(&self) -> Ident {
+    pub(crate) fn version_mod(&self) -> Ident {
         format_ident!(
             "{}",
             match self {
                 Version::V27 => "v27",
                 Version::V28 => "v28",
+                Version::V29 => "v29",
             }
             .to_string()
         )
@@ -136,15 +143,12 @@ pub(crate) fn generate(version: Version) -> anyhow::Result<()> {
     let intro_path = relative_path("quickgpu/INTRO.md".to_string());
     std::fs::write(intro_path.clone(), intro(version))?;
 
-    let base_path = relative_path(format!("quickgpu/src/{}/", version.wgpu_version_mod()));
+    let base_path = relative_path(format!("quickgpu/src/{}/", version.version_mod()));
     let sh = Shell::new()?;
     sh.remove_path(base_path.clone())?;
     sh.create_dir(base_path)?;
 
-    let builders_path = relative_path(format!(
-        "quickgpu/src/{}/builders/",
-        version.wgpu_version_mod()
-    ));
+    let builders_path = relative_path(format!("quickgpu/src/{}/builders/", version.version_mod()));
     let sh = Shell::new()?;
     sh.create_dir(builders_path)?;
 
@@ -227,11 +231,9 @@ pub(crate) fn generate(version: Version) -> anyhow::Result<()> {
         "
         );
 
-        let output_path = relative_path(format!(
-            "quickgpu/src/{}/builders/",
-            version.wgpu_version_mod()
-        ))
-        .join(format!("{}.rs", name));
+        let output_path =
+            relative_path(format!("quickgpu/src/{}/builders/", version.version_mod()))
+                .join(format!("{}.rs", name));
 
         std::fs::write(output_path.clone(), combined)?;
         rustfmt(output_path)?;
@@ -250,7 +252,7 @@ pub(crate) fn generate(version: Version) -> anyhow::Result<()> {
 
     let output_path = relative_path(format!(
         "quickgpu/src/{}/builders/mod.rs",
-        version.wgpu_version_mod()
+        version.version_mod()
     ));
 
     std::fs::write(output_path.clone(), builder_mods)?;
@@ -260,7 +262,7 @@ pub(crate) fn generate(version: Version) -> anyhow::Result<()> {
 
     let output_path = relative_path(format!(
         "quickgpu/src/{}/create_binds.rs",
-        version.wgpu_version_mod()
+        version.version_mod()
     ));
 
     std::fs::write(output_path.clone(), create_binds)?;
@@ -285,10 +287,7 @@ pub(crate) fn generate(version: Version) -> anyhow::Result<()> {
 "#
     );
 
-    let output_path = relative_path(format!(
-        "quickgpu/src/{}/mod.rs",
-        version.wgpu_version_mod()
-    ));
+    let output_path = relative_path(format!("quickgpu/src/{}/mod.rs", version.version_mod()));
 
     std::fs::write(output_path.clone(), mod_src)?;
     rustfmt(output_path)?;

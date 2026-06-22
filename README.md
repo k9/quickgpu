@@ -1,9 +1,3 @@
-### 🚧 Warning this library is not ready for production use 🚧
-
-Bugs need to be fixed, and the API could change
-a lot in the coming weeks.
-Any feedback is appreciated!
-
 # Overview
 
 `quickgpu` wraps the `wgpu` API
@@ -27,9 +21,9 @@ take a look at [/example/src/scene.rs](https://github.com/k9/quickgpu/blob/main/
 Published crates:
 
 - [/quickgpu](https://github.com/k9/quickgpu/blob/main/quickgpu)
-  Supports wgpu 28
-- [/quickgpu27](https://github.com/k9/quickgpu/blob/main/quickgpu27)
-  Supports wgpu 27
+  Enable the appropriate feature,
+  such as `v29`,
+  to enable the API matching `wgpu` v29
 
 Internal / example crates:
   
@@ -37,37 +31,31 @@ Internal / example crates:
   An example of using quickgpu
   in an app.
 - [/bunnymark](https://github.com/k9/quickgpu/blob/main/bunnymark)
-  Quick port of wgpu bunnymark
+  Port of wgpu bunnymark
   to make sure performance is comparable.
 - [/xtask](https://github.com/k9/quickgpu/blob/main/xtask)
   Code which generates
-  he quickgpu bindings
+  `bon` builders by analyzing wgpu
   using `syn` and other tools.
   Also includes scripts
-  or building and releasing new code.
+  for building and releasing new code.
 - [/discover_exports](https://github.com/k9/quickgpu/blob/main/discover_exports)
   An experimental library
-  or helping to resolve exports from a crate,
+  for helping to resolve exports from a crate,
   type aliases, etc, to help with code generation.
   `discover_exports` isn't a general solution,
   it only has the features needed for this project.
-  Lots of assumptions,
-  unnecessary use of `clone`,
-  and inefficient algrorithms.
-  However, this crate is not a user-facing part
+  Note that this crate is not a user-facing part
   of `quickgpu`, it just helps generates the bindings.
 
 ### Tech Decisions
 
 - **All structs** `quickgpu`'s goal is that for any `wgpu` struct `SomeStruct`, as long at doesn't contain private fields, you can use a builder by typing `some_struct()`. This means even structs with zero or one fields have builders. This way developers don't have to memorize which structs have builders.
-- **Custom builders** For most of quickgpu's development, quickgpu used the excellent `bon` to generate builders. However, figuring out some tricky issues involving trait bounds etc made me realize it would be quicker to write custom builders for now. I'm happy to discuss going back to using a builder library though.
-- **Nested trait** Nested builders shouldn't need to call `build()`, so all builders implement a custom `Nested` trait. This was chosen over using `Into`, so quickgpu doesn't need to worry about implications of other `Into` conversions unrelated to nested builders.
+- **Nested trait** Nested builders shouldn't need to call `build()`, so a builder which builds `SomeStruct` will implement a custom `NestedSomeStruct` trait. This was chosen over using `Into`, so quickgpu doesn't need to worry about implications of other `Into` conversions unrelated to nested builders.
 
 ### Next steps
 
-- More tests and benchmarks to ensure `quickgpu` has minimal cost over `wgpu`
-- Better code documentation
-- Add convenience methods beyond simple builders
+- Look for other simple ways to wrap `wgpu` concepts
 
 ### Building
 

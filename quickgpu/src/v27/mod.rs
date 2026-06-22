@@ -36,9 +36,6 @@ impl<S: binding_builder::IsComplete> NestedBinding for BindingBuilder<S> {
         self.build()
     }
 }
-pub fn binding_builder() -> BindingBuilder {
-    Binding::builder()
-}
 mod layout_entry {
     use super::builders::bind_group_layout_entry_builder::*;
     pub type LayoutEntryCustom = BindGroupLayoutEntryBuilder<
@@ -64,23 +61,7 @@ mod entry {
         }
     }
 }
-mod layout {
-    use super::builders::bind_group_layout_descriptor_builder::*;
-    pub fn bindings_layout(
-        bindings: &[&super::Binding],
-        device: &wgpu_27::Device,
-    ) -> wgpu_27::BindGroupLayout {
-        let entries = bindings
-            .iter()
-            .map(|b| b.layout_entry().build())
-            .collect::<Vec<_>>();
-        bind_group_layout_descriptor(None)
-            .entries(&entries)
-            .create_with(device)
-    }
-}
 pub use builders::*;
-pub use layout::bindings_layout;
 
 #[doc(inline)]
 pub use builders::backend_options;

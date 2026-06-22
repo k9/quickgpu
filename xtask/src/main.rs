@@ -49,15 +49,17 @@ pub(crate) fn versions(version_filter: Option<Version>) -> Vec<Version> {
     match version_filter {
         Some(Version::V27) => vec![Version::V27],
         Some(Version::V28) => vec![Version::V28],
-        None => vec![Version::V27, Version::V28],
+        Some(Version::V29) => vec![Version::V29],
+        None => vec![Version::V27, Version::V28, Version::V29],
     }
 }
 
 pub(crate) fn build(version_filter: Option<Version>) -> AResult<()> {
     for version in versions(version_filter) {
         generate(Some(version))?;
-        document(Some(version))?;
     }
+
+    document(version_filter)?;
     Ok(())
 }
 
@@ -69,23 +71,20 @@ pub(crate) fn generate(version_filter: Option<Version>) -> AResult<()> {
 }
 
 pub(crate) fn document(version_filter: Option<Version>) -> AResult<()> {
-    for version in versions(version_filter) {
-        let package_name = match version {
-            Version::V27 => "quickgpu27",
-            Version::V28 => "quickgpu",
-        };
+    let version_filter = version_filter.unwrap_or(Version::latest());
 
-        cmd!(
-            "cargo",
-            "+nightly",
-            "doc",
-            "-p",
-            package_name,
-            "--all-features",
-        )
-        .env("RUSTDOCFLAGS", "--cfg docsrs")
-        .run()?;
-    }
+    cmd!(
+        "cargo",
+        "+nightly",
+        "doc",
+        "-p",
+        "quickgpu",
+        "--no-deps",
+        "--features",
+        version_filter.version_mod().to_string()
+    )
+    .env("RUSTDOCFLAGS", "--cfg docsrs")
+    .run()?;
 
     Ok(())
 }

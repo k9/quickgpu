@@ -1,5 +1,5 @@
 #[macro_export]
-#[doc(hidden)]
+#[doc = r"Generate custom bind group helpers. See [top-level docs](crate#custom-bind-group-builder)."]
 macro_rules! _create_binds_v28 {
     ($binds_name:ident, $($name:ident),*) => {
         pub struct $binds_name {

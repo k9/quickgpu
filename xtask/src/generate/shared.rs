@@ -3,13 +3,13 @@ use quote::{format_ident, quote};
 
 pub(crate) fn intro(version: Version) -> String {
     let wgpu_source_ident = version.wgpu_source_ident();
-    let wgpu_version_mod = version.wgpu_version_mod();
+    let wgpu_version_mod = version.version_mod();
 
     format!(
         r#"
 <!-- intro that gets used in README and in crate docs -->
 
-`quickgpu` wraps the [wgpu] API allowing users to write shorter, clearer code.
+`quickgpu` wraps the `wgpu` API allowing users to write shorter, clearer code.
 It consists of builders for wgpu structs. As a wrapper library, quickgpu doesn't
 manage or own any state after a builder is done building. There's no need to convert
 all of your code to quickgpu, you can just use it where it's helpful.
@@ -24,13 +24,12 @@ Even structs with zero or one fields have builders.
 These are not particularly useful, but are included
 so that developers don't have to memorize which structs have builders.
 
-# WGPU Versions
+# WGPU versions
 
-There are different quickgpu crates for different wgpu major versions:
-
-- `quickgpu` supports `wgpu` version 28
-- `quickgpu27` supports `wgpu` version 27
-
+Support for each version of `wgpu` can be enabled by enabling its feature,
+for example `v29`. The API will then be available in the `v29` mod of `quickgpu`.
+To keep things simple, this documentation is built with just one version enabled.
+To get docs for a different version, you can run `cargo doc` locally.
 
 # Using builders
 
@@ -44,7 +43,22 @@ function (see the `render_pipeline_descriptor` call in the example below).
 
 If a builder field setter accepts a single value of a type which also has a builder, you
 can nest builders, and skip calling `build()` on the inner builder. In order to skip
-calling `build()` on the elements of a slice, use the `builders` helper function.
+calling `build()` on the elements of a slice, use the `arr!` macro.
+
+# Custom bind group builder
+
+The `create_binds` macro creates custom builders to manage your bind groups.
+For example, calling `create_binds!(MyBinds, texture, sampler)` will generate
+a `MyBinds` struct with:
+  - a `builder` function to help you build a MyBinds instance. Set up the
+`texture` and `sampler` binds, then call `build()`
+  - a `layout` function which returns a BindGroupLayout
+  - a `group` which returns a custom BindGroup builder. Fill in resources
+    for each bind, then call `create`.
+
+See `bunnymark/src/scene.rs` for examples of using `create_binds`.
+
+# Example
 
  ```
 # use {wgpu_source_ident}::*;
@@ -91,7 +105,7 @@ let render_pipeline = render_pipeline_descriptor(Some("Render Pipeline"))
 
 pub(crate) fn custom(version: Version) -> String {
     let wgpu_source_ident = version.wgpu_source_ident();
-    let wgpu_version_mod = version.wgpu_version_mod();
+    let wgpu_version_mod = version.version_mod();
     let binds_macro = format_ident!("_create_binds_{}", wgpu_version_mod);
     let arr_macro = format_ident!("_arr_{}", wgpu_version_mod);
     let arr_option_macro = format_ident!("_arr_option_{}", wgpu_version_mod);
@@ -147,10 +161,6 @@ pub(crate) fn custom(version: Version) -> String {
             }
         }
 
-        pub fn binding_builder() -> BindingBuilder {
-            Binding::builder()
-        }
-
         mod layout_entry {
             use super::builders::bind_group_layout_entry_builder::*;
 
@@ -181,26 +191,6 @@ pub(crate) fn custom(version: Version) -> String {
             }
         }
 
-        mod layout {
-            use super::builders::bind_group_layout_descriptor_builder::*;
-
-            pub fn bindings_layout(
-                bindings: &[&super::Binding],
-                device: &#wgpu_source_ident::Device
-            ) -> #wgpu_source_ident::BindGroupLayout {
-                let entries = bindings
-                    .iter()
-                    .map(|b| b.layout_entry().build())
-                    .collect::<Vec<_>>();
-
-                bind_group_layout_descriptor(None)
-                    .entries(&entries)
-                    .create_with(device)
-            }
-        }
-
-        pub use layout::bindings_layout;
-
         pub use builders::*;
     )
     .to_string()
@@ -208,12 +198,12 @@ pub(crate) fn custom(version: Version) -> String {
 
 pub(crate) fn create_binds_macro(version: Version) -> String {
     let wgpu_source = format!("quickgpu::{}", version.wgpu_source());
-    let wgpu_version_mod = version.wgpu_version_mod();
+    let wgpu_version_mod = version.version_mod();
 
     format!(
         "
 #[macro_export]
-#[doc(hidden)]
+#[doc = r\"Generate custom bind group helpers. See [top-level docs](crate#custom-bind-group-builder).\"]
 macro_rules! _create_binds_{wgpu_version_mod} {{
     ($binds_name:ident, $($name:ident),*) => {{
         pub struct $binds_name {{
