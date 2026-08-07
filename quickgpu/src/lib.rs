@@ -1,5 +1,7 @@
 #![doc=include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/INTRO.md"))]
 
+pub use bon;
+
 // wgpu 29 needs this to be referenced
 extern crate alloc;
 

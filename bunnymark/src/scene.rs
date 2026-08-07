@@ -1,6 +1,6 @@
 use bytemuck::{Pod, Zeroable};
 use nanorand::{Rng, WyRand};
-use quickgpu::v28::*;
+use quickgpu::v29::*;
 use wgpu::*;
 
 use crate::app::RenderTextures;
@@ -148,7 +148,10 @@ impl Scene {
         let local_bind_group_layout = local_binds.layout(device);
 
         let pipeline_layout = pipeline_layout_descriptor(None)
-            .bind_group_layouts(&[&global_bind_group_layout, &local_bind_group_layout])
+            .bind_group_layouts(&[
+                Some(&global_bind_group_layout),
+                Some(&local_bind_group_layout),
+            ])
             .create_with(device);
 
         let pipeline = render_pipeline_descriptor(None)

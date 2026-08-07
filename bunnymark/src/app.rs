@@ -1,9 +1,12 @@
-use quickgpu::v28::{
+use quickgpu::v29::{
     device_descriptor, extent3d, request_adapter_options, texture_descriptor,
     texture_view_descriptor,
 };
 use std::sync::Arc;
-use wgpu::{Device, Queue, Surface, SurfaceConfiguration, TextureDimension, TextureView};
+use wgpu::{
+    CurrentSurfaceTexture, Device, Queue, Surface, SurfaceConfiguration, TextureDimension,
+    TextureView,
+};
 use winit::{dpi::PhysicalSize, window::Window};
 
 #[allow(unused_imports)]
@@ -135,10 +138,13 @@ pub fn resize(app: &mut App, new_size: PhysicalSize<u32>) {
 }
 
 pub fn redraw(app: &mut App) {
-    let frame = app
-        .surface
-        .get_current_texture()
-        .expect("Failed to acquire next swap chain texture");
+    let frame = match app.surface.get_current_texture() {
+        CurrentSurfaceTexture::Success(frame) => frame,
+        CurrentSurfaceTexture::Occluded => return,
+        other => {
+            panic!("Failed to acquire next swap chain texture: {:?}", other);
+        }
+    };
 
     let surface_view = frame.texture.create_view(&wgpu::TextureViewDescriptor {
         format: Some(app.surface_config.view_formats[0]),

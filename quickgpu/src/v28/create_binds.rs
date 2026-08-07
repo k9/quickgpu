@@ -6,7 +6,7 @@ macro_rules! _create_binds_v28 {
             $(pub $name: Binding),+
         }
 
-        #[bon::bon]
+        #[::quickgpu::bon::bon(crate = ::quickgpu::bon)]
         impl $binds_name {
             #[builder]
             pub fn new(
